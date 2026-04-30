@@ -1,0 +1,39 @@
+# Git Ignore para Sistema REM PHP
+
+# Archivos de configuración sensibles
+config/database.php
+
+# Directorio de uploads
+uploads/*
+!uploads/.gitkeep
+
+# Logs
+*.log
+logs/
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDEs
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Dependencias de Composer (si se usa en el futuro)
+/vendor/
+
+# Archivos temporales
+*.tmp
+*.temp
+*.cache
+
+# Archivos de sesión PHP
+/tmp/
+
+# Archivos de backup
+*.bak
+*.backup
+*~
