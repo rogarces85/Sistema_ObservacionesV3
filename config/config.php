@@ -4,13 +4,35 @@
  * Sistema de Observaciones REM - Servicio de Salud Osorno
  */
 
-// Configuración de la base de datos
-define('DB_HOST', '10.8.152.199');
-define('DB_PORT', '3306');
-define('DB_NAME', 'observaciones_rem');
-define('DB_USER', 'root');
-define('DB_PASS', 'estadi2021');
-define('DB_CHARSET', 'utf8mb4');
+define('ENVIRONMENT', 'development'); // 'production' o 'development'
+
+$dbConfig = [
+    'production' => [
+        'host' => '10.8.152.199',
+        'port' => '3306',
+        'name' => 'observaciones_rem',
+        'user' => 'root',
+        'pass' => '',
+        'charset' => 'utf8mb4'
+    ],
+    'development' => [
+        'host' => 'localhost',
+        'port' => '3306',
+        'name' => 'observaciones_rem',
+        'user' => 'root',
+        'pass' => '',
+        'charset' => 'utf8mb4'
+    ]
+];
+
+$config = $dbConfig[ENVIRONMENT];
+
+define('DB_HOST', $config['host']);
+define('DB_PORT', $config['port']);
+define('DB_NAME', $config['name']);
+define('DB_USER', $config['user']);
+define('DB_PASS', $config['pass']);
+define('DB_CHARSET', $config['charset']);
 
 // Rutas del sistema
 define('BASE_PATH', dirname(__DIR__));
