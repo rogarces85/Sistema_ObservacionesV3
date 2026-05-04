@@ -80,12 +80,71 @@ try {
             ]);
             break;
 
+        case 'cancel':
+            // Validar CSRF
+            CSRF::validateRequest();
+
+            // Cancelar observación(es)
+            $data = json_decode(file_get_contents('php://input'), true);
+
+            if (empty($data['id'])) {
+                throw new Exception('ID de observación requerido');
+            }
+
+            $ids = is_array($data['id']) ? $data['id'] : [$data['id']];
+            $comment = $data['comment'] ?? 'Observación cancelada por supervisor';
+
+            if (count($ids) === 1) {
+                $result = $obsModel->updateStatus($ids[0], ESTADO_RECHAZADO, $_SESSION['user_id'], $comment);
+
+                if ($result) {
+                    echo json_encode([
+                        'success' => true,
+                        'message' => 'Observación cancelada correctamente'
+                    ]);
+                } else {
+                    throw new Exception('Error al cancelar la observación');
+                }
+            } else {
+                // Operación masiva
+                $count = $obsModel->bulkUpdateStatus($ids, ESTADO_RECHAZADO, $_SESSION['user_id'], $comment);
+
+                echo json_encode([
+                    'success' => true,
+                    'message' => "Se cancelaron {$count} observaciones correctamente",
+                    'count' => $count
+                ]);
+            }
+            break;
+
         case 'delete':
-            // Acción no permitida para supervisores
-            http_response_code(403);
+            // Validar CSRF
+            CSRF::validateRequest();
+
+            // Eliminar observación(es) - mover a papelera
+            require_once '../models/DeletedObservation.php';
+            $deletedModel = new DeletedObservation();
+            
+            $data = json_decode(file_get_contents('php://input'), true);
+
+            if (empty($data['id'])) {
+                throw new Exception('ID de observación requerido');
+            }
+
+            $ids = is_array($data['id']) ? $data['id'] : [$data['id']];
+            $reason = $data['reason'] ?? 'Eliminado por supervisor';
+
+            $successCount = 0;
+            foreach ($ids as $id) {
+                if ($deletedModel->moveToTrash($id, $_SESSION['user_id'], $reason)) {
+                    $successCount++;
+                }
+            }
+
             echo json_encode([
-                'success' => false,
-                'message' => 'Acción no permitida. Los supervisores solo pueden aprobar observaciones.'
+                'success' => true,
+                'message' => "{$successCount} observación(es) eliminada(s) correctamente",
+                'count' => $successCount
             ]);
             break;
 

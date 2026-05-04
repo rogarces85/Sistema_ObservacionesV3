@@ -15,7 +15,7 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
 
 // Usuario autenticado - mostrar la aplicación
 $page = $_GET['page'] ?? 'dashboard';
-$allowedPages = ['dashboard', 'observaciones', 'supervision', 'reportes', 'usuarios', 'perfil'];
+$allowedPages = ['dashboard', 'observaciones', 'supervision', 'reportes', 'usuarios', 'perfil', 'asignaciones', 'eliminadas'];
 
 // Validar que la página existe
 if (!in_array($page, $allowedPages)) {
@@ -29,6 +29,12 @@ if ($page === 'supervision' && $userRole !== ROL_SUPERVISOR) {
 }
 if ($page === 'usuarios' && $userRole !== ROL_SUPERVISOR) {
     $page = 'dashboard'; // Solo supervisores pueden gestionar usuarios
+}
+if ($page === 'asignaciones' && $userRole !== ROL_SUPERVISOR) {
+    $page = 'dashboard'; // Solo supervisores pueden gestionar asignaciones
+}
+if ($page === 'eliminadas' && $userRole !== ROL_SUPERVISOR) {
+    $page = 'dashboard'; // Solo supervisores pueden ver eliminadas
 }
 
 // Incluir header

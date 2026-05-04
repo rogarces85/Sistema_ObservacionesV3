@@ -26,8 +26,9 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
 }
 
 $method = $_SERVER['REQUEST_METHOD'];
-$type = $_GET['type'] ?? '';
-$comunaId = $_GET['comunaId'] ?? null;
+$type = $_GET['type'] ?? $_GET['action'] ?? '';
+$comunaId = $_GET['comunaId'] ?? $_GET['comuna_id'] ?? null;
+$comunaNombre = $_GET['comuna_nombre'] ?? null;
 
 try {
     $locationModel = new Location();
@@ -42,6 +43,13 @@ try {
             case 'establecimientos':
                 if ($comunaId) {
                     $establecimientos = $locationModel->getEstablecimientosByComuna($comunaId);
+                } elseif ($comunaNombre) {
+                    $comuna = $locationModel->getComunaByNombre($comunaNombre);
+                    if ($comuna) {
+                        $establecimientos = $locationModel->getEstablecimientosByComuna($comuna['id']);
+                    } else {
+                        $establecimientos = [];
+                    }
                 } else {
                     $establecimientos = $locationModel->getAllEstablecimientos();
                 }

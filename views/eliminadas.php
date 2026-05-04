@@ -1,8 +1,7 @@
 <?php
 /**
- * Vista de Supervisión
- * Panel completo para aprobar, rechazar y gestionar observaciones
- * Solo accesible para supervisores
+ * Vista de Observaciones Eliminadas
+ * Papelera de reciclaje - Solo accesible para supervisores
  */
 
 if ($_SESSION['rol'] !== ROL_SUPERVISOR) {
@@ -10,16 +9,13 @@ if ($_SESSION['rol'] !== ROL_SUPERVISOR) {
     return;
 }
 
-require_once 'models/Observation.php';
 require_once 'models/User.php';
 require_once 'models/Location.php';
 
-$obsModel = new Observation();
 $userModel = new User();
 $locationModel = new Location();
 $currentYear = $_SESSION['year'] ?? date('Y');
 
-// Obtener datos para filtros
 $registradores = $userModel->getByRole(ROL_REGISTRADOR);
 $comunas = $locationModel->getComunas();
 ?>
@@ -28,41 +24,31 @@ $comunas = $locationModel->getComunas();
     <!-- Header -->
     <div class="flex items-center justify-between">
         <div>
-            <h2 class="text-2xl font-bold text-slate-800">Panel de Supervisión</h2>
-            <p class="text-slate-600">Revise y gestione las observaciones registradas</p>
+            <h2 class="text-2xl font-bold text-slate-800">Observaciones Eliminadas</h2>
+            <p class="text-slate-600">Papelera de reciclaje - Restaurar o eliminar permanentemente</p>
         </div>
         <div class="flex gap-3 items-center">
             <span id="selectedCount" class="text-sm text-slate-500 hidden">
-                <span class="font-medium text-primary-600">0</span> seleccionadas
+                <span class="font-medium text-sky-600">0</span> seleccionadas
             </span>
-            <button id="btnApproveSelected" class="btn btn-primary" disabled>
-                ✓ Aprobar
+            <button id="btnRestoreSelected" class="btn btn-primary" disabled>
+                ♻️ Restaurar
             </button>
-            <button id="btnCancelSelected" class="btn btn-secondary" disabled style="background-color: #f59e0b; color: white;">
-                ⏸ Cancelar
-            </button>
-            <button id="btnDeleteSelected" class="btn btn-secondary" disabled style="background-color: #ef4444; color: white;">
-                🗑 Eliminar
+            <button id="btnDeletePermanentSelected" class="btn btn-secondary" disabled style="background-color: #ef4444; color: white;">
+                🗑 Eliminar Permanentemente
             </button>
         </div>
+    </div>
+
+    <!-- Estadísticas rápidas -->
+    <div id="statsContainer" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <!-- Se llena dinámicamente -->
     </div>
 
     <!-- Filtros -->
     <div class="card p-6">
         <h3 class="text-lg font-bold text-slate-800 mb-4">🔍 Filtros</h3>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div>
-                <label class="form-label">Estado</label>
-                <select id="filterEstado" class="form-select">
-                    <option value="">Todos</option>
-                    <option value="<?php echo ESTADO_PENDIENTE; ?>">Pendiente</option>
-                    <option value="<?php echo ESTADO_APROBADO; ?>">Aprobado</option>
-                    <option value="<?php echo ESTADO_RECHAZADO; ?>">Rechazado</option>
-                    <option value="<?php echo ESTADO_ERROR; ?>">Error</option>
-                    <option value="<?php echo ESTADO_JUSTIFICADO; ?>">Justificado</option>
-                </select>
-            </div>
-
             <div>
                 <label class="form-label">Mes</label>
                 <select id="filterMes" class="form-select">
@@ -87,7 +73,7 @@ $comunas = $locationModel->getComunas();
                 <select id="filterComuna" class="form-select">
                     <option value="">Todas</option>
                     <?php foreach ($comunas as $comuna): ?>
-                        <option value="<?php echo $comuna['id']; ?>">
+                        <option value="<?php echo htmlspecialchars($comuna['nombre']); ?>">
                             <?php echo htmlspecialchars($comuna['nombre']); ?>
                         </option>
                     <?php endforeach; ?>
@@ -118,7 +104,7 @@ $comunas = $locationModel->getComunas();
                 <input type="text" id="filterBusqueda" class="form-input" placeholder="Buscar en detalles..." />
             </div>
 
-            <div class="lg:col-span-2 flex items-end gap-3">
+            <div class="lg:col-span-3 flex items-end gap-3">
                 <button id="btnApplyFilters" class="btn btn-primary">
                     Aplicar Filtros
                 </button>
@@ -129,11 +115,11 @@ $comunas = $locationModel->getComunas();
         </div>
     </div>
 
-    <!-- Tabla de Observaciones -->
+    <!-- Tabla de Observaciones Eliminadas -->
     <div class="card p-6">
         <div class="flex items-center justify-between mb-4">
             <h3 class="text-lg font-bold text-slate-800">
-                Observaciones <span id="obsCount" class="text-slate-500"></span>
+                Observaciones Eliminadas <span id="obsCount" class="text-slate-500"></span>
             </h3>
             <div class="flex items-center gap-2">
                 <input type="checkbox" id="selectAll" class="form-checkbox">
@@ -142,8 +128,8 @@ $comunas = $locationModel->getComunas();
         </div>
 
         <div id="loadingIndicator" class="text-center py-8 text-slate-500">
-            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-            <p class="mt-2">Cargando observaciones...</p>
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-sky-500"></div>
+            <p class="mt-2">Cargando observaciones eliminadas...</p>
         </div>
 
         <div id="observationsTable" class="hidden overflow-x-auto">
@@ -151,13 +137,14 @@ $comunas = $locationModel->getComunas();
                 <thead>
                     <tr>
                         <th class="w-12"></th>
-                        <th>ID</th>
-                        <th>Fecha</th>
+                        <th>ID Original</th>
+                        <th>Fecha Eliminación</th>
                         <th>Establecimiento</th>
                         <th>Mes</th>
                         <th>Tipo Error</th>
-                        <th>Estado</th>
+                        <th>Estado Original</th>
                         <th>Registrador</th>
+                        <th>Motivo</th>
                         <th class="text-right">Acciones</th>
                     </tr>
                 </thead>
@@ -168,20 +155,7 @@ $comunas = $locationModel->getComunas();
         </div>
 
         <div id="emptyState" class="hidden text-center py-8 text-slate-500">
-            <p>📋 No se encontraron observaciones con los filtros aplicados.</p>
-        </div>
-    </div>
-</div>
-
-<!-- Modal de Detalle -->
-<div id="detailModal" class="modal hidden">
-    <div class="modal-content max-w-4xl">
-        <div class="modal-header">
-            <h3 class="text-xl font-bold">Detalle de Observación</h3>
-            <button class="modal-close" onclick="closeDetailModal()">&times;</button>
-        </div>
-        <div class="modal-body" id="detailContent">
-            <!-- Se llenará dinámicamente -->
+            <p>📋 No hay observaciones eliminadas.</p>
         </div>
     </div>
 </div>
@@ -211,30 +185,18 @@ $comunas = $locationModel->getComunas();
     let currentObservations = [];
     let selectedIds = [];
 
-    // Cargar observaciones al cargar la página
     document.addEventListener('DOMContentLoaded', function () {
         loadObservations();
+        loadStats();
         setupEventListeners();
     });
 
     function setupEventListeners() {
-        // Filtros
         document.getElementById('btnApplyFilters').addEventListener('click', loadObservations);
         document.getElementById('btnClearFilters').addEventListener('click', clearFilters);
-
-        // Seleccionar todas
         document.getElementById('selectAll').addEventListener('click', toggleSelectAll);
-
-        // Botón de aprobación masiva
-        document.getElementById('btnApproveSelected').addEventListener('click', () => approveSelected());
-        
-        // Botón de cancelación masiva
-        document.getElementById('btnCancelSelected').addEventListener('click', () => cancelSelected());
-        
-        // Botón de eliminación masiva
-        document.getElementById('btnDeleteSelected').addEventListener('click', () => deleteSelected());
-
-        // Cargar establecimientos al cambiar comuna
+        document.getElementById('btnRestoreSelected').addEventListener('click', () => restoreSelected());
+        document.getElementById('btnDeletePermanentSelected').addEventListener('click', () => deletePermanentSelected());
         document.getElementById('filterComuna').addEventListener('change', loadEstablecimientos);
     }
 
@@ -249,15 +211,15 @@ $comunas = $locationModel->getComunas();
 
         const filters = {
             anio: <?php echo $currentYear; ?>,
-            estado: document.getElementById('filterEstado').value,
             mes: document.getElementById('filterMes').value,
+            comuna_nombre: document.getElementById('filterComuna').value,
             establecimiento_id: document.getElementById('filterEstablecimiento').value,
             usuario_registro_id: document.getElementById('filterRegistrador').value,
             busqueda: document.getElementById('filterBusqueda').value
         };
 
         try {
-            const response = await fetch('api/supervision.php?action=get_filtered&' + new URLSearchParams(filters));
+            const response = await fetch('api/deleted.php?action=list&' + new URLSearchParams(filters));
             const data = await response.json();
 
             if (data.success) {
@@ -274,11 +236,63 @@ $comunas = $locationModel->getComunas();
                 throw new Error(data.message);
             }
         } catch (error) {
-            console.error('Error al cargar observaciones:', error);
-            showError('Error al cargar observaciones: ' + error.message);
+            console.error('Error al cargar observaciones eliminadas:', error);
+            showError('Error al cargar: ' + error.message);
         } finally {
             loadingIndicator.classList.add('hidden');
         }
+    }
+
+    async function loadStats() {
+        try {
+            const response = await fetch(`api/deleted.php?action=stats&anio=<?php echo $currentYear; ?>`);
+            const data = await response.json();
+
+            if (data.success) {
+                renderStats(data.data);
+            }
+        } catch (error) {
+            console.error('Error al cargar estadísticas:', error);
+        }
+    }
+
+    function renderStats(stats) {
+        const container = document.getElementById('statsContainer');
+        container.innerHTML = `
+            <div class="card p-5" style="background: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%); border-color: #fecdd3;">
+                <div class="flex items-center gap-4">
+                    <div class="p-3 rounded-xl" style="background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);">
+                        <span class="text-2xl">🗑</span>
+                    </div>
+                    <div>
+                        <div class="text-3xl font-bold text-rose-700">${stats.total}</div>
+                        <div class="text-sm font-semibold text-rose-600">Total Eliminadas</div>
+                    </div>
+                </div>
+            </div>
+            <div class="card p-5" style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border-color: #bae6fd;">
+                <div class="flex items-center gap-4">
+                    <div class="p-3 rounded-xl" style="background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);">
+                        <span class="text-2xl">♻️</span>
+                    </div>
+                    <div>
+                        <div class="text-3xl font-bold text-sky-700">Restaurar</div>
+                        <div class="text-sm font-semibold text-sky-600">Recuperar observaciones</div>
+                    </div>
+                </div>
+            </div>
+            <div class="card p-5" style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-color: #fbbf24;">
+                <div class="flex items-center gap-4">
+                    <div class="p-3 rounded-xl" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
+                        <span class="text-2xl">⚠️</span>
+                    </div>
+                    <div>
+                        <div class="text-3xl font-bold text-amber-700">Cuidado</div>
+                        <div class="text-sm font-semibold text-amber-600">Eliminación permanente</div>
+                    </div>
+                </div>
+            </div>
+        `;
     }
 
     function renderObservations(observations) {
@@ -291,57 +305,48 @@ $comunas = $locationModel->getComunas();
             <td>
                 <input type="checkbox" class="form-checkbox obs-checkbox" value="${obs.id}">
             </td>
-            <td>#${obs.id}</td>
-            <td>${formatDate(obs.fecha_registro)}</td>
+            <td>#${obs.observacion_id}</td>
+            <td>${formatDate(obs.fecha_eliminacion)}</td>
             <td>
-                <div class="font-medium">${escapeHtml(obs.nombre_corto)}</div>
+                <div class="font-medium">${escapeHtml(obs.establecimiento_nombre_corto)}</div>
                 <div class="text-xs text-slate-500">${escapeHtml(obs.comuna)}</div>
             </td>
             <td>${escapeHtml(obs.mes)}</td>
             <td><span class="text-xs">${escapeHtml(obs.tipo_error)}</span></td>
             <td>${getEstadoBadge(obs.estado_actual)}</td>
             <td class="text-sm">${escapeHtml(obs.nombre_registro)}</td>
+            <td class="text-xs max-w-xs truncate" title="${escapeHtml(obs.motivo_eliminacion)}">
+                ${escapeHtml(obs.motivo_eliminacion) || '-'}
+            </td>
             <td class="text-right">
                 <div class="flex justify-end gap-2">
-                    <button class="btn-icon" onclick="viewDetail(${obs.id})" title="Ver Detalle">
-                        👁️
+                    <button class="btn-icon text-sky-600" onclick="restoreSingle(${obs.id})" title="Restaurar">
+                        ♻️
                     </button>
-                    ${obs.estado_actual === '<?php echo ESTADO_PENDIENTE; ?>' ? `
-                        <button class="btn-icon text-green-600" onclick="approveSingle(${obs.id})" title="Aprobar">
-                            ✓
-                        </button>
-                        <button class="btn-icon text-amber-600" onclick="cancelSingle(${obs.id})" title="Cancelar">
-                            ⏸
-                        </button>
-                        <button class="btn-icon text-rose-600" onclick="deleteSingle(${obs.id})" title="Eliminar">
-                            🗑
-                        </button>
-                    ` : ''}
+                    <button class="btn-icon text-rose-600" onclick="deletePermanentSingle(${obs.id})" title="Eliminar permanentemente">
+                        🗑
+                    </button>
                 </div>
             </td>
         `;
             tbody.appendChild(tr);
         });
 
-        // Actualizar listeners de checkboxes
         document.querySelectorAll('.obs-checkbox').forEach(cb => {
             cb.addEventListener('change', updateSelectedIds);
         });
     }
 
     function updateSelectedIds() {
-        selectedIds = Array.from(document.querySelectorAll('.obs-checkbox:checked')).map(cb => cb.value);
-        const btnApprove = document.getElementById('btnApproveSelected');
-        const btnCancel = document.getElementById('btnCancelSelected');
-        const btnDelete = document.getElementById('btnDeleteSelected');
+        selectedIds = Array.from(document.querySelectorAll('.obs-checkbox:checked')).map(cb => parseInt(cb.value));
+        const btnRestore = document.getElementById('btnRestoreSelected');
+        const btnDelete = document.getElementById('btnDeletePermanentSelected');
         const countDisplay = document.getElementById('selectedCount');
 
         const hasSelection = selectedIds.length > 0;
-        btnApprove.disabled = !hasSelection;
-        btnCancel.disabled = !hasSelection;
+        btnRestore.disabled = !hasSelection;
         btnDelete.disabled = !hasSelection;
 
-        // Mostrar/ocultar contador de seleccionadas
         if (hasSelection) {
             countDisplay.classList.remove('hidden');
             countDisplay.querySelector('.font-medium').textContent = selectedIds.length;
@@ -358,102 +363,24 @@ $comunas = $locationModel->getComunas();
         updateSelectedIds();
     }
 
-    async function viewDetail(id) {
-        try {
-            const response = await fetch(`api/supervision.php?action=get_detail&id=${id}`);
-            const data = await response.json();
-
-            if (data.success) {
-                showDetailModal(data.data, data.historial);
-            } else {
-                throw new Error(data.message);
-            }
-        } catch (error) {
-            showError('Error al cargar detalle: ' + error.message);
-        }
+    function restoreSingle(id) {
+        performAction('restore', [id], '¿Restaurar esta observación? Volverá a la tabla principal.', 'Restaurar Observación');
     }
 
-    function showDetailModal(obs, historial) {
-        const content = document.getElementById('detailContent');
-        content.innerHTML = `
-        <div class="grid grid-cols-2 gap-4 mb-6">
-            <div>
-                <p class="text-sm text-slate-600">Establecimiento</p>
-                <p class="font-bold">${escapeHtml(obs.establecimiento)}</p>
-            </div>
-            <div>
-                <p class="text-sm text-slate-600">Estado</p>
-                <p>${getEstadoBadge(obs.estado_actual)}</p>
-            </div>
-            <div>
-                <p class="text-sm text-slate-600">Año/Mes</p>
-                <p>${obs.anio} - ${escapeHtml(obs.mes)}</p>
-            </div>
-            <div>
-                <p class="text-sm text-slate-600">Registrador</p>
-                <p>${escapeHtml(obs.nombre_registro)}</p>
-            </div>
-            <div class="col-span-2">
-                <p class="text-sm text-slate-600">Tipo de Error</p>
-                <p>${escapeHtml(obs.tipo_error)}</p>
-            </div>
-            <div class="col-span-2">
-                <p class="text-sm text-slate-600">Detalle de Observación</p>
-                <p class="whitespace-pre-wrap">${escapeHtml(obs.detalle_observacion)}</p>
-            </div>
-        </div>
-        
-        <h4 class="font-bold mb-3">Historial de Cambios</h4>
-        <div class="space-y-2">
-            ${historial.map(h => `
-                <div class="p-3 bg-slate-50 rounded border border-slate-200">
-                    <div class="flex justify-between text-sm">
-                        <span class="font-medium">${escapeHtml(h.usuario_nombre)}</span>
-                        <span class="text-slate-500">${formatDate(h.fecha_cambio)}</span>
-                    </div>
-                    <p class="text-sm mt-1">
-                        ${h.estado_anterior ? escapeHtml(h.estado_anterior) : '<em>inicial</em>'} 
-                        → <strong>${escapeHtml(h.estado_nuevo)}</strong>
-                    </p>
-                    ${h.comentario ? `<p class="text-sm text-slate-600 mt-1">${escapeHtml(h.comentario)}</p>` : ''}
-                </div>
-            `).join('')}
-        </div>
-    `;
-
-        document.getElementById('detailModal').classList.remove('hidden');
+    function restoreSelected() {
+        performAction('restore_multiple', selectedIds, `¿Restaurar ${selectedIds.length} observaciones seleccionadas?`, 'Restaurar Observaciones');
     }
 
-    function closeDetailModal() {
-        document.getElementById('detailModal').classList.add('hidden');
+    function deletePermanentSingle(id) {
+        performAction('permanent_delete', [id], '¿Eliminar permanentemente esta observación? Esta acción no se puede deshacer.', 'Eliminar Permanentemente');
     }
 
-    function approveSingle(id) {
-        performAction('approve', [id], '¿Aprobar esta observación?');
+    function deletePermanentSelected() {
+        performAction('permanent_delete_multiple', selectedIds, `¿Eliminar permanentemente ${selectedIds.length} observaciones? Esta acción no se puede deshacer.`, 'Eliminar Permanentemente');
     }
 
-    function approveSelected() {
-        performAction('approve', selectedIds, `¿Aprobar ${selectedIds.length} observaciones seleccionadas?`);
-    }
-
-    function cancelSingle(id) {
-        performAction('cancel', [id], '¿Cancelar esta observación?', 'Cancelar Observación');
-    }
-
-    function cancelSelected() {
-        performAction('cancel', selectedIds, `¿Cancelar ${selectedIds.length} observaciones seleccionadas?`, 'Cancelar Observaciones');
-    }
-
-    function deleteSingle(id) {
-        performAction('delete', [id], '¿Eliminar esta observación? Se moverá a la papelera de reciclaje.', 'Eliminar Observación');
-    }
-
-    function deleteSelected() {
-        performAction('delete', selectedIds, `¿Eliminar ${selectedIds.length} observaciones seleccionadas? Se moverán a la papelera de reciclaje.`, 'Eliminar Observaciones');
-    }
-
-    function performAction(action, ids, message, title = null) {
-        document.getElementById('confirmTitle').textContent = title || (ids.length > 1 ? 'Aprobar Observaciones' : 'Aprobar Observación');
+    function performAction(action, ids, message, title) {
+        document.getElementById('confirmTitle').textContent = title;
         document.getElementById('confirmMessage').textContent = message;
         document.getElementById('confirmComment').value = '';
         document.getElementById('confirmModal').classList.remove('hidden');
@@ -467,37 +394,36 @@ $comunas = $locationModel->getComunas();
 
     async function executeAction(action, ids, comment) {
         try {
+            showLoading();
+
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
-            
-            const response = await fetch(`api/supervision.php?action=${action}`, {
+            const payload = action.includes('multiple') ? 
+                { action, deleted_ids: ids, comment } : 
+                { action, deleted_id: ids[0], comment };
+
+            const response = await fetch('api/deleted.php', {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
                     'X-CSRF-TOKEN': csrfToken
                 },
-                body: JSON.stringify({
-                    id: ids.length === 1 ? ids[0] : ids,
-                    comment: comment || undefined,
-                    reason: comment || undefined
-                })
+                body: JSON.stringify(payload)
             });
 
             const data = await response.json();
+            hideLoading();
 
             if (data.success) {
-                const actionTexts = {
-                    'approve': 'Observación(es) aprobada(s) correctamente',
-                    'cancel': 'Observación(es) cancelada(s) correctamente',
-                    'delete': 'Observación(es) eliminada(s) correctamente'
-                };
-                showSuccess(actionTexts[action] || data.message);
+                showSuccess(data.message);
                 loadObservations();
+                loadStats();
                 selectedIds = [];
                 document.getElementById('selectAll').checked = false;
             } else {
                 throw new Error(data.message);
             }
         } catch (error) {
+            hideLoading();
             showError('Error: ' + error.message);
         }
     }
@@ -507,7 +433,6 @@ $comunas = $locationModel->getComunas();
     }
 
     function clearFilters() {
-        document.getElementById('filterEstado').value = '';
         document.getElementById('filterMes').value = '';
         document.getElementById('filterComuna').value = '';
         document.getElementById('filterEstablecimiento').value = '';
@@ -517,15 +442,15 @@ $comunas = $locationModel->getComunas();
     }
 
     async function loadEstablecimientos() {
-        const comunaId = document.getElementById('filterComuna').value;
+        const comunaNombre = document.getElementById('filterComuna').value;
         const select = document.getElementById('filterEstablecimiento');
 
         select.innerHTML = '<option value="">Todos</option>';
-        select.disabled = !comunaId;
+        select.disabled = !comunaNombre;
 
-        if (comunaId) {
+        if (comunaNombre) {
             try {
-                const response = await fetch(`api/locations.php?action=get_establecimientos&comuna_id=${comunaId}`);
+                const response = await fetch(`api/locations.php?action=get_establecimientos&comuna_nombre=${encodeURIComponent(comunaNombre)}`);
                 const data = await response.json();
 
                 if (data.success) {
@@ -542,10 +467,9 @@ $comunas = $locationModel->getComunas();
         }
     }
 
-    // Utilidades
     function formatDate(dateStr) {
         const date = new Date(dateStr);
-        return date.toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        return date.toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
     }
 
     function escapeHtml(text) {
@@ -556,11 +480,11 @@ $comunas = $locationModel->getComunas();
 
     function getEstadoBadge(estado) {
         const badges = {
-            '<?php echo ESTADO_PENDIENTE; ?>': '<span class="badge badge-warning">Pendiente</span>',
-            '<?php echo ESTADO_APROBADO; ?>': '<span class="badge badge-success">Aprobado</span>',
-            '<?php echo ESTADO_RECHAZADO; ?>': '<span class="badge badge-danger">Rechazado</span>',
-            '<?php echo ESTADO_ERROR; ?>': '<span class="badge badge-danger">Error</span>',
-            '<?php echo ESTADO_JUSTIFICADO; ?>': '<span class="badge badge-info">Justificado</span>'
+            'pendiente': '<span class="badge badge-warning">Pendiente</span>',
+            'aprobado': '<span class="badge badge-success">Aprobado</span>',
+            'rechazado': '<span class="badge badge-danger">Rechazado</span>',
+            'error': '<span class="badge badge-danger">Error</span>',
+            'justificado': '<span class="badge badge-info">Justificado</span>'
         };
         return badges[estado] || `<span class="badge">${estado}</span>`;
     }

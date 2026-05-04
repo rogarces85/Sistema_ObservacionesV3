@@ -21,6 +21,8 @@ $pageTitles = [
     'supervision' => 'Supervisión',
     'reportes' => 'Reportes',
     'usuarios' => 'Gestión de Usuarios',
+    'asignaciones' => 'Asignación de Establecimientos',
+    'eliminadas' => 'Observaciones Eliminadas',
     'perfil' => 'Mi Perfil'
 ];
 ?>

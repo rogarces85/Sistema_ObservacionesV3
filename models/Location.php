@@ -42,6 +42,15 @@ class Location
     }
 
     /**
+     * Obtener comuna por nombre
+     */
+    public function getComunaByNombre($nombre)
+    {
+        $sql = "SELECT * FROM comunas WHERE nombre = ?";
+        return $this->db->queryOne($sql, [$nombre]);
+    }
+
+    /**
      * Obtener todos los establecimientos
      */
     public function getAllEstablecimientos()
