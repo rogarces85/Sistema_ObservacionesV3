@@ -6,10 +6,12 @@
 
 require_once 'models/Observation.php';
 require_once 'models/Location.php';
+require_once 'models/EstablecimientoAsignacion.php';
 require_once 'config/constants.php';
 
 $obsModel = new Observation();
 $locModel = new Location();
+$asigModel = new EstablecimientoAsignacion();
 $userId = $_SESSION['user_id'];
 $userRole = $_SESSION['rol'];
 $currentYear = $_SESSION['year'] ?? date('Y');
@@ -17,7 +19,19 @@ $currentYear = $_SESSION['year'] ?? date('Y');
 // Obtener datos necesarios
 $observations = $obsModel->getAll($currentYear, $userId, $userRole);
 $comunas = $locModel->getAllComunas();
-$establecimientos = $locModel->getAllEstablecimientos();
+
+// Establecimientos según rol
+$tieneAsignaciones = false;
+if ($userRole === ROL_REGISTRADOR) {
+    $tieneAsignaciones = $asigModel->tieneAsignaciones($userId, $currentYear);
+    if ($tieneAsignaciones) {
+        $establecimientos = $asigModel->getEstablecimientosByRegistrador($userId, $currentYear);
+    } else {
+        $establecimientos = [];
+    }
+} else {
+    $establecimientos = $locModel->getAllEstablecimientos();
+}
 
 global $TIPOS_ERROR, $MESES;
 ?>
@@ -30,14 +44,32 @@ global $TIPOS_ERROR, $MESES;
             <p class="text-slate-600">Gestiona y realiza seguimiento de tus registros REM</p>
         </div>
         <div class="flex gap-2">
-            <button onclick="openImportModal()" class="btn btn-secondary">
-                📥 Importar
-            </button>
-            <button onclick="openCreateModal()" class="btn btn-primary">
-                ➕ Nueva Observación
-            </button>
+            <?php if ($userRole === ROL_REGISTRADOR && !$tieneAsignaciones): ?>
+                <!-- Sin botones de acción si no tiene asignaciones -->
+            <?php else: ?>
+                <button onclick="openImportModal()" class="btn btn-secondary">
+                    📥 Importar
+                </button>
+                <button onclick="openCreateModal()" class="btn btn-primary">
+                    ➕ Nueva Observación
+                </button>
+            <?php endif; ?>
         </div>
     </div>
+
+    <?php if ($userRole === ROL_REGISTRADOR && !$tieneAsignaciones): ?>
+        <div class="p-6 rounded-xl bg-amber-50 border border-amber-200 text-center">
+            <div class="text-4xl mb-3">⚠️</div>
+            <p class="font-bold text-amber-800 text-lg">No tiene establecimientos asignados</p>
+            <p class="text-sm text-amber-700 mt-2">
+                No tiene establecimientos asignados para el año <strong><?php echo $currentYear; ?></strong>. 
+                No podrá registrar observaciones hasta que su supervisor le asigne establecimientos.
+            </p>
+            <p class="text-xs text-amber-600 mt-4">
+                Contacte a su supervisor para solicitar la asignación de establecimientos.
+            </p>
+        </div>
+    <?php endif; ?>
 
     <!-- Filtros -->
     <div class="card p-4">

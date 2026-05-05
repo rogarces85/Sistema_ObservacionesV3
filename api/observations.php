@@ -7,6 +7,7 @@
 header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../models/Observation.php';
+require_once __DIR__ . '/../models/EstablecimientoAsignacion.php';
 require_once __DIR__ . '/../includes/csrf.php';
 
 // Función para responder en JSON
@@ -109,6 +110,15 @@ try {
                 'detalle_error' => $input['detalle_error'] ?? null
             ];
 
+            // Validar que el registrador solo use establecimientos asignados
+            if ($userRole === ROL_REGISTRADOR) {
+                $asigModel = new EstablecimientoAsignacion();
+                $idsAsignados = $asigModel->getIdsAsignados($userId, $year);
+                if (!in_array((int)$data['establecimiento_id'], $idsAsignados, true)) {
+                    jsonResponse(false, null, 'El establecimiento seleccionado no está asignado a su usuario', 403);
+                }
+            }
+
             $newId = $observationModel->create($data);
 
             if ($newId) {
@@ -148,6 +158,15 @@ try {
             // Si es supervisor y está cambiando el estado, agregar su ID
             if ($userRole === ROL_SUPERVISOR && isset($input['estado_actual'])) {
                 $input['usuario_supervisor_id'] = $userId;
+            }
+
+            // Validar que el registrador solo use establecimientos asignados
+            if ($userRole === ROL_REGISTRADOR && isset($input['establecimiento_id'])) {
+                $asigModel = new EstablecimientoAsignacion();
+                $idsAsignados = $asigModel->getIdsAsignados($userId, $year);
+                if (!in_array((int)$input['establecimiento_id'], $idsAsignados, true)) {
+                    jsonResponse(false, null, 'El establecimiento seleccionado no está asignado a su usuario', 403);
+                }
             }
 
             $success = $observationModel->update($id, $input, $userId);

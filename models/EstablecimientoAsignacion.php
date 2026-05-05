@@ -55,15 +55,60 @@ class EstablecimientoAsignacion
     }
 
     /**
+     * Obtener todos los establecimientos activos con información de asignación
+     * para un año y registrador específico.
+     *
+     * Campos extra:
+     *   asignado_a_mi  (0/1)
+     *   asignado_a_usuario_id  (NULL o ID del dueño)
+     *   asignado_a_nombre      (NULL o nombre del dueño)
+     */
+    public function getEstablecimientosConAsignacion($registradorId, $anio)
+    {
+        $sql = "SELECT e.*, c.nombre as comuna_nombre,
+                       CASE WHEN ae_mi.usuario_id IS NOT NULL THEN 1 ELSE 0 END as asignado_a_mi,
+                       ae_otro.usuario_id as asignado_a_usuario_id,
+                       u.nombre_completo as asignado_a_nombre
+                FROM establecimientos e
+                INNER JOIN comunas c ON e.comuna_id = c.id
+                LEFT JOIN asignaciones_establecimientos ae_mi
+                       ON e.id = ae_mi.establecimiento_id AND ae_mi.anio = ? AND ae_mi.usuario_id = ?
+                LEFT JOIN asignaciones_establecimientos ae_otro
+                       ON e.id = ae_otro.establecimiento_id AND ae_otro.anio = ? AND ae_otro.usuario_id != ?
+                LEFT JOIN usuarios u ON ae_otro.usuario_id = u.id
+                WHERE e.activo = 1
+                ORDER BY c.nombre ASC, e.nombre ASC";
+        return $this->db->query($sql, [$anio, $registradorId, $anio, $registradorId]);
+    }
+
+    /**
+     * Verificar si un establecimiento ya está asignado a otro registrador en un año
+     */
+    private function estaAsignadoAOtro($usuarioId, $establecimientoId, $anio)
+    {
+        $sql = "SELECT usuario_id FROM asignaciones_establecimientos 
+                WHERE establecimiento_id = ? AND anio = ? AND usuario_id != ?
+                LIMIT 1";
+        $result = $this->db->queryOne($sql, [$establecimientoId, $anio, $usuarioId]);
+        return $result ? $result['usuario_id'] : false;
+    }
+
+    /**
      * Asignar un establecimiento a un registrador para un año
      */
     public function asignar($usuarioId, $establecimientoId, $anio)
     {
+        // No permitir duplicados para el mismo usuario
         $sql = "SELECT COUNT(*) as count FROM asignaciones_establecimientos 
                 WHERE usuario_id = ? AND establecimiento_id = ? AND anio = ?";
         $result = $this->db->queryOne($sql, [$usuarioId, $establecimientoId, $anio]);
         
         if ($result && $result['count'] > 0) {
+            return false;
+        }
+
+        // No permitir asignar si ya está asignado a otro registrador
+        if ($this->estaAsignadoAOtro($usuarioId, $establecimientoId, $anio)) {
             return false;
         }
 
@@ -116,20 +161,67 @@ class EstablecimientoAsignacion
     public function asignarMultiple($usuarioId, $establecimientoIds, $anio)
     {
         try {
+            $this->db->beginTransaction();
+
             $this->removerTodas($usuarioId, $anio);
             
             $sql = "INSERT INTO asignaciones_establecimientos (usuario_id, establecimiento_id, anio) 
                     VALUES (?, ?, ?)";
             
             foreach ($establecimientoIds as $establecimientoId) {
+                // Saltar si ya está asignado a otro registrador
+                if ($this->estaAsignadoAOtro($usuarioId, $establecimientoId, $anio)) {
+                    continue;
+                }
                 $this->db->execute($sql, [$usuarioId, $establecimientoId, $anio]);
             }
             
+            $this->db->commit();
             return true;
         } catch (Exception $e) {
+            $this->db->rollback();
             error_log("Error al asignar múltiples establecimientos: " . $e->getMessage());
             return false;
         }
+    }
+
+    /**
+     * Obtener IDs de establecimientos asignados a un registrador para un año
+     */
+    public function getIdsAsignados($usuarioId, $anio)
+    {
+        $sql = "SELECT establecimiento_id FROM asignaciones_establecimientos 
+                WHERE usuario_id = ? AND anio = ?";
+        $rows = $this->db->query($sql, [$usuarioId, $anio]);
+        return array_map(fn($r) => (int)$r['establecimiento_id'], $rows);
+    }
+
+    /**
+     * Verificar si un registrador tiene establecimientos asignados para un año
+     */
+    public function tieneAsignaciones($usuarioId, $anio)
+    {
+        $sql = "SELECT COUNT(*) as count FROM asignaciones_establecimientos 
+                WHERE usuario_id = ? AND anio = ?";
+        $result = $this->db->queryOne($sql, [$usuarioId, $anio]);
+        return $result && $result['count'] > 0;
+    }
+
+    /**
+     * Obtener registradores que NO tienen establecimientos asignados para un año
+     */
+    public function getRegistradoresSinAsignaciones($anio)
+    {
+        $sql = "SELECT u.id, u.username, u.nombre_completo 
+                FROM usuarios u
+                WHERE u.rol = 'registrador' AND u.activo = 1
+                  AND u.id NOT IN (
+                      SELECT DISTINCT usuario_id 
+                      FROM asignaciones_establecimientos 
+                      WHERE anio = ?
+                  )
+                ORDER BY u.nombre_completo ASC";
+        return $this->db->query($sql, [$anio]);
     }
 
     /**

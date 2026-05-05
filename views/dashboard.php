@@ -5,11 +5,23 @@
  */
 
 require_once 'models/Observation.php';
+require_once 'models/EstablecimientoAsignacion.php';
 
 $obsModel = new Observation();
+$asigModel = new EstablecimientoAsignacion();
 $userId = $_SESSION['user_id'];
 $userRole = $_SESSION['rol'];
 $currentYear = $_SESSION['year'] ?? date('Y');
+
+// Verificar asignaciones
+$tieneAsignaciones = false;
+$registradoresSinAsignaciones = [];
+
+if ($userRole === ROL_REGISTRADOR) {
+    $tieneAsignaciones = $asigModel->tieneAsignaciones($userId, $currentYear);
+} elseif ($userRole === ROL_SUPERVISOR) {
+    $registradoresSinAsignaciones = $asigModel->getRegistradoresSinAsignaciones($currentYear);
+}
 
 // Obtener estadísticas
 $stats = $obsModel->getStats($currentYear, $userId, $userRole);
@@ -69,6 +81,43 @@ $maxValue = !empty($mesesData) ? max(array_values($mesesData)) : 1;
             <?php endif; ?>
         </div>
     </div>
+
+    <!-- Alertas de asignaciones -->
+    <?php if ($userRole === ROL_REGISTRADOR && !$tieneAsignaciones): ?>
+        <div class="p-4 rounded-xl bg-amber-50 border border-amber-200 flex items-start gap-4">
+            <div class="text-2xl">⚠️</div>
+            <div class="flex-1">
+                <p class="font-bold text-amber-800">No tiene establecimientos asignados</p>
+                <p class="text-sm text-amber-700">
+                    No tiene establecimientos asignados para el año <strong><?php echo $currentYear; ?></strong>. 
+                    Contacte a su supervisor para que le asigne los establecimientos correspondientes.
+                </p>
+            </div>
+        </div>
+    <?php endif; ?>
+
+    <?php if ($userRole === ROL_SUPERVISOR && !empty($registradoresSinAsignaciones)): ?>
+        <div class="p-4 rounded-xl bg-rose-50 border border-rose-200 flex items-start gap-4">
+            <div class="text-2xl">🚨</div>
+            <div class="flex-1">
+                <p class="font-bold text-rose-800">
+                    <?php echo count($registradoresSinAsignaciones); ?> registrador(es) sin establecimientos asignados
+                </p>
+                <p class="text-sm text-rose-700 mb-2">
+                    Los siguientes registradores no tienen establecimientos asignados para el año 
+                    <strong><?php echo $currentYear; ?></strong>:
+                </p>
+                <ul class="text-sm text-rose-700 list-disc list-inside">
+                    <?php foreach ($registradoresSinAsignaciones as $reg): ?>
+                        <li><?php echo htmlspecialchars($reg['nombre_completo']); ?> (<?php echo htmlspecialchars($reg['username']); ?>)</li>
+                    <?php endforeach; ?>
+                </ul>
+                <a href="?page=asignaciones&year=<?php echo $currentYear; ?>" class="inline-block mt-2 text-sm font-semibold text-rose-800 hover:underline">
+                    → Ir a Asignación de Establecimientos
+                </a>
+            </div>
+        </div>
+    <?php endif; ?>
 
     <!-- Cards de estadísticas principales -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

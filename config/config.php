@@ -4,7 +4,7 @@
  * Sistema de Observaciones REM - Servicio de Salud Osorno
  */
 
-define('ENVIRONMENT', 'development'); // 'production' o 'development'
+define('ENVIRONMENT', 'production'); // 'production' o 'development'
 
 $dbConfig = [
     'production' => [
@@ -12,7 +12,7 @@ $dbConfig = [
         'port' => '3306',
         'name' => 'observaciones_rem',
         'user' => 'root',
-        'pass' => '',
+        'pass' => 'estadi2021',
         'charset' => 'utf8mb4'
     ],
     'development' => [

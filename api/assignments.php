@@ -48,7 +48,13 @@ try {
                 $registradores = $asignacionModel->getAllRegistradores();
                 jsonResponse(true, $registradores);
             } elseif ($action === 'establecimientos') {
-                $establecimientos = $asignacionModel->getAllEstablecimientos();
+                $registradorId = $_GET['registrador_id'] ?? null;
+                $anio = $_GET['anio'] ?? $currentYear;
+                if ($registradorId) {
+                    $establecimientos = $asignacionModel->getEstablecimientosConAsignacion($registradorId, $anio);
+                } else {
+                    $establecimientos = $asignacionModel->getAllEstablecimientos();
+                }
                 jsonResponse(true, $establecimientos);
             } elseif ($action === 'asignados') {
                 $registradorId = $_GET['registrador_id'] ?? null;

@@ -345,7 +345,7 @@ $registradores = $asignacionModel->getEstadisticasAsignaciones($anioSeleccionado
 
     async function cargarEstablecimientosDisponibles() {
         try {
-            const response = await fetchAPI('assignments.php?action=establecimientos');
+            const response = await fetchAPI(`assignments.php?action=establecimientos&registrador_id=${registradorSeleccionadoId}&anio=${anioActual}`);
             if (response.success) {
                 establecimientosDisponibles = response.data;
                 mostrarEstablecimientosDisponiblesAgrupados();
@@ -378,20 +378,42 @@ $registradores = $asignacionModel->getEstadisticasAsignaciones($anioSeleccionado
                     📍 ${escapeHtml(comuna)}
                 </div>`;
             
+            // Ordenar: libres primero, luego asignados a mi, luego asignados a otros
+            agrupados[comuna].sort((a, b) => {
+                const score = (est) => {
+                    if (est.asignado_a_mi == 1) return 1;
+                    if (est.asignado_a_usuario_id) return 2;
+                    return 0;
+                };
+                return score(a) - score(b);
+            });
+
             agrupados[comuna].forEach(est => {
-                const yaAsignado = establecimientosAsignados.some(a => a.id === est.id);
-                const disabled = yaAsignado ? 'disabled' : '';
-                const checked = yaAsignado ? 'checked' : '';
-                const opacity = yaAsignado ? 'opacity-50' : '';
+                const asignadoAMi = est.asignado_a_mi == 1;
+                const asignadoAOtro = !!est.asignado_a_usuario_id;
+                const libre = !asignadoAMi && !asignadoAOtro;
+
+                const checked = (asignadoAMi || asignadoAOtro) ? 'checked' : '';
+                const disabled = asignadoAOtro ? 'disabled' : '';
+                
+                let bgClass = '';
+                let badge = '';
+                if (asignadoAMi) {
+                    bgClass = 'bg-sky-50';
+                    badge = '<span class="text-xs font-semibold text-sky-600 bg-sky-100 px-1.5 py-0.5 rounded">Asignado a ti</span>';
+                } else if (asignadoAOtro) {
+                    bgClass = 'bg-rose-50';
+                    badge = `<span class="text-xs font-semibold text-rose-600 bg-rose-100 px-1.5 py-0.5 rounded">Asignado a: ${escapeHtml(est.asignado_a_nombre || 'Otro')}</span>`;
+                }
 
                 html += `
-                    <label class="flex items-center gap-3 p-3 border-b border-slate-50 hover:bg-slate-50 cursor-pointer ${opacity}">
+                    <label class="flex items-center gap-3 p-3 border-b border-slate-50 ${bgClass} ${asignadoAOtro ? '' : 'hover:bg-slate-50 cursor-pointer'}">
                         <input type="checkbox" value="${est.id}" class="establecimiento-checkbox rounded" ${checked} ${disabled}>
                         <div class="flex-1 min-w-0">
                             <p class="font-medium text-slate-800 text-sm">${escapeHtml(est.nombre)}</p>
                             <p class="text-xs text-slate-500">${escapeHtml(est.nombre_corto)}</p>
                         </div>
-                        ${yaAsignado ? '<span class="text-xs text-slate-400">(Asignado)</span>' : ''}
+                        ${badge}
                     </label>
                 `;
             });
@@ -408,7 +430,8 @@ $registradores = $asignacionModel->getEstadisticasAsignaciones($anioSeleccionado
     }
 
     async function guardarAsignaciones() {
-        const checkboxes = document.querySelectorAll('.establecimiento-checkbox:checked');
+        // Solo guardar los checkeados que NO estén deshabilitados (asignados a otros)
+        const checkboxes = document.querySelectorAll('.establecimiento-checkbox:checked:not(:disabled)');
         const establecimientoIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
 
         if (establecimientoIds.length === 0) {
