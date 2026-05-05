@@ -275,7 +275,7 @@ class Observation
     /**
      * Actualizar estado de observación (para supervisores)
      */
-    public function updateStatus($id, $newStatus, $supervisorId, $comment = null)
+    public function updateStatus($id, $newStatus, $supervisorId, $comment = null, $extraData = [])
     {
         // Obtener estado anterior
         $obs = $this->getById($id);
@@ -283,14 +283,23 @@ class Observation
             return false;
         }
 
-        $sql = "UPDATE observaciones 
-                SET estado_actual = ?, 
-                    usuario_supervisor_id = ?,
-                    fecha_revision = NOW()
-                WHERE id = ?";
+        $fields = ["estado_actual = ?", "usuario_supervisor_id = ?", "fecha_revision = NOW()"];
+        $params = [$newStatus, $supervisorId];
+
+        if (!empty($extraData['clasificacion'])) {
+            $fields[] = "clasificacion = ?";
+            $params[] = $extraData['clasificacion'];
+        }
+        if (isset($extraData['detalle_error'])) {
+            $fields[] = "detalle_error = ?";
+            $params[] = $extraData['detalle_error'];
+        }
+
+        $params[] = $id;
+        $sql = "UPDATE observaciones SET " . implode(', ', $fields) . " WHERE id = ?";
 
         try {
-            $result = $this->db->execute($sql, [$newStatus, $supervisorId, $id]);
+            $result = $this->db->execute($sql, $params);
 
             if ($result) {
                 // Registrar en historial
@@ -416,6 +425,111 @@ class Observation
             }
         }
 
+        return $this->db->query($sql, $params);
+    }
+
+    /**
+     * Reporte: observaciones agrupadas por mes
+     */
+    public function reportePorMes($year, $userId = null, $userRole = null)
+    {
+        $sql = "SELECT o.mes, COUNT(*) as total 
+                FROM observaciones o 
+                WHERE o.anio = ?";
+        $params = [$year];
+        if ($userRole === ROL_REGISTRADOR && $userId) {
+            $sql .= " AND o.usuario_registro_id = ?";
+            $params[] = $userId;
+        }
+        $sql .= " GROUP BY o.mes ORDER BY FIELD(o.mes, 'Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre')";
+        return $this->db->query($sql, $params);
+    }
+
+    /**
+     * Reporte: observaciones agrupadas por establecimiento
+     */
+    public function reportePorEstablecimiento($year, $userId = null, $userRole = null)
+    {
+        $sql = "SELECT e.id, e.nombre, e.nombre_corto, COUNT(*) as total 
+                FROM observaciones o 
+                INNER JOIN establecimientos e ON o.establecimiento_id = e.id 
+                WHERE o.anio = ?";
+        $params = [$year];
+        if ($userRole === ROL_REGISTRADOR && $userId) {
+            $sql .= " AND o.usuario_registro_id = ?";
+            $params[] = $userId;
+        }
+        $sql .= " GROUP BY e.id, e.nombre, e.nombre_corto ORDER BY total DESC";
+        return $this->db->query($sql, $params);
+    }
+
+    /**
+     * Reporte: observaciones agrupadas por comuna
+     */
+    public function reportePorComuna($year, $userId = null, $userRole = null)
+    {
+        $sql = "SELECT c.id, c.nombre, COUNT(*) as total 
+                FROM observaciones o 
+                INNER JOIN establecimientos e ON o.establecimiento_id = e.id 
+                INNER JOIN comunas c ON e.comuna_id = c.id 
+                WHERE o.anio = ?";
+        $params = [$year];
+        if ($userRole === ROL_REGISTRADOR && $userId) {
+            $sql .= " AND o.usuario_registro_id = ?";
+            $params[] = $userId;
+        }
+        $sql .= " GROUP BY c.id, c.nombre ORDER BY total DESC";
+        return $this->db->query($sql, $params);
+    }
+
+    /**
+     * Reporte: observaciones agrupadas por serie REM
+     */
+    public function reportePorSerie($year, $userId = null, $userRole = null)
+    {
+        $sql = "SELECT o.codigo_serie, COUNT(*) as total 
+                FROM observaciones o 
+                WHERE o.anio = ? AND o.codigo_serie IS NOT NULL AND o.codigo_serie != ''";
+        $params = [$year];
+        if ($userRole === ROL_REGISTRADOR && $userId) {
+            $sql .= " AND o.usuario_registro_id = ?";
+            $params[] = $userId;
+        }
+        $sql .= " GROUP BY o.codigo_serie ORDER BY total DESC";
+        return $this->db->query($sql, $params);
+    }
+
+    /**
+     * Reporte: observaciones por plazo de entrega
+     */
+    public function reportePorPlazo($year, $userId = null, $userRole = null)
+    {
+        $sql = "SELECT o.plazo_entrega, COUNT(*) as total 
+                FROM observaciones o 
+                WHERE o.anio = ? AND o.plazo_entrega IS NOT NULL AND o.plazo_entrega != ''";
+        $params = [$year];
+        if ($userRole === ROL_REGISTRADOR && $userId) {
+            $sql .= " AND o.usuario_registro_id = ?";
+            $params[] = $userId;
+        }
+        $sql .= " GROUP BY o.plazo_entrega";
+        return $this->db->query($sql, $params);
+    }
+
+    /**
+     * Reporte: observaciones por uso de validador
+     */
+    public function reportePorValidador($year, $userId = null, $userRole = null)
+    {
+        $sql = "SELECT o.usa_validador, COUNT(*) as total 
+                FROM observaciones o 
+                WHERE o.anio = ? AND o.usa_validador IS NOT NULL AND o.usa_validador != ''";
+        $params = [$year];
+        if ($userRole === ROL_REGISTRADOR && $userId) {
+            $sql .= " AND o.usuario_registro_id = ?";
+            $params[] = $userId;
+        }
+        $sql .= " GROUP BY o.usa_validador";
         return $this->db->query($sql, $params);
     }
 }

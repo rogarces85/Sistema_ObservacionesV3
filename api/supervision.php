@@ -47,9 +47,16 @@ try {
 
             $ids = is_array($data['id']) ? $data['id'] : [$data['id']];
             $comment = $data['comment'] ?? 'Observación aprobada por supervisor';
+            $extraData = [];
+            if (!empty($data['clasificacion'])) {
+                $extraData['clasificacion'] = $data['clasificacion'];
+            }
+            if (isset($data['detalle_error'])) {
+                $extraData['detalle_error'] = $data['detalle_error'];
+            }
 
             if (count($ids) === 1) {
-                $result = $obsModel->updateStatus($ids[0], ESTADO_APROBADO, $_SESSION['user_id'], $comment);
+                $result = $obsModel->updateStatus($ids[0], ESTADO_APROBADO, $_SESSION['user_id'], $comment, $extraData);
 
                 if ($result) {
                     echo json_encode([
@@ -60,7 +67,7 @@ try {
                     throw new Exception('Error al aprobar la observación');
                 }
             } else {
-                // Operación masiva
+                // Operación masiva (solo comentario, no campos extra individuales)
                 $count = $obsModel->bulkUpdateStatus($ids, ESTADO_APROBADO, $_SESSION['user_id'], $comment);
 
                 echo json_encode([
@@ -160,7 +167,14 @@ try {
             }
 
             $comment = $data['comment'] ?? "Cambio de estado a: {$data['estado']}";
-            $result = $obsModel->updateStatus($data['id'], $data['estado'], $_SESSION['user_id'], $comment);
+            $extraData = [];
+            if (!empty($data['clasificacion'])) {
+                $extraData['clasificacion'] = $data['clasificacion'];
+            }
+            if (isset($data['detalle_error'])) {
+                $extraData['detalle_error'] = $data['detalle_error'];
+            }
+            $result = $obsModel->updateStatus($data['id'], $data['estado'], $_SESSION['user_id'], $comment, $extraData);
 
             if ($result) {
                 echo json_encode([

@@ -1,248 +1,534 @@
 <?php
 /**
  * Vista de Reportes
- * Generación y visualización de reportes con exportación
+ * Dashboard de reportes interactivos con gráficos y tablas
  */
 
-require_once 'models/Observation.php';
-require_once 'models/Location.php';
-
-$obsModel = new Observation();
-$locationModel = new Location();
 $currentYear = $_SESSION['year'] ?? date('Y');
-$userId = $_SESSION['user_id'];
 $userRole = $_SESSION['rol'];
-
-$stats = $obsModel->getStats($currentYear, $userId, $userRole);
-$comunas = $locationModel->getComunas();
 ?>
 
-<div class="space-y-6">
+<div class="space-y-8">
     <!-- Header -->
     <div class="flex flex-wrap justify-between items-center gap-4">
         <div>
-            <h2 class="text-2xl font-bold text-slate-800">Reportes y Análisis <?php echo $currentYear; ?></h2>
-            <p class="text-slate-600">Visualización y exportación de datos estadísticos</p>
+            <h2 class="text-2xl font-bold text-slate-800">Reportes y Estadísticas</h2>
+            <p class="text-slate-600">Análisis detallado de observaciones REM — Año <span id="reportYearLabel"><?php echo $currentYear; ?></span></p>
+        </div>
+        <div class="flex gap-3 items-center">
+            <label class="text-sm font-semibold text-slate-700">Año:</label>
+            <select id="reportYearSelector" class="form-select w-28" onchange="changeReportYear(this.value)">
+                <?php for ($y = date('Y') + 1; $y >= 2020; $y--): ?>
+                    <option value="<?php echo $y; ?>" <?php echo $y == $currentYear ? 'selected' : ''; ?>><?php echo $y; ?></option>
+                <?php endfor; ?>
+            </select>
+            <button onclick="exportData('excel')" class="btn btn-primary text-sm">
+                📊 Excel
+            </button>
         </div>
     </div>
 
-    <!-- Resumen rápido en cards horizontales -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <!-- KPIs Globales -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4" id="kpiContainer">
         <div class="card p-4 text-center">
-            <div class="text-2xl font-bold text-slate-800"><?php echo $stats['total']; ?></div>
-            <div class="text-xs text-slate-500 uppercase">Total Observaciones</div>
+            <div class="text-3xl font-bold text-slate-800" id="kpiTotal">—</div>
+            <div class="text-xs text-slate-500 uppercase tracking-wide mt-1">Total Observaciones</div>
         </div>
-        <?php
-        $colors = ['pendiente' => 'amber', 'aprobado' => 'emerald', 'rechazado' => 'rose'];
-        foreach ($stats['por_estado'] as $estado):
-            $color = $colors[$estado['estado_actual']] ?? 'slate';
-            ?>
-            <div class="card p-4 text-center">
-                <div class="text-2xl font-bold text-<?php echo $color; ?>-700"><?php echo $estado['total']; ?></div>
-                <div class="text-xs text-slate-500 uppercase"><?php echo ucfirst($estado['estado_actual']); ?></div>
-            </div>
-        <?php endforeach; ?>
-    </div>
-
-    <!-- Gráficos en grid adaptativo -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <!-- Gráfico de Barras - Por Estado -->
-        <div class="card p-6">
-            <h3 class="text-lg font-bold text-slate-800 mb-4">📊 Observaciones por Estado</h3>
-            <div style="height: 280px; position: relative;">
-                <canvas id="chartEstado"></canvas>
-            </div>
+        <div class="card p-4 text-center">
+            <div class="text-3xl font-bold text-rose-600" id="kpiFueraPlazo">—</div>
+            <div class="text-xs text-slate-500 uppercase tracking-wide mt-1">Fuera de Plazo</div>
         </div>
-
-        <!-- Gráfico de Líneas - Tendencia Mensual -->
-        <div class="card p-6">
-            <h3 class="text-lg font-bold text-slate-800 mb-4">📈 Tendencia Mensual</h3>
-            <div style="height: 280px; position: relative;">
-                <canvas id="chartTendencia"></canvas>
-            </div>
+        <div class="card p-4 text-center">
+            <div class="text-3xl font-bold text-sky-600" id="kpiConValidador">—</div>
+            <div class="text-xs text-slate-500 uppercase tracking-wide mt-1">Usan Validador</div>
+        </div>
+        <div class="card p-4 text-center">
+            <div class="text-3xl font-bold text-emerald-600" id="kpiSeries">—</div>
+            <div class="text-xs text-slate-500 uppercase tracking-wide mt-1">Series REM</div>
         </div>
     </div>
 
-    <!-- Distribución por tipo de error - Ancho completo -->
-    <?php if (!empty($stats['por_tipo_error'])): ?>
+    <!-- Fila 1: Por Mes + Por Comuna -->
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <!-- Reporte por Mes -->
         <div class="card p-6">
-            <h3 class="text-lg font-bold text-slate-800 mb-4">🎯 Distribución por Tipo de Error</h3>
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div style="height: 300px; position: relative;">
-                    <canvas id="chartTipoError"></canvas>
-                </div>
-                <div class="space-y-2">
-                    <?php foreach ($stats['por_tipo_error'] as $index => $tipo):
-                        $bgColors = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#ec4899'];
-                        $color = $bgColors[$index % count($bgColors)];
-                        ?>
-                        <div class="flex items-center gap-3 p-3 rounded-lg bg-slate-50">
-                            <div class="w-4 h-4 rounded" style="background: <?php echo $color; ?>;"></div>
-                            <span
-                                class="flex-1 text-sm text-slate-700"><?php echo htmlspecialchars($tipo['tipo_error']); ?></span>
-                            <span class="font-bold text-slate-800"><?php echo $tipo['total']; ?></span>
-                        </div>
-                    <?php endforeach; ?>
-                </div>
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                    <span>📅</span> Errores por Mes
+                </h3>
+                <span class="text-xs font-semibold text-slate-400 bg-slate-100 px-2 py-1 rounded">Barras</span>
+            </div>
+            <div class="relative" style="height: 300px;">
+                <canvas id="chartMes"></canvas>
+            </div>
+            <div class="mt-4 overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="text-left text-slate-500 border-b border-slate-200">
+                            <th class="pb-2 font-medium">Mes</th>
+                            <th class="pb-2 font-medium text-right">Total</th>
+                            <th class="pb-2 font-medium text-right">%</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableMes"></tbody>
+                </table>
             </div>
         </div>
-    <?php endif; ?>
 
-    <!-- Exportar Reporte - Ancho completo -->
+        <!-- Reporte por Comuna -->
+        <div class="card p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                    <span>📍</span> Errores por Comuna
+                </h3>
+                <span class="text-xs font-semibold text-slate-400 bg-slate-100 px-2 py-1 rounded">Dona</span>
+            </div>
+            <div class="relative" style="height: 300px;">
+                <canvas id="chartComuna"></canvas>
+            </div>
+            <div class="mt-4 overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="text-left text-slate-500 border-b border-slate-200">
+                            <th class="pb-2 font-medium">Comuna</th>
+                            <th class="pb-2 font-medium text-right">Total</th>
+                            <th class="pb-2 font-medium text-right">%</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableComuna"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fila 2: Por Establecimiento (ancho completo) -->
     <div class="card p-6">
-        <h3 class="text-lg font-bold text-slate-800 mb-2">📥 Exportar Reporte</h3>
-        <p class="text-sm text-slate-600 mb-6">Configure los filtros y seleccione el formato de exportación deseado</p>
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                <span>🏥</span> Errores por Establecimiento
+            </h3>
+            <span class="text-xs font-semibold text-slate-400 bg-slate-100 px-2 py-1 rounded">Barras Horizontales</span>
+        </div>
+        <div class="relative" style="height: 360px;">
+            <canvas id="chartEstablecimiento"></canvas>
+        </div>
+        <div class="mt-4 overflow-x-auto max-h-60">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="text-left text-slate-500 border-b border-slate-200">
+                        <th class="pb-2 font-medium">Establecimiento</th>
+                        <th class="pb-2 font-medium text-right">Total</th>
+                        <th class="pb-2 font-medium text-right">%</th>
+                    </tr>
+                </thead>
+                <tbody id="tableEstablecimiento"></tbody>
+            </table>
+        </div>
+    </div>
 
-        <form id="exportForm">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-                <div>
-                    <label class="form-label">Año</label>
-                    <select name="year" class="form-select" required>
-                        <?php for ($y = date('Y'); $y >= date('Y') - 5; $y--): ?>
-                            <option value="<?php echo $y; ?>" <?php echo $y == $currentYear ? 'selected' : ''; ?>>
-                                <?php echo $y; ?>
-                            </option>
-                        <?php endfor; ?>
-                    </select>
-                </div>
-
-                <div>
-                    <label class="form-label">Mes</label>
-                    <select name="month" class="form-select">
-                        <option value="">Todos</option>
-                        <?php
-                        $meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-                        foreach ($meses as $mes): ?>
-                            <option value="<?php echo $mes; ?>"><?php echo $mes; ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-
-                <div>
-                    <label class="form-label">Estado</label>
-                    <select name="estado" class="form-select">
-                        <option value="">Todos</option>
-                        <option value="<?php echo ESTADO_PENDIENTE; ?>">Pendiente</option>
-                        <option value="<?php echo ESTADO_APROBADO; ?>">Aprobado</option>
-                        <option value="<?php echo ESTADO_RECHAZADO; ?>">Rechazado</option>
-                        <option value="<?php echo ESTADO_ERROR; ?>">Error</option>
-                        <option value="<?php echo ESTADO_JUSTIFICADO; ?>">Justificado</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label class="form-label">Comuna</label>
-                    <select id="exportComuna" name="comuna_id" class="form-select">
-                        <option value="">Todas</option>
-                        <?php foreach ($comunas as $comuna): ?>
-                            <option value="<?php echo $comuna['id']; ?>">
-                                <?php echo htmlspecialchars($comuna['nombre']); ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-
-                <div>
-                    <label class="form-label">Establecimiento</label>
-                    <select id="exportEstablecimiento" name="establecimiento_id" class="form-select" disabled>
-                        <option value="">Todos</option>
-                    </select>
-                </div>
+    <!-- Fila 3: Por Serie REM + Por Plazo -->
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <!-- Reporte por Serie REM -->
+        <div class="card p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                    <span>📄</span> Errores por Serie REM
+                </h3>
+                <span class="text-xs font-semibold text-slate-400 bg-slate-100 px-2 py-1 rounded">Barras</span>
             </div>
+            <div class="relative" style="height: 300px;">
+                <canvas id="chartSerie"></canvas>
+            </div>
+            <div class="mt-4 overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="text-left text-slate-500 border-b border-slate-200">
+                            <th class="pb-2 font-medium">Serie</th>
+                            <th class="pb-2 font-medium text-right">Total</th>
+                            <th class="pb-2 font-medium text-right">%</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableSerie"></tbody>
+                </table>
+            </div>
+        </div>
 
+        <!-- Reporte por Plazo de Entrega -->
+        <div class="card p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                    <span>⏱️</span> Errores por Plazo de Entrega
+                </h3>
+                <span class="text-xs font-semibold text-slate-400 bg-slate-100 px-2 py-1 rounded">Dona</span>
+            </div>
+            <div class="relative" style="height: 300px;">
+                <canvas id="chartPlazo"></canvas>
+            </div>
+            <div class="mt-4 overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="text-left text-slate-500 border-b border-slate-200">
+                            <th class="pb-2 font-medium">Plazo</th>
+                            <th class="pb-2 font-medium text-right">Total</th>
+                            <th class="pb-2 font-medium text-right">%</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablePlazo"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fila 4: Por Validador (ancho completo) -->
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <div class="card p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                    <span>✅</span> Errores por Uso de Validador
+                </h3>
+                <span class="text-xs font-semibold text-slate-400 bg-slate-100 px-2 py-1 rounded">Dona</span>
+            </div>
+            <div class="relative" style="height: 300px;">
+                <canvas id="chartValidador"></canvas>
+            </div>
+            <div class="mt-4 overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="text-left text-slate-500 border-b border-slate-200">
+                            <th class="pb-2 font-medium">Usa Validador</th>
+                            <th class="pb-2 font-medium text-right">Total</th>
+                            <th class="pb-2 font-medium text-right">%</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableValidador"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Resumen/exportación -->
+        <div class="card p-6 flex flex-col justify-center">
+            <h3 class="text-lg font-bold text-slate-800 mb-4">📥 Exportar Datos</h3>
+            <p class="text-sm text-slate-600 mb-6">
+                Descargue el reporte completo del año seleccionado en formato Excel o PDF con todos los filtros aplicados.
+            </p>
             <div class="flex flex-wrap gap-3">
-                <button type="button" class="btn btn-primary" onclick="exportData('excel')">
+                <button onclick="exportData('excel')" class="btn btn-primary flex-1">
                     📊 Exportar Excel
                 </button>
-                <button type="button" class="btn btn-danger" onclick="exportData('pdf')">
+                <button onclick="exportData('pdf')" class="btn btn-secondary flex-1">
                     📄 Exportar PDF
                 </button>
-                <button type="button" class="btn btn-secondary" onclick="exportData('csv')">
-                    📋 Exportar CSV
-                </button>
             </div>
-        </form>
-    </div>
-
-    <!-- Desglose por Mes - Tabla compacta -->
-    <div class="card p-6">
-        <h3 class="text-lg font-bold text-slate-800 mb-4">📅 Desglose por Mes</h3>
-        <div class="grid grid-cols-3 md:grid-cols-6 lg:grid-cols-12 gap-2">
-            <?php
-            $mesesData = [];
-            foreach ($stats['por_mes'] as $m) {
-                $mesesData[$m['mes']] = $m['total'];
-            }
-            $mesesNombres = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-            foreach ($mesesNombres as $mes):
-                $total = $mesesData[$mes] ?? 0;
-                $hasData = $total > 0;
-                ?>
-                <div class="text-center p-3 rounded-lg <?php echo $hasData ? 'bg-sky-50' : 'bg-slate-50'; ?>">
-                    <div class="text-lg font-bold <?php echo $hasData ? 'text-sky-700' : 'text-slate-300'; ?>">
-                        <?php echo $total; ?>
-                    </div>
-                    <div class="text-xs text-slate-500"><?php echo substr($mes, 0, 3); ?></div>
-                </div>
-            <?php endforeach; ?>
+            <div class="mt-6 p-4 bg-slate-50 rounded-lg text-xs text-slate-500">
+                <p><strong>Nota:</strong> Los reportes respetan su perfil de usuario. Como <?php echo $userRole === ROL_SUPERVISOR ? 'supervisor' : 'registrador'; ?>, 
+                <?php echo $userRole === ROL_SUPERVISOR ? 've todos los datos del sistema.' : 'solo se muestran las observaciones registradas por usted.'; ?></p>
+            </div>
         </div>
     </div>
 </div>
 
-<script>
-    // Cargar establecimientos cuando se selecciona una comuna
-    document.getElementById('exportComuna').addEventListener('change', async function () {
-        const comunaId = this.value;
-        const select = document.getElementById('exportEstablecimiento');
-
-        select.innerHTML = '<option value="">Todos</option>';
-        select.disabled = !comunaId;
-
-        if (comunaId) {
-            try {
-                const response = await fetch(`api/locations.php?action=get_establecimientos&comuna_id=${comunaId}`);
-                const data = await response.json();
-
-                if (data.success) {
-                    data.data.forEach(est => {
-                        const option = document.createElement('option');
-                        option.value = est.id;
-                        option.textContent = est.nombre_corto || est.nombre;
-                        select.appendChild(option);
-                    });
-                }
-            } catch (error) {
-                console.error('Error al cargar establecimientos:', error);
-            }
-        }
-    });
-
-    function exportData(format) {
-        const form = document.getElementById('exportForm');
-        const formData = new FormData(form);
-
-        const params = new URLSearchParams();
-        params.append('format', format);
-
-        for (let [key, value] of formData.entries()) {
-            if (value) params.append(key, value);
-        }
-
-        window.location.href = 'api/export.php?' + params.toString();
-    }
-</script>
-
 <!-- Chart.js CDN -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-<script src="assets/js/charts.js"></script>
 
 <script>
+    let charts = {};
+    let currentYear = <?php echo $currentYear; ?>;
+
+    // Paleta de colores moderna
+    const PALETTE = [
+        '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
+        '#ec4899', '#14b8a6', '#f97316', '#06b6d4', '#84cc16',
+        '#6366f1', '#d946ef', '#22c55e', '#eab308', '#3b82f6'
+    ];
+
+    const PLAZO_COLORS = { 'dentro_plazo': '#10b981', 'fuera_plazo': '#ef4444' };
+    const VALIDADOR_COLORS = { 'si': '#0ea5e9', 'no': '#94a3b8' };
+
     document.addEventListener('DOMContentLoaded', function () {
-        const statsData = <?php echo json_encode($stats); ?>;
-        try {
-            initializeCharts(statsData);
-        } catch (error) {
-            console.error('Error al inicializar gráficos:', error);
-        }
+        loadAllReports();
     });
+
+    async function loadAllReports() {
+        try {
+            showLoadingAll();
+            const response = await fetch(`api/reports.php?report=all&year=${currentYear}`);
+            const result = await response.json();
+
+            if (result.success) {
+                renderKPIs(result.data);
+                renderMes(result.data.mes);
+                renderComuna(result.data.comuna);
+                renderEstablecimiento(result.data.establecimiento);
+                renderSerie(result.data.serie);
+                renderPlazo(result.data.plazo);
+                renderValidador(result.data.validador);
+            } else {
+                showError(result.message || 'Error al cargar reportes');
+            }
+        } catch (error) {
+            console.error(error);
+            showError('Error al cargar reportes');
+        }
+    }
+
+    function showLoadingAll() {
+        document.getElementById('kpiTotal').textContent = '—';
+        document.getElementById('kpiFueraPlazo').textContent = '—';
+        document.getElementById('kpiConValidador').textContent = '—';
+        document.getElementById('kpiSeries').textContent = '—';
+    }
+
+    function renderKPIs(data) {
+        const total = (data.mes || []).reduce((sum, m) => sum + parseInt(m.total), 0);
+        const fueraPlazo = (data.plazo || []).find(p => p.plazo_entrega === 'fuera_plazo');
+        const conValidador = (data.validador || []).find(v => v.usa_validador === 'si');
+        const seriesCount = (data.serie || []).length;
+
+        document.getElementById('kpiTotal').textContent = total;
+        document.getElementById('kpiFueraPlazo').textContent = fueraPlazo ? fueraPlazo.total : 0;
+        document.getElementById('kpiConValidador').textContent = conValidador ? conValidador.total : 0;
+        document.getElementById('kpiSeries').textContent = seriesCount;
+    }
+
+    function renderTable(tbodyId, data, labelKey, totalGlobal) {
+        const tbody = document.getElementById(tbodyId);
+        if (!tbody) return;
+        tbody.innerHTML = '';
+        if (!data || data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="3" class="text-center text-slate-400 py-3">Sin datos</td></tr>';
+            return;
+        }
+        const total = totalGlobal || data.reduce((sum, r) => sum + parseInt(r.total), 0);
+        data.forEach(row => {
+            const val = parseInt(row.total);
+            const pct = total > 0 ? ((val / total) * 100).toFixed(1) : 0;
+            const label = row[labelKey] || 'Sin especificar';
+            tbody.innerHTML += `
+                <tr class="border-b border-slate-50 hover:bg-slate-50">
+                    <td class="py-2 text-slate-700">${escapeHtml(label)}</td>
+                    <td class="py-2 text-right font-semibold text-slate-800">${val}</td>
+                    <td class="py-2 text-right text-slate-500">${pct}%</td>
+                </tr>
+            `;
+        });
+    }
+
+    // ---------- Reporte por Mes ----------
+    function renderMes(data) {
+        const labels = data.map(d => d.mes);
+        const values = data.map(d => parseInt(d.total));
+        const total = values.reduce((a, b) => a + b, 0);
+
+        renderTable('tableMes', data, 'mes', total);
+
+        if (charts.mes) charts.mes.destroy();
+        charts.mes = new Chart(document.getElementById('chartMes'), {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Observaciones',
+                    data: values,
+                    backgroundColor: '#0ea5e9',
+                    borderRadius: 6,
+                    barThickness: 'flex',
+                    maxBarThickness: 32
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, grid: { color: 'rgba(226,232,240,0.6)' } },
+                    x: { grid: { display: false }, ticks: { font: { size: 11 } } }
+                }
+            }
+        });
+    }
+
+    // ---------- Reporte por Comuna ----------
+    function renderComuna(data) {
+        const labels = data.map(d => d.nombre);
+        const values = data.map(d => parseInt(d.total));
+        const total = values.reduce((a, b) => a + b, 0);
+
+        renderTable('tableComuna', data, 'nombre', total);
+
+        if (charts.comuna) charts.comuna.destroy();
+        charts.comuna = new Chart(document.getElementById('chartComuna'), {
+            type: 'doughnut',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: values,
+                    backgroundColor: PALETTE.slice(0, data.length),
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '55%',
+                plugins: {
+                    legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } }
+                }
+            }
+        });
+    }
+
+    // ---------- Reporte por Establecimiento ----------
+    function renderEstablecimiento(data) {
+        // Limitar a top 15 para legibilidad del gráfico
+        const topData = data.slice(0, 15);
+        const labels = topData.map(d => d.nombre_corto || d.nombre);
+        const values = topData.map(d => parseInt(d.total));
+        const total = data.reduce((a, b) => a + parseInt(b.total), 0);
+
+        renderTable('tableEstablecimiento', data, 'nombre', total);
+
+        if (charts.establecimiento) charts.establecimiento.destroy();
+        charts.establecimiento = new Chart(document.getElementById('chartEstablecimiento'), {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Observaciones',
+                    data: values,
+                    backgroundColor: '#10b981',
+                    borderRadius: 6,
+                    barThickness: 'flex',
+                    maxBarThickness: 24
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { beginAtZero: true, grid: { color: 'rgba(226,232,240,0.6)' } },
+                    y: { grid: { display: false }, ticks: { font: { size: 11 } } }
+                }
+            }
+        });
+    }
+
+    // ---------- Reporte por Serie REM ----------
+    function renderSerie(data) {
+        const labels = data.map(d => d.codigo_serie);
+        const values = data.map(d => parseInt(d.total));
+        const total = values.reduce((a, b) => a + b, 0);
+
+        renderTable('tableSerie', data, 'codigo_serie', total);
+
+        if (charts.serie) charts.serie.destroy();
+        charts.serie = new Chart(document.getElementById('chartSerie'), {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Observaciones',
+                    data: values,
+                    backgroundColor: '#8b5cf6',
+                    borderRadius: 6,
+                    barThickness: 'flex',
+                    maxBarThickness: 32
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, grid: { color: 'rgba(226,232,240,0.6)' } },
+                    x: { grid: { display: false }, ticks: { font: { size: 11 } } }
+                }
+            }
+        });
+    }
+
+    // ---------- Reporte por Plazo ----------
+    function renderPlazo(data) {
+        const labels = data.map(d => d.plazo_entrega === 'fuera_plazo' ? 'Fuera de Plazo' : 'Dentro de Plazo');
+        const values = data.map(d => parseInt(d.total));
+        const total = values.reduce((a, b) => a + b, 0);
+        const colors = data.map(d => PLAZO_COLORS[d.plazo_entrega] || '#94a3b8');
+
+        renderTable('tablePlazo', data.map(d => ({...d, plazo_entrega: d.plazo_entrega === 'fuera_plazo' ? 'Fuera de Plazo' : 'Dentro de Plazo'})), 'plazo_entrega', total);
+
+        if (charts.plazo) charts.plazo.destroy();
+        charts.plazo = new Chart(document.getElementById('chartPlazo'), {
+            type: 'doughnut',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: values,
+                    backgroundColor: colors,
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '55%',
+                plugins: {
+                    legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } }
+                }
+            }
+        });
+    }
+
+    // ---------- Reporte por Validador ----------
+    function renderValidador(data) {
+        const labels = data.map(d => d.usa_validador === 'si' ? 'Sí usa validador' : 'No usa validador');
+        const values = data.map(d => parseInt(d.total));
+        const total = values.reduce((a, b) => a + b, 0);
+        const colors = data.map(d => VALIDADOR_COLORS[d.usa_validador] || '#94a3b8');
+
+        renderTable('tableValidador', data.map(d => ({...d, usa_validador: d.usa_validador === 'si' ? 'Sí' : 'No'})), 'usa_validador', total);
+
+        if (charts.validador) charts.validador.destroy();
+        charts.validador = new Chart(document.getElementById('chartValidador'), {
+            type: 'doughnut',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: values,
+                    backgroundColor: colors,
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '55%',
+                plugins: {
+                    legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } }
+                }
+            }
+        });
+    }
+
+    function changeReportYear(year) {
+        currentYear = parseInt(year);
+        document.getElementById('reportYearLabel').textContent = currentYear;
+        loadAllReports();
+    }
+
+    function exportData(format) {
+        const params = new URLSearchParams();
+        params.append('format', format);
+        params.append('year', currentYear);
+        window.location.href = 'api/export.php?' + params.toString();
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text || '';
+        return div.innerHTML;
+    }
 </script>

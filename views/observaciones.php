@@ -307,38 +307,6 @@ global $TIPOS_ERROR, $MESES;
                         placeholder="Respuesta recibida del establecimiento..."></textarea>
                 </div>
 
-                <!-- Checkbox para habilitar campos opcionales -->
-                <div class="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200">
-                    <input type="checkbox" id="enableOptionalFields" onchange="toggleOptionalFields()"
-                        class="w-5 h-5 rounded border-slate-300 text-sky-600 focus:ring-sky-500" style="width: auto;">
-                    <label for="enableOptionalFields" class="text-sm font-medium text-slate-700 cursor-pointer">
-                        Habilitar clasificación de respuesta y detalle de error (campos opcionales)
-                    </label>
-                </div>
-
-                <!-- Campos opcionales - ocultos por defecto -->
-                <div id="optionalFieldsSection" class="hidden">
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-semibold text-slate-700 mb-2">Clasificación de
-                                Respuesta</label>
-                            <select id="clasificacion" name="clasificacion">
-                                <option value="">Sin clasificar</option>
-                                <option value="corregido">Corregido</option>
-                                <option value="error">Error</option>
-                                <option value="sin_respuesta">Sin respuesta del Establecimiento</option>
-                                <option value="respuesta_incorrecta">Respuesta incorrecta de Establecimiento</option>
-                            </select>
-                        </div>
-
-                        <div>
-                            <label class="block text-sm font-semibold text-slate-700 mb-2">Detalle Error</label>
-                            <input type="text" id="detalle_error" name="detalle_error"
-                                placeholder="Descripción del error si aplica...">
-                        </div>
-                    </div>
-                </div>
-
                 <div class="flex gap-3 pt-4">
                     <button type="submit" class="btn btn-primary flex-1">Guardar</button>
                     <button type="button" onclick="closeModal('modalObservation')"
@@ -492,6 +460,16 @@ global $TIPOS_ERROR, $MESES;
                 </div>
             </div>
 
+            <!-- Clasificación y Detalle Error (solo visibles si el supervisor los completó) -->
+            <div id="detailClasificacionSection" class="mb-6 hidden">
+                <div class="text-sm font-bold text-slate-700 mb-2">📋 Clasificación de Respuesta</div>
+                <div id="detailClasificacion" class="p-4 bg-sky-50 rounded-xl text-sm text-slate-700">-</div>
+            </div>
+            <div id="detailDetalleErrorSection" class="mb-6 hidden">
+                <div class="text-sm font-bold text-slate-700 mb-2">🔍 Detalle Error</div>
+                <div id="detailDetalleError" class="p-4 bg-sky-50 rounded-xl text-sm text-slate-700">-</div>
+            </div>
+
             <!-- Info de registro -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-xl border border-slate-200">
                 <div>
@@ -588,29 +566,11 @@ global $TIPOS_ERROR, $MESES;
         }
     }
 
-    // Toggle campos opcionales (clasificación y detalle error)
-    function toggleOptionalFields() {
-        const checkbox = document.getElementById('enableOptionalFields');
-        const optionalSection = document.getElementById('optionalFieldsSection');
-
-        if (checkbox.checked) {
-            optionalSection.classList.remove('hidden');
-        } else {
-            optionalSection.classList.add('hidden');
-            // Limpiar valores cuando se ocultan
-            document.getElementById('clasificacion').value = '';
-            document.getElementById('detalle_error').value = '';
-        }
-    }
-
     // Abrir modal para crear
     function openCreateModal() {
         document.getElementById('obsId').value = '';
         document.getElementById('modalTitle').textContent = 'Nueva Observación';
         document.getElementById('formObservation').reset();
-        // Resetear campos opcionales
-        document.getElementById('enableOptionalFields').checked = false;
-        document.getElementById('optionalFieldsSection').classList.add('hidden');
         // Resetear campo de código establecimiento
         document.getElementById('codigo_establecimiento').value = '';
         // Resetear hojas REM
@@ -790,17 +750,6 @@ global $TIPOS_ERROR, $MESES;
                 document.getElementById('plazo_entrega').value = obs.plazo_entrega;
                 document.getElementById('usa_validador').value = obs.usa_validador;
                 document.getElementById('respuesta_establecimiento').value = obs.respuesta_establecimiento || '';
-                document.getElementById('clasificacion').value = obs.clasificacion || '';
-                document.getElementById('detalle_error').value = obs.detalle_error || '';
-
-                // Auto-habilitar campos opcionales si tienen datos
-                const hasOptionalData = obs.clasificacion || obs.detalle_error;
-                document.getElementById('enableOptionalFields').checked = hasOptionalData;
-                if (hasOptionalData) {
-                    document.getElementById('optionalFieldsSection').classList.remove('hidden');
-                } else {
-                    document.getElementById('optionalFieldsSection').classList.add('hidden');
-                }
 
                 document.getElementById('modalTitle').textContent = 'Editar Observación';
                 openModal('modalObservation');
@@ -829,9 +778,7 @@ global $TIPOS_ERROR, $MESES;
             detalle_observacion: document.getElementById('detalle_observacion').value,
             plazo_entrega: document.getElementById('plazo_entrega').value,
             usa_validador: document.getElementById('usa_validador').value,
-            respuesta_establecimiento: document.getElementById('respuesta_establecimiento').value,
-            clasificacion: document.getElementById('clasificacion').value,
-            detalle_error: document.getElementById('detalle_error').value
+            respuesta_establecimiento: document.getElementById('respuesta_establecimiento').value
         };
 
         try {
@@ -899,6 +846,22 @@ global $TIPOS_ERROR, $MESES;
                     respuestaSection.classList.remove('hidden');
                 } else {
                     respuestaSection.classList.add('hidden');
+                }
+
+                // Clasificación y Detalle Error (supervisor)
+                const clasifSection = document.getElementById('detailClasificacionSection');
+                if (obs.clasificacion) {
+                    document.getElementById('detailClasificacion').textContent = obs.clasificacion;
+                    clasifSection.classList.remove('hidden');
+                } else {
+                    clasifSection.classList.add('hidden');
+                }
+                const detErrorSection = document.getElementById('detailDetalleErrorSection');
+                if (obs.detalle_error) {
+                    document.getElementById('detailDetalleError').textContent = obs.detalle_error;
+                    detErrorSection.classList.remove('hidden');
+                } else {
+                    detErrorSection.classList.add('hidden');
                 }
 
                 // Info de registro

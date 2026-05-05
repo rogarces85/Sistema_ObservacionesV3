@@ -199,6 +199,23 @@ $comunas = $locationModel->getComunas();
                 <label class="form-label">Comentario (opcional)</label>
                 <textarea id="confirmComment" class="form-textarea" rows="3"></textarea>
             </div>
+            <!-- Campos de clasificación y detalle - solo visibles al aprobar -->
+            <div id="approveExtraFields" class="hidden mt-4 space-y-4">
+                <div>
+                    <label class="form-label">Clasificación de Respuesta</label>
+                    <select id="approveClasificacion" class="form-select">
+                        <option value="">Sin clasificar</option>
+                        <option value="corregido">Corregido</option>
+                        <option value="error">Error</option>
+                        <option value="sin_respuesta">Sin respuesta del Establecimiento</option>
+                        <option value="respuesta_incorrecta">Respuesta incorrecta de Establecimiento</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label">Detalle Error</label>
+                    <input type="text" id="approveDetalleError" class="form-input" placeholder="Descripción del error si aplica...">
+                </div>
+            </div>
         </div>
         <div class="modal-footer">
             <button class="btn btn-secondary" onclick="closeConfirmModal()">Cancelar</button>
@@ -210,6 +227,7 @@ $comunas = $locationModel->getComunas();
 <script>
     let currentObservations = [];
     let selectedIds = [];
+    let currentAction = '';
 
     // Cargar observaciones al cargar la página
     document.addEventListener('DOMContentLoaded', function () {
@@ -401,8 +419,20 @@ $comunas = $locationModel->getComunas();
                 <p class="text-sm text-slate-600">Detalle de Observación</p>
                 <p class="whitespace-pre-wrap">${escapeHtml(obs.detalle_observacion)}</p>
             </div>
+            ${obs.clasificacion ? `
+            <div class="col-span-2 p-3 bg-sky-50 rounded border border-sky-200">
+                <p class="text-sm text-sky-700 font-semibold">Clasificación de Respuesta</p>
+                <p class="text-sm text-sky-900">${escapeHtml(obs.clasificacion)}</p>
+            </div>
+            ` : ''}
+            ${obs.detalle_error ? `
+            <div class="col-span-2 p-3 bg-sky-50 rounded border border-sky-200">
+                <p class="text-sm text-sky-700 font-semibold">Detalle Error</p>
+                <p class="text-sm text-sky-900">${escapeHtml(obs.detalle_error)}</p>
+            </div>
+            ` : ''}
         </div>
-        
+
         <h4 class="font-bold mb-3">Historial de Cambios</h4>
         <div class="space-y-2">
             ${historial.map(h => `
@@ -453,33 +483,54 @@ $comunas = $locationModel->getComunas();
     }
 
     function performAction(action, ids, message, title = null) {
+        currentAction = action;
         document.getElementById('confirmTitle').textContent = title || (ids.length > 1 ? 'Aprobar Observaciones' : 'Aprobar Observación');
         document.getElementById('confirmMessage').textContent = message;
         document.getElementById('confirmComment').value = '';
+
+        // Mostrar/ocultar campos de clasificación solo al aprobar
+        const extraFields = document.getElementById('approveExtraFields');
+        if (action === 'approve') {
+            extraFields.classList.remove('hidden');
+            document.getElementById('approveClasificacion').value = '';
+            document.getElementById('approveDetalleError').value = '';
+        } else {
+            extraFields.classList.add('hidden');
+        }
+
         document.getElementById('confirmModal').classList.remove('hidden');
 
         document.getElementById('confirmActionBtn').onclick = async () => {
             const comment = document.getElementById('confirmComment').value;
-            await executeAction(action, ids, comment);
+            const clasificacion = document.getElementById('approveClasificacion').value;
+            const detalleError = document.getElementById('approveDetalleError').value;
+            await executeAction(action, ids, comment, clasificacion, detalleError);
             closeConfirmModal();
         };
     }
 
-    async function executeAction(action, ids, comment) {
+    async function executeAction(action, ids, comment, clasificacion = '', detalleError = '') {
         try {
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
-            
+
+            const payload = {
+                id: ids.length === 1 ? ids[0] : ids,
+                comment: comment || undefined,
+                reason: comment || undefined
+            };
+
+            if (action === 'approve') {
+                payload.clasificacion = clasificacion || undefined;
+                payload.detalle_error = detalleError || undefined;
+            }
+
             const response = await fetch(`api/supervision.php?action=${action}`, {
                 method: 'POST',
-                headers: { 
+                headers: {
                     'Content-Type': 'application/json',
                     'X-CSRF-TOKEN': csrfToken
                 },
-                body: JSON.stringify({
-                    id: ids.length === 1 ? ids[0] : ids,
-                    comment: comment || undefined,
-                    reason: comment || undefined
-                })
+                body: JSON.stringify(payload)
             });
 
             const data = await response.json();
