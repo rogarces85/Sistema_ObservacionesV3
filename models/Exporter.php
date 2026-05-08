@@ -228,4 +228,284 @@ class Exporter
             'Fecha Registro'
         ];
     }
+
+    /**
+     * Exportar reporte detallado jerárquico a PDF (comuna → establecimiento → mes)
+     */
+    public function exportDetalladoPDF($data, $filename, $filters = [])
+    {
+        require_once __DIR__ . '/../vendor/autoload.php';
+
+        $pdf = new \TCPDF('L', 'mm', 'A4', true, 'UTF-8');
+
+        $pdf->SetCreator('Sistema Observaciones REM');
+        $pdf->SetAuthor('Servicio de Salud Osorno');
+        $pdf->SetTitle('Reporte Detallado de Validaciones');
+
+        $pdf->SetMargins(8, 12, 8);
+        $pdf->SetHeaderMargin(5);
+        $pdf->SetFooterMargin(10);
+        $pdf->SetAutoPageBreak(true, 12);
+
+        $pdf->SetFont('helvetica', '', 7);
+
+        $pdf->AddPage();
+
+        // Título
+        $pdf->SetFont('helvetica', 'B', 14);
+        $pdf->Cell(0, 8, 'Reporte Detallado de Validaciones REM', 0, 1, 'C');
+
+        // Filtros aplicados
+        $pdf->SetFont('helvetica', '', 8);
+        $filterText = 'Año: ' . ($filters['anio'] ?? 'Todos');
+        if (!empty($filters['comuna'])) $filterText .= ' | Comuna: ' . $filters['comuna'];
+        if (!empty($filters['establecimiento'])) $filterText .= ' | Establecimiento: ' . $filters['establecimiento'];
+        if (!empty($filters['mes'])) $filterText .= ' | Mes: ' . $filters['mes'];
+        if (!empty($filters['estado'])) $filterText .= ' | Estado: ' . $filters['estado'];
+        $pdf->Cell(0, 5, $filterText, 0, 1, 'C');
+        $pdf->Cell(0, 5, 'Generado: ' . date('d/m/Y H:i'), 0, 1, 'C');
+        $pdf->Ln(2);
+
+        // 6 columnas exactas como la imagen: COMUNAS | ESTABLECIMIENTOS | MES | DETALLE | DETALLE ERROR | ERRORES
+        $colWidths = [28, 42, 18, 100, 35, 12];
+        $headers = ['COMUNAS', 'ESTABLECIMIENTOS', 'MES', 'DETALLE', 'DETALLE ERROR', 'ERRORES'];
+
+        // Agrupamiento jerárquico - calcular row spans
+        $groupedData = [];
+        $currentComuna = '';
+        $currentEstablecimiento = '';
+        $currentMes = '';
+        $comunaStart = 0;
+        $estStart = 0;
+        $mesStart = 0;
+
+        foreach ($data as $idx => $row) {
+            $comuna = strtoupper($row['comuna'] ?? '');
+            $establecimiento = $row['establecimiento'] ?? '';
+            $mes = strtolower($row['mes'] ?? '');
+
+            if ($comuna !== $currentComuna) {
+                if ($currentComuna !== '') {
+                    $groupedData[$comunaStart]['comuna_span'] = $idx - $comunaStart;
+                }
+                $comunaStart = $idx;
+                $currentComuna = $comuna;
+                $currentEstablecimiento = '';
+                $currentMes = '';
+            }
+
+            if ($establecimiento !== $currentEstablecimiento) {
+                if ($currentEstablecimiento !== '') {
+                    $groupedData[$estStart]['est_span'] = $idx - $estStart;
+                }
+                $estStart = $idx;
+                $currentEstablecimiento = $establecimiento;
+                $currentMes = '';
+            }
+
+            if ($mes !== $currentMes) {
+                if ($currentMes !== '') {
+                    $groupedData[$mesStart]['mes_span'] = $idx - $mesStart;
+                }
+                $mesStart = $idx;
+                $currentMes = $mes;
+            }
+
+            $groupedData[$idx] = [
+                'comuna' => $comuna,
+                'establecimiento' => $establecimiento,
+                'mes' => $mes,
+                'detalle_observacion' => $row['detalle_observacion'] ?? '',
+                'clasificacion' => $row['clasificacion'] ?? ($row['estado_actual'] ?? ''),
+                'estado_actual' => $row['estado_actual'] ?? 'pendiente'
+            ];
+        }
+        // Cerrar últimos spans
+        if (!empty($groupedData)) {
+            $lastIdx = count($data) - 1;
+            if (!isset($groupedData[$comunaStart]['comuna_span'])) $groupedData[$comunaStart]['comuna_span'] = $lastIdx - $comunaStart + 1;
+            if (!isset($groupedData[$estStart]['est_span'])) $groupedData[$estStart]['est_span'] = $lastIdx - $estStart + 1;
+            if (!isset($groupedData[$mesStart]['mes_span'])) $groupedData[$mesStart]['mes_span'] = $lastIdx - $mesStart + 1;
+        }
+
+        // Header de tabla - fondo rojo oscuro como la imagen
+        $html = '<table border="1" cellpadding="2" cellspacing="0" width="100%">';
+        $html .= '<tr style="background-color: #8B1A1A; color: #FFFFFF; font-weight: bold; font-size: 7pt;">';
+        for ($i = 0; $i < count($headers); $i++) {
+            $html .= '<th width="' . $colWidths[$i] . '" align="center" style="padding: 3px 2px;">' . $headers[$i] . '</th>';
+        }
+        $html .= '</tr>';
+
+        // Filas de datos con rowspan para agrupamiento
+        $rowCount = 0;
+        foreach ($groupedData as $idx => $item) {
+            if (!isset($item['detalle_observacion'])) continue;
+
+            $comuna = $item['comuna'];
+            $establecimiento = $item['establecimiento'];
+            $mes = $item['mes'];
+            $detalle = $item['detalle_observacion'];
+            $clasificacion = $item['clasificacion'];
+            $estado = $item['estado_actual'];
+
+            $comunaSpan = $item['comuna_span'] ?? 1;
+            $estSpan = $item['est_span'] ?? 1;
+            $mesSpan = $item['mes_span'] ?? 1;
+
+            // Color de fondo según estado
+            $bgColor = '#FFFFFF';
+            if ($estado === 'aprobado' || $clasificacion === 'Corregido') {
+                $bgColor = '#E8F5E9';
+            } elseif ($estado === 'pendiente' || strpos($clasificacion, 'Sin respuesta') !== false) {
+                $bgColor = '#FFF3E0';
+            } elseif ($estado === 'rechazado') {
+                $bgColor = '#FFEBEE';
+            } elseif ($estado === 'justificado') {
+                $bgColor = '#E3F2FD';
+            }
+
+            // Alternar filas para legibilidad
+            if ($rowCount % 2 === 0 && $bgColor === '#FFFFFF') {
+                $bgColor = '#FAFAFA';
+            }
+
+            $html .= '<tr style="background-color: ' . $bgColor . '; font-size: 6.5pt;">';
+
+            // COMUNAS con rowspan
+            if ($comunaSpan > 0) {
+                $html .= '<td width="' . $colWidths[0] . '" rowspan="' . $comunaSpan . '" align="center" style="font-weight: bold; vertical-align: middle; padding: 2px;">' . htmlspecialchars($comuna) . '</td>';
+                $item['comuna_span'] = 0;
+            }
+
+            // ESTABLECIMIENTOS con rowspan
+            if ($estSpan > 0) {
+                $html .= '<td width="' . $colWidths[1] . '" rowspan="' . $estSpan . '" style="vertical-align: middle; padding: 2px;">' . htmlspecialchars($establecimiento) . '</td>';
+                $item['est_span'] = 0;
+            }
+
+            // MES con rowspan
+            if ($mesSpan > 0) {
+                $html .= '<td width="' . $colWidths[2] . '" rowspan="' . $mesSpan . '" align="center" style="vertical-align: middle; padding: 2px;">' . htmlspecialchars($mes) . '</td>';
+                $item['mes_span'] = 0;
+            }
+
+            // DETALLE (texto completo de la observación)
+            $html .= '<td width="' . $colWidths[3] . '" style="padding: 2px 4px;">' . htmlspecialchars($detalle) . '</td>';
+
+            // DETALLE ERROR (clasificación / estado de respuesta)
+            $html .= '<td width="' . $colWidths[4] . '" align="center" style="padding: 2px;">' . htmlspecialchars($clasificacion) . '</td>';
+
+            // ERRORES (cantidad = 1 por fila)
+            $html .= '<td width="' . $colWidths[5] . '" align="center" style="font-weight: bold; padding: 2px;">1</td>';
+
+            $html .= '</tr>';
+            $rowCount++;
+
+            // Nueva página cada ~35 filas
+            if ($rowCount % 35 === 0) {
+                $html .= '</table>';
+                $pdf->writeHTML($html, true, false, true, false, '');
+                $pdf->AddPage();
+                $html = '<table border="1" cellpadding="2" cellspacing="0" width="100%">';
+                $html .= '<tr style="background-color: #8B1A1A; color: #FFFFFF; font-weight: bold; font-size: 7pt;">';
+                for ($i = 0; $i < count($headers); $i++) {
+                    $html .= '<th width="' . $colWidths[$i] . '" align="center" style="padding: 3px 2px;">' . $headers[$i] . '</th>';
+                }
+                $html .= '</tr>';
+            }
+        }
+
+        $html .= '</table>';
+
+        // Resumen final
+        $html .= '<br/><table width="100%">';
+        $html .= '<tr><td style="font-size: 7pt; color: #6B7280;">Total registros: ' . count($data) . '</td></tr>';
+        $html .= '</table>';
+
+        $pdf->writeHTML($html, true, false, true, false, '');
+
+        $pdf->Output($filename, 'D');
+        exit;
+    }
+
+    /**
+     * Exportar reporte de errores a Excel
+     */
+    public function exportErroresExcel($data, $filename, $reportType = 'general')
+    {
+        require_once __DIR__ . '/../vendor/autoload.php';
+
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+
+        $titles = [
+            'errores_mes' => 'Reporte de Errores por Mes',
+            'errores_establecimiento' => 'Reporte de Errores por Establecimiento',
+            'errores_comuna' => 'Reporte de Errores por Comuna',
+            'fuera_plazo_mes' => 'Reporte Fuera de Plazo por Mes',
+            'fuera_plazo_establecimiento' => 'Reporte Fuera de Plazo por Establecimiento',
+            'fuera_plazo_comuna' => 'Reporte Fuera de Plazo por Comuna',
+            'validador_mes' => 'Reporte Uso Validador por Mes',
+            'validador_establecimiento' => 'Reporte Uso Validador por Establecimiento',
+            'validador_comuna' => 'Reporte Uso Validador por Comuna',
+            'serie_detalle' => 'Reporte por Serie REM',
+            'hoja_detalle' => 'Reporte por Hoja REM'
+        ];
+
+        $title = $titles[$reportType] ?? 'Reporte de Observaciones REM';
+
+        $sheet->setCellValue('A1', $title);
+        $sheet->mergeCells('A1:C1');
+        $sheet->getStyle('A1')->getFont()->setSize(14)->setBold(true);
+        $sheet->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+        $sheet->setCellValue('A2', 'Generado: ' . date('d/m/Y H:i'));
+        $sheet->mergeCells('A2:C2');
+        $sheet->getStyle('A2')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+        // Determinar headers según tipo
+        $headers = ['Dimensión', 'Sub-dimensión', 'Cantidad'];
+        if (isset($data[0])) {
+            $headers = array_keys($data[0]);
+        }
+
+        $col = 'A';
+        $row = 4;
+        foreach ($headers as $header) {
+            $sheet->setCellValue($col . $row, $header);
+            $sheet->getStyle($col . $row)->getFont()->setBold(true);
+            $sheet->getStyle($col . $row)->getFill()
+                ->setFillType(Fill::FILL_SOLID)
+                ->getStartColor()->setARGB('FF4B5563');
+            $sheet->getStyle($col . $row)->getFont()->getColor()->setARGB('FFFFFFFF');
+            $sheet->getStyle($col . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $col++;
+        }
+
+        $row = 5;
+        foreach ($data as $record) {
+            $col = 'A';
+            foreach ($record as $value) {
+                $sheet->setCellValue($col . $row, $value);
+                $col++;
+            }
+            $row++;
+        }
+
+        $lastCol = chr(64 + count($headers));
+        $lastRow = $row - 1;
+        $sheet->getStyle('A4:' . $lastCol . $lastRow)->getBorders()->getAllBorders()
+            ->setBorderStyle(Border::BORDER_THIN);
+
+        foreach (range('A', $lastCol) as $c) {
+            $sheet->getColumnDimension($c)->setAutoSize(true);
+        }
+
+        $writer = new Xlsx($spreadsheet);
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+        $writer->save('php://output');
+        exit;
+    }
 }

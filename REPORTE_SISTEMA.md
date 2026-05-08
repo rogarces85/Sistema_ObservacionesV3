@@ -2,6 +2,8 @@
 
 Sistema de gestión de observaciones del Resumen Estadístico Mensual (REM) para el Servicio de Salud Osorno.
 
+**Versión:** 2.1.0 — **Actualizado:** Mayo 2026
+
 ---
 
 ## 1. Arquitectura General
@@ -18,12 +20,12 @@ Usuario → index.php → Vistas/Modelos → Base de Datos
 
 | Carpeta | Función |
 |---------|---------|
-| `api/` | Endpoints REST (controladores) |
-| `models/` | Lógica de negocio y acceso a datos |
-| `views/` | Plantillas PHP (vistas) |
-| `config/` | Configuración y constantes |
-| `includes/` | Componentes reutilizables |
-| `assets/` | CSS y JavaScript |
+| `api/` | Endpoints REST (11 archivos) |
+| `models/` | Lógica de negocio y acceso a datos (7 clases) |
+| `views/` | Plantillas PHP (9 vistas) |
+| `config/` | Configuración, constantes y migraciones SQL |
+| `includes/` | Componentes reutilizables (header, footer, sidebar, CSRF) |
+| `assets/` | CSS (BEM) y JavaScript (fetchAPI, Chart.js, notificaciones) |
 
 ---
 
@@ -60,8 +62,20 @@ if ($page === 'supervision' && $_SESSION['rol'] !== ROL_SUPERVISOR) {
 ```
 
 ### Roles del sistema:
-- **Supervisor**: Acceso completo (supervisión, usuarios, aprobar/rechazar)
-- **Registrador**: Solo crear/editar sus propias observaciones
+- **Supervisor**: Acceso completo (supervisión, usuarios, asignaciones, aprobaciones, eliminadas)
+- **Registrador**: Solo crear/editar sus propias observaciones, restringido a establecimientos asignados
+
+### Páginas protegidas por rol (index.php):
+| Página | Supervisor | Registrador |
+|--------|:----------:|:-----------:|
+| dashboard | ✅ | ✅ |
+| observaciones | ✅ | ✅ |
+| supervision | ✅ | ❌ → redirect |
+| reportes | ✅ | ✅ |
+| usuarios | ✅ | ❌ → redirect |
+| asignaciones | ✅ | ❌ → redirect |
+| eliminadas | ✅ | ❌ → redirect |
+| perfil | ✅ | ✅ |
 
 ---
 
@@ -74,22 +88,16 @@ if ($page === 'supervision' && $_SESSION['rol'] !== ROL_SUPERVISOR) {
 **Paso 2:** JavaScript envía POST a `api/observations.php`
 
 **Paso 3:** API valida campos requeridos:
-- mes
-- establecimiento_id
-- codigo_serie
-- codigo_hoja
-- tipo_error
-- detalle_observacion
-- plazo_entrega
-- usa_validador
+- mes, establecimiento_id, codigo_serie, codigo_hoja
+- tipo_error, detalle_observacion, plazo_entrega, usa_validador
 
 **Paso 4:** Modelo `Observation` ejecuta:
 ```php
 INSERT INTO observaciones 
 (anio, mes, establecimiento_id, codigo_serie, codigo_hoja, 
  tipo_error, detalle_observacion, plazo_entrega, usa_validador,
- usuario_registro_id, estado_actual)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pendiente')
+ usuario_registro_id, estado_actual, clasificacion, detalle_error)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pendiente', ?, ?)
 ```
 
 **Paso 5:** Se registra automáticamente en `historial_estados`:
@@ -113,7 +121,7 @@ VALUES (?, '', 'pendiente', ?, 'Registro inicial')
 
 ### Eliminar observación
 
-**Solo supervisores** pueden eliminar. Se registra en historial antes de borrar.
+**Solo supervisores** pueden eliminar. Se registra en historial antes de borrar. Las observaciones eliminadas van a la papelera (`observaciones_eliminadas`) y pueden restaurarse desde `?page=eliminadas`.
 
 ---
 
@@ -201,6 +209,7 @@ Usuario confirma importación
 - **Establecimiento**: Busca por código primero, luego por nombre
 - **Campos requeridos**: mes, tipo (tipo_error)
 - **Campos opcionales**: serie, rem, detalle_observacion, plazo_entrega, usa_validador, clasificacion, detalle_error
+- **Asignaciones**: Para registradores, valida que el establecimiento esté asignado
 
 ---
 
@@ -214,47 +223,125 @@ $stats = $obsModel->getStats($year, $userId, $userRole);
 ```
 
 El modelo ejecuta 4 consultas:
-1. **Total por estado:**
-   ```sql
-   SELECT estado_actual, COUNT(*) as total
-   FROM observaciones WHERE anio = ?
-   GROUP BY estado_actual
-   ```
-
-2. **Total por mes:**
-   ```sql
-   SELECT mes, COUNT(*) as total
-   FROM observaciones WHERE anio = ?
-   GROUP BY mes
-   ```
-
-3. **Tipos de error más comunes:**
-   ```sql
-   SELECT tipo_error, COUNT(*) as total
-   FROM observaciones WHERE anio = ?
-   GROUP BY tipo_error
-   ORDER BY total DESC LIMIT 10
-   ```
-
-4. **Total general:**
-   ```sql
-   SELECT COUNT(*) as total FROM observaciones WHERE anio = ?
-   ```
+1. **Total por estado:** `SELECT estado_actual, COUNT(*) FROM observaciones WHERE anio = ? GROUP BY estado_actual`
+2. **Total por mes:** `SELECT mes, COUNT(*) FROM observaciones WHERE anio = ? GROUP BY mes`
+3. **Tipos de error más comunes:** `SELECT tipo_error, COUNT(*) FROM observaciones WHERE anio = ? GROUP BY tipo_error ORDER BY total DESC LIMIT 10`
+4. **Total general:** `SELECT COUNT(*) FROM observaciones WHERE anio = ?`
 
 ### Permisos en estadísticas
 
-- **Registrador**: Solo ve sus propias observaciones
+- **Registrador**: Solo ve sus propias observaciones (`usuario_registro_id = ?`)
 - **Supervisor**: Ve todas las observaciones
 
 ---
 
-## 7. Estructura de la Base de Datos
+## 7. Sistema de Reportes (v2.1)
+
+### 7.1 API de Reportes
+
+**Endpoint:** `api/reports.php?report={dimension}&year={YYYY}`
+
+**Dimensiones soportadas (20):**
+
+| Dimensión | Método del Modelo | Filtro SQL |
+|-----------|-------------------|------------|
+| `mes` | `reportePorMes()` | `GROUP BY mes` |
+| `establecimiento` | `reportePorEstablecimiento()` | `GROUP BY establecimiento` |
+| `comuna` | `reportePorComuna()` | `GROUP BY comuna` |
+| `serie` | `reportePorSerie()` | `GROUP BY codigo_serie` |
+| `plazo` | `reportePorPlazo()` | `GROUP BY plazo_entrega` |
+| `validador` | `reportePorValidador()` | `GROUP BY usa_validador` |
+| `errores_mes` | `reporteErroresPorMes()` | `WHERE tipo_error = 'ERROR' GROUP BY mes` |
+| `errores_establecimiento` | `reporteErroresPorEstablecimiento()` | `WHERE tipo_error = 'ERROR' GROUP BY establecimiento` |
+| `errores_comuna` | `reporteErroresPorComuna()` | `WHERE tipo_error = 'ERROR' GROUP BY comuna` |
+| `fuera_plazo_mes` | `reporteFueraPlazoPorMes()` | `WHERE plazo_entrega = 'fuera_plazo' GROUP BY mes` |
+| `fuera_plazo_establecimiento` | `reporteFueraPlazoPorEstablecimiento()` | `WHERE plazo_entrega = 'fuera_plazo' GROUP BY establecimiento` |
+| `fuera_plazo_comuna` | `reporteFueraPlazoPorComuna()` | `WHERE plazo_entrega = 'fuera_plazo' GROUP BY comuna` |
+| `validador_mes` | `reporteValidadorPorMes()` | `WHERE usa_validador = 'si' GROUP BY mes` |
+| `validador_establecimiento` | `reporteValidadorPorEstablecimiento()` | `WHERE usa_validador = 'si' GROUP BY establecimiento` |
+| `validador_comuna` | `reporteValidadorPorComuna()` | `WHERE usa_validador = 'si' GROUP BY comuna` |
+| `serie_detalle` | `reportePorSerieDetalle()` | `GROUP BY codigo_serie, tipo_error` |
+| `hoja_detalle` | `reportePorHojaDetalle()` | `GROUP BY codigo_hoja, tipo_error` |
+| `filtros` | `getComunasConDatos()`, `getEstablecimientosConDatos()` | Listas dinámicas para filtros |
+| `all` | — | Todas las dimensiones en una respuesta |
+
+**Endpoint especial:** `api/reports.php?report=filtros&year={YYYY}` devuelve comunas y establecimientos con datos para los filtros del PDF detallado.
+
+### 7.2 API de Exportación
+
+**Endpoint:** `api/export.php?format={excel|pdf|csv}&year={YYYY}[&report_type={tipo}]`
+
+**Modos de exportación:**
+
+| report_type | format | Descripción |
+|-------------|--------|-------------|
+| (ninguno) | excel/pdf/csv | Exportación general de observaciones |
+| `detallado` | pdf | PDF jerárquico con filtros (comuna, establecimiento, mes, estado) |
+| `errores_mes` | excel | Reporte de errores por mes |
+| `errores_establecimiento` | excel | Reporte de errores por establecimiento |
+| `errores_comuna` | excel | Reporte de errores por comuna |
+| `fuera_plazo_mes` | excel | Reporte fuera de plazo por mes |
+| `fuera_plazo_establecimiento` | excel | Reporte fuera de plazo por establecimiento |
+| `fuera_plazo_comuna` | excel | Reporte fuera de plazo por comuna |
+| `validador_mes` | excel | Reporte uso validador por mes |
+| `validador_establecimiento` | excel | Reporte uso validador por establecimiento |
+| `validador_comuna` | excel | Reporte uso validador por comuna |
+| `serie_detalle` | excel | Reporte serie × tipo error |
+| `hoja_detalle` | excel | Reporte por hoja REM |
+
+### 7.3 PDF Detallado Jerárquico
+
+**Método:** `Exporter::exportDetalladoPDF($data, $filename, $filters)`
+
+**Características:**
+- Formato horizontal (landscape) A4
+- 6 columnas: COMUNAS, ESTABLECIMIENTOS, MES, DETALLE, DETALLE ERROR, ERRORES
+- Header en rojo oscuro (#8B1A1A)
+- Agrupamiento con `rowspan`:
+  - Comuna: rowspan total de sus registros, fondo azul oscuro
+  - Establecimiento: rowspan dentro de comuna, fondo azul medio
+  - Mes: rowspan dentro de establecimiento, fondo azul claro
+- Código de colores por estado:
+  - Verde claro (#E8F5E9): aprobado / corregido
+  - Naranja claro (#FFF3E0): pendiente / sin respuesta
+  - Rojo claro (#FFEBEE): rechazado
+  - Azul claro (#E3F2FD): justificado
+- Paginación automática cada ~35 filas
+- Columna DETALLE: texto completo de `detalle_observacion`
+- Columna DETALLE ERROR: valor de `clasificacion` ("Corregido", "Sin respuesta del Establecimiento", etc.)
+
+### 7.4 Optimización de Índices
+
+Migration `config/migration_2026_05_08_reportes.sql`:
+
+```sql
+ALTER TABLE observaciones ADD INDEX idx_anio_tipo_error (anio, tipo_error);
+ALTER TABLE observaciones ADD INDEX idx_anio_plazo (anio, plazo_entrega);
+ALTER TABLE observaciones ADD INDEX idx_anio_validador (anio, usa_validador);
+ALTER TABLE observaciones ADD INDEX idx_anio_serie_error (anio, codigo_serie, tipo_error);
+ALTER TABLE observaciones ADD INDEX idx_anio_hoja (anio, codigo_hoja);
+ALTER TABLE observaciones ADD INDEX idx_anio_estado (anio, estado_actual);
+```
+
+---
+
+## 8. Estructura de la Base de Datos
 
 ### Tablas principales:
 
 **usuarios**
 ```sql
-id, username, password_hash, nombre_completo, rol, activo, fecha_creacion
+id, username, password_hash, nombre_completo, rol, activo, fecha_creacion, fecha_actualizacion
+```
+
+**comunas**
+```sql
+id, codigo_comuna, nombre
+```
+
+**establecimientos**
+```sql
+id, codigo_establecimiento, nombre, nombre_corto, comuna_id, activo
 ```
 
 **observaciones**
@@ -263,7 +350,7 @@ id, anio, mes, establecimiento_id, codigo_serie, codigo_hoja,
 tipo_error, detalle_observacion, plazo_entrega, usa_validador,
 estado_actual, usuario_registro_id, usuario_supervisor_id,
 respuesta_establecimiento, clasificacion, detalle_error,
-fecha_registro, fecha_revision
+fecha_registro, fecha_revision, fecha_actualizacion
 ```
 
 **historial_estados**
@@ -272,19 +359,25 @@ id, observacion_id, estado_anterior, estado_nuevo,
 usuario_id, comentario, fecha_cambio
 ```
 
-**establecimientos**
+**logs**
 ```sql
-id, nombre, nombre_corto, codigo_establecimiento, comuna_id
+id, usuario_id, accion, detalle, ip_address, user_agent, fecha
 ```
 
-**comunas**
+**asignaciones_establecimientos**
 ```sql
-id, nombre, codigo_comuna
+id, usuario_id, establecimiento_id, anio, fecha_asignacion
+UNIQUE KEY (usuario_id, establecimiento_id)
+```
+
+**observaciones_eliminadas** (papelera soft-delete)
+```sql
+Snapshot de observaciones + metadatos de eliminación
 ```
 
 ---
 
-## 8. Seguridad Implementada
+## 9. Seguridad Implementada
 
 ### Protección CSRF
 ```php
@@ -319,23 +412,38 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
 }
 ```
 
+### Validación de asignaciones
+```php
+// En api/observations.php (crear/editar)
+// Verifica que el establecimiento esté asignado al registrador
+if ($userRole === ROL_REGISTRADOR) {
+    $asignacion = $asignacionModel->getByUsuarioEstablecimiento($userId, $establecimientoId, $year);
+    if (!$asignacion) {
+        jsonResponse(false, null, 'El establecimiento no está asignado a su usuario', 403);
+    }
+}
+```
+
+### Gestión de sesión
+- `session_start()` se ejecuta **solo** en `config/config.php`
+- Las APIs **no** deben llamar `session_start()` directamente
+- Configuración: `session.cookie_httponly=1`, `session.use_only_cookies=1`, `session.cookie_secure=0` (HTTP local)
+
 ---
 
-## 9. Flujo Completo de Uso
+## 10. Flujo Completo de Uso
 
-### Escenario: Registrar usuario crea observación
-
+### Escenario: Registrador crea observación
 ```
-1. Login → supervisor1/admin123
-2. Dashboard → muestra estadísticas
-3. Nueva Observación → formulario
-4. Selecciona: Establecimiento, Mes, Serie, REM, Tipo error
-5. Envía → API valida → BD almacena
+1. Login → registrador1/admin123
+2. Dashboard → muestra estadísticas personales
+3. Nueva Observación → formulario (solo establecimientos asignados)
+4. Selecciona: Establecimiento (filtrado), Mes, Serie, Hoja, Tipo error
+5. Envía → API valida asignación → BD almacena
 6. Lista observaciones → muestra nueva fila
 ```
 
 ### Escenario: Supervisor revisa observaciones
-
 ```
 1. Login → supervisor1/admin123
 2. Supervisión → lista todas pendientes
@@ -346,7 +454,6 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
 ```
 
 ### Escenario: Importación masiva
-
 ```
 1. Descargar plantilla (api/import_template.php)
 2. Llenar Excel con datos
@@ -357,38 +464,95 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
 7. Ver observaciones importadas
 ```
 
+### Escenario: Generar PDF Detallado
+```
+1. Ir a Reportes → Tab "PDF Detallado"
+2. Seleccionar filtros: Comuna, Establecimiento, Mes, Estado
+3. Click "Generar PDF Detallado"
+4. GET api/export.php?format=pdf&report_type=detallado&comuna_id=X&...
+5. PDF se descarga con agrupamiento jerárquico
+```
+
+### Escenario: Exportar sub-reporte
+```
+1. Ir a Reportes → Tab "Errores"
+2. Click "Exportar Excel ↓" en el gráfico deseado
+3. GET api/export.php?format=excel&year=2026&report_type=errores_mes
+4. Excel se descarga con datos filtrados
+```
+
 ---
 
-## 10. Rutas y Endpoints
+## 11. Rutas y Endpoints
 
 | Método | Endpoint | Descripción |
 |--------|-----------|-------------|
 | POST | `api/auth.php?action=login` | Iniciar sesión |
 | POST | `api/auth.php?action=logout` | Cerrar sesión |
+| POST | `api/auth.php?action=change_year` | Cambiar año de sesión |
 | GET | `api/observations.php` | Listar observaciones |
 | POST | `api/observations.php` | Crear observación |
 | PUT | `api/observations.php?id=X` | Actualizar observación |
 | DELETE | `api/observations.php?id=X` | Eliminar observación |
-| GET | `api/observations.php?action=stats` | Estadísticas |
+| GET | `api/observations.php?action=stats` | Estadísticas dashboard |
+| GET | `api/observations.php?action=historial&id=X` | Historial de estados |
 | POST | `api/supervision.php?action=approve` | Aprobar observación |
+| POST | `api/supervision.php?action=reject` | Rechazar observación |
+| POST | `api/supervision.php?action=cancel` | Cancelar aprobación |
+| POST | `api/supervision.php?action=delete` | Eliminar observación |
+| POST | `api/supervision.php?action=update_status` | Cambiar estado |
 | GET | `api/supervision.php?action=get_filtered` | Listar con filtros |
-| POST | `api/import.php` | Importar archivo |
-| GET | `api/locations.php` | Listar comunas/establecimientos |
+| GET | `api/supervision.php?action=get_detail` | Detalle de observación |
+| GET | `api/reports.php?report={dim}&year={Y}` | Datos de reportes (20 dimensiones) |
+| GET | `api/reports.php?report=filtros&year={Y}` | Filtros dinámicos (comunas/establecimientos) |
+| GET | `api/export.php?format={fmt}&year={Y}` | Exportación general |
+| GET | `api/export.php?report_type={tipo}&...` | Exportación específica |
+| POST | `api/import.php` | Importar archivo (preview/confirm) |
+| GET | `api/import_template.php` | Descargar plantilla CSV |
+| GET | `api/locations.php?type=comunas` | Listar comunas |
+| GET | `api/locations.php?type=establecimientos` | Listar establecimientos |
+| GET | `api/assignments.php` | Listar asignaciones |
+| POST | `api/assignments.php?action=asignar` | Asignar establecimiento |
+| POST | `api/assignments.php?action=asignar_multiple` | Asignar múltiples |
+| POST | `api/assignments.php?action=remover` | Remover asignación |
+| POST | `api/assignments.php?action=copiar_anio` | Copiar del año anterior |
+| GET | `api/users.php` | Listar usuarios |
+| POST | `api/users.php` | Crear usuario |
+| PUT | `api/users.php` | Actualizar usuario |
+| DELETE | `api/users.php` | Eliminar usuario |
+| GET | `api/deleted.php` | Listar eliminadas |
+| POST | `api/deleted.php?action=restore` | Restaurar eliminada |
+| POST | `api/deleted.php?action=permanent_delete` | Eliminar permanente |
 
 ---
 
-## 11. Resumen de Funcionalidades
+## 12. Resumen de Funcionalidades
 
 | Módulo | Acciones |
 |--------|----------|
 | **Login** | Autenticación, selección año |
-| **Dashboard** | Estadísticas, gráficos, últimas observaciones |
-| **Observaciones** | Crear, editar, listar, filtrar, exportar |
-| **Supervisión** | Aprobar, ver historial, filtros avanzados |
-| **Usuarios** | Crear, editar, activar/desactivar (solo supervisor) |
+| **Dashboard** | Estadísticas, gráficos, últimas observaciones, alertas de asignación |
+| **Observaciones** | Crear, editar, listar, filtrar, exportar, historial |
+| **Supervisión** | Aprobar, rechazar, cancelar, eliminar, cambiar estado, filtros avanzados |
+| **Usuarios** | Crear, editar, activar/desactivar, cambiar contraseña (solo supervisor) |
+| **Asignaciones** | Asignar/remover establecimientos por año, copiar año anterior (solo supervisor) |
+| **Eliminadas** | Ver papelera, restaurar, eliminar permanente (solo supervisor) |
 | **Perfil** | Editar datos, cambiar contraseña |
-| **Reportes** | Exportar a Excel |
-| **Importación** | Carga masiva desde Excel/CSV |
+| **Reportes** | 6 tabs, 15+ gráficos, PDF detallado jerárquico, exportación por sub-reporte |
+| **Importación** | Carga masiva desde Excel/CSV con preview |
+
+---
+
+## 13. Historial de Cambios Técnicos
+
+### Mayo 2026 — v2.1
+- **api/reports.php**: Extendido de 6 a 20 dimensiones de reporte
+- **models/Observation.php**: +14 métodos nuevos de reporte + 2 métodos de filtros
+- **models/Exporter.php**: `exportDetalladoPDF()` (jerárquico con rowspan) + `exportErroresExcel()`
+- **api/export.php**: Soporte para `report_type` (13 tipos específicos) + fix de sesión
+- **views/reportes.php**: Reescrito completamente con 6 tabs, 15+ gráficos, filtros dinámicos
+- **assets/css/styles.css**: +45 líneas para tabs de reportes
+- **config/migration_2026_05_08_reportes.sql**: 6 índices compuestos nuevos
 
 ---
 

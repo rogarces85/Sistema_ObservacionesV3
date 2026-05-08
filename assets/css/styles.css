@@ -1862,3 +1862,59 @@ a.text-sky-600:hover {
         min-width: 600px;
     }
 }
+
+/* =========================================
+   REPORT TABS
+   ========================================= */
+.report-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
+    background-color: var(--color-neutral-100);
+    border-bottom: 2px solid var(--color-neutral-200);
+}
+
+.report-tab {
+    padding: var(--spacing-3) var(--spacing-5);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    color: var(--color-neutral-600);
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    white-space: nowrap;
+}
+
+.report-tab:hover {
+    color: var(--color-secondary);
+    background-color: var(--color-neutral-200);
+}
+
+.report-tab:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: -2px;
+}
+
+.report-tab.active {
+    color: var(--color-primary);
+    font-weight: 600;
+    background-color: var(--color-neutral-white);
+    border-bottom-color: var(--color-primary);
+}
+
+.report-tab-content {
+    display: none;
+}
+
+.report-tab-content.active {
+    display: block;
+}
+
+@media (max-width: 767.98px) {
+    .report-tab {
+        padding: var(--spacing-2) var(--spacing-3);
+        font-size: var(--font-size-xs);
+    }
+}

@@ -1,7 +1,7 @@
 # Manual de Flujo del Sistema de Observaciones REM
 
 **Sistema de Observaciones REM — Servicio de Salud Osorno**  
-**Versión:** 2.0.0  
+**Versión:** 2.1.0  
 **Fecha:** Mayo 2026
 
 ---
@@ -14,7 +14,7 @@ Este documento describe el flujo de trabajo completo del **Sistema de Observacio
 
 | Rol | Descripción | Usuarios |
 |-----|-------------|----------|
-| **Supervisor** | Gestiona usuarios, asigna establecimientos, supervisa observaciones y genera reportes. | Cecilia (supervisor1) |
+| **Supervisor** | Gestiona usuarios, asigna establecimientos, supervisa observaciones, genera reportes avanzados. | Cecilia (supervisor1) |
 | **Registrador** | Registra observaciones únicamente sobre los establecimientos que le fueron asignados. | Rodrigo, Victoria, Roxana, Marcelo |
 
 ---
@@ -108,12 +108,54 @@ El supervisor puede registrar observaciones sobre **cualquier establecimiento** 
 3. Activar / desactivar usuarios.
 4. Restablecer contraseñas.
 
-### 2.7 Reportes
+### 2.7 Reportes Avanzados (v2.1)
 
-1. Ir a **Reportes**.
-2. Exportar datos a **Excel** filtrando por:
-   - Año, mes, estado, establecimiento, comuna.
-3. Generar reportes consolidados para análisis.
+El módulo de reportes ahora cuenta con una interfaz de **6 tabs**:
+
+#### Tab: General
+- 6 gráficos interactivos: Por Mes, Por Comuna, Por Establecimiento, Por Serie REM, Por Plazo, Por Validador.
+- Cada gráfico tiene tabla de datos con totales y porcentajes.
+- Botones de exportación individual por gráfico.
+
+#### Tab: Errores
+- 3 gráficos filtrados exclusivamente por tipo de error **ERROR**:
+  - Errores por Mes (barras)
+  - Errores por Comuna (dona)
+  - Errores por Establecimiento (barras horizontales, top 15)
+
+#### Tab: Fuera de Plazo
+- 3 gráficos filtrados por envíos **fuera de plazo**:
+  - Fuera de Plazo por Mes
+  - Fuera de Plazo por Comuna
+  - Fuera de Plazo por Establecimiento
+
+#### Tab: Validador
+- 3 gráficos de uso del **validador REM**:
+  - Uso Validador por Mes
+  - Uso Validador por Comuna
+  - Uso Validador por Establecimiento
+
+#### Tab: Serie / Hoja
+- **Por Serie REM × Tipo Error:** Matriz que cruza cada serie con cada tipo de error y su cantidad.
+- **Por Hoja REM:** Top 15 hojas más frecuentes con su tipo de error.
+
+#### Tab: PDF Detallado
+- Panel de filtros: Comuna, Establecimiento, Mes, Estado.
+- Genera un **PDF jerárquico** con agrupamiento visual:
+  - **COMUNA** (header azul oscuro, rowspan)
+  - **ESTABLECIMIENTO** (header azul medio, rowspan)
+  - **MES** (header azul claro, rowspan)
+  - **DETALLE** (texto completo de la observación)
+  - **DETALLE ERROR** (clasificación: "Corregido", "Sin respuesta del Establecimiento", etc.)
+  - **ERRORES** (cantidad = 1 por fila)
+- Header de tabla en **rojo oscuro** (#8B1A1A).
+- Código de colores por estado (verde=corregido, naranja=sin respuesta, rojo=rechazado).
+- Formato horizontal (landscape) optimizado para impresión y firma física.
+
+#### Exportación Global
+- **Excel General:** Exporta todas las observaciones del año seleccionado.
+- **PDF Detallado:** Genera el reporte jerárquico con filtros aplicados.
+- Cada sub-reporte tiene su propio botón de exportación a Excel.
 
 ---
 
@@ -183,6 +225,14 @@ Si tiene establecimientos asignados, el registrador puede usar la función de **
 - No puede modificar observaciones ya supervisadas (aprobado, rechazado, error, justificado).
 - Al editar, el campo establecimiento sigue restringido a sus asignaciones.
 
+### 3.7 Reportes (v2.1)
+
+El registrador también accede al módulo de reportes mejorado, pero **solo ve sus propios datos**:
+
+- Todos los gráficos y tablas se filtran automáticamente por `usuario_registro_id`.
+- Puede exportar sus datos a Excel desde cualquier sub-reporte.
+- Puede generar el PDF detallado con sus observaciones, filtrando por comuna, establecimiento, mes o estado.
+
 ---
 
 ## 4. Flujo General del Sistema (Resumen)
@@ -190,27 +240,28 @@ Si tiene establecimientos asignados, el registrador puede usar la función de **
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                        INICIO DEL AÑO                           │
-└─────────────────────────────────────────────────────────────────┘
+─────────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │  SUPERVISOR: Asigna establecimientos a cada registrador         │
 │  (Asignación de Establecimientos → selecciona año y registrador)│
+│  Opción: Copiar asignaciones del año anterior                   │
 └─────────────────────────────────────────────────────────────────┘
                               │
               ┌───────────────┼───────────────┐
               ▼               ▼               ▼
-      ┌───────────┐   ┌───────────┐   ┌───────────┐
+      ┌───────────┐   ┌───────────┐   ┌───────────
       │Registrador│   │Registrador│   │Registrador│
       │    1      │   │    2      │   │    N      │
-      └─────┬─────┘   └─────┬─────┘   └─────┬─────┘
+      └─────┬─────┘   ─────┬─────┘   └─────┬─────┘
             │               │               │
             ▼               ▼               ▼
       ┌─────────────────────────────────────────────┐
       │ Registradores registran observaciones        │
       │ sobre sus establecimientos asignados         │
       │ (Web individual o Importación masiva)        │
-      └─────────────────────┬───────────────────────┘
+      ─────────────────────┬───────────────────────┘
                             │
                             ▼
       ┌─────────────────────────────────────────────┐
@@ -226,13 +277,16 @@ Si tiene establecimientos asignados, el registrador puede usar la función de **
                             │
               ┌─────────────┼─────────────┐
               ▼             ▼             ▼
-         ┌────────┐   ┌────────┐   ┌──────────┐
+         ┌────────   ┌────────┐   ┌──────────┐
          │APROBADO│   │RECHAZADO│  │JUSTIFICADO│
          └────────┘   └────────┘   └──────────┘
                             │
                             ▼
       ┌─────────────────────────────────────────────┐
-      │ Generación de Reportes y Exportación Excel  │
+      │ Reportes Avanzados (v2.1):                  │
+      │ - 6 tabs con 15+ gráficos interactivos      │
+      │ - PDF Detallado jerárquico para impresión   │
+      │ - Exportación Excel por sub-reporte         │
       └─────────────────────────────────────────────┘
 ```
 
@@ -249,22 +303,120 @@ Si tiene establecimientos asignados, el registrador puede usar la función de **
 | Editar observaciones de otros | ✅ | ❌ |
 | Eliminar observaciones | ✅ | ❌ |
 | Supervisar cambios de estado | ✅ | ❌ |
-| Asignar establecimientos a registradores | ✅ | ❌ |
+| Asignar establecimientos a registradores | ✅ |  |
 | Ver establecimientos asignados a otros | ✅ | ❌ |
 | Gestionar usuarios | ✅ | ❌ |
-| Generar reportes Excel | ✅ | ✅ |
+| Generar reportes Excel general | ✅ | ✅ |
+| Generar reportes Excel por sub-reporte | ✅ | ✅ |
+| Generar PDF Detallado jerárquico | ✅ | ✅ |
 | Importar observaciones masivas | ✅ | ✅ (solo asignados) |
+| Ver papelera de eliminadas | ✅ | ❌ |
+| Restaurar observaciones eliminadas | ✅ | ❌ |
 
 ---
 
-## 6. Consideraciones Técnicas
+## 6. Módulo de Reportes — Detalle Técnico (v2.1)
+
+### 6.1 Dimensiones de Reporte
+
+| Código API | Descripción | Filtro |
+|------------|-------------|--------|
+| `mes` | Observaciones por mes | Ninguno |
+| `establecimiento` | Observaciones por establecimiento | Ninguno |
+| `comuna` | Observaciones por comuna | Ninguno |
+| `serie` | Observaciones por serie REM | Ninguno |
+| `plazo` | Observaciones por plazo de entrega | Ninguno |
+| `validador` | Observaciones por uso de validador | Ninguno |
+| `errores_mes` | Errores por mes | tipo_error = 'ERROR' |
+| `errores_establecimiento` | Errores por establecimiento | tipo_error = 'ERROR' |
+| `errores_comuna` | Errores por comuna | tipo_error = 'ERROR' |
+| `fuera_plazo_mes` | Fuera de plazo por mes | plazo_entrega = 'fuera_plazo' |
+| `fuera_plazo_establecimiento` | Fuera de plazo por establecimiento | plazo_entrega = 'fuera_plazo' |
+| `fuera_plazo_comuna` | Fuera de plazo por comuna | plazo_entrega = 'fuera_plazo' |
+| `validador_mes` | Uso validador por mes | usa_validador = 'si' |
+| `validador_establecimiento` | Uso validador por establecimiento | usa_validador = 'si' |
+| `validador_comuna` | Uso validador por comuna | usa_validador = 'si' |
+| `serie_detalle` | Serie × Tipo Error | Ninguno |
+| `hoja_detalle` | Hoja × Tipo Error | Ninguno |
+| `detallado` | PDF jerárquico | Filtros dinámicos |
+
+### 6.2 Estructura del PDF Detallado
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│  Header: Rojo oscuro (#8B1A1A)                                   │
+│  COMUNAS │ ESTABLECIMIENTOS │ MES │ DETALLE │ DETALLE ERROR │ ERRORES │
+├──────────────────────────────────────────────────────────────────┤
+│  OSORNO (rowspan=8, azul oscuro)                                 │
+│  ├─ CECOSF MANUEL RODRIGUEZ (rowspan=1, azul medio)              │
+│  │  └─ noviembre (rowspan=1, azul claro)                         │
+│  │     │ SERIE A A03 celda C213 (dato 16)...  │ Corregido │  1   │
+│  ├─ CESFAM DR. MARCELO LOPETEGUI (rowspan=1)                     │
+│  │  ─ noviembre (rowspan=1)                                     │
+│  │     │ SERIE A A02 sección A: EMP Realizados...│ Corregido│  1  │
+│  ├─ CESFAM DR. PEDRO JAUREGUI (rowspan=1)                        │
+│  │  └─ noviembre (rowspan=1)                                     │
+│  │     │ SERIE A A03 celda C213 (dato 44)...  │ Corregido │  1   │
+│  ├─ CESFAM PAMPA ALEGRE (rowspan=2)                              │
+│  │  ├─ noviembre (rowspan=1)                                     │
+│  │  │  │ SERIE A A03 sección A,5: La suma...  │ Corregido │  1   │
+│  │  └─ diciembre (rowspan=1)                                     │
+│  │     │ SERIE A A07 Sin registros            │ Corregido │  1   │
+│  │     │ SERIE A A29 sin registros            │ Corregido │  1   │
+│  │     │ SERIE P P07 prestaciones sin...      │ Corregido │  1   │
+│  ├─ CESFAM RAHUE ALTO (rowspan=3)                                │
+│  │  ├─ octubre (rowspan=1)                                       │
+│  │  │  │ SERIE A A01 Controles de salud...   │ Corregido │  1   │
+│  │  └─ noviembre (rowspan=2)                                     │
+│  │     │ SERIE A A03 sección A,5: La suma...  │ Corregido │  1   │
+│  │     │ SERIE A A04 sección L: Consultas...  │ Corregido │  1   │
+│  ├─ CESFAM V CENTENARIO (rowspan=1)                              │
+│  │  └─ noviembre (rowspan=1)                                     │
+│  │     │ SERIE A A03 celda C97 (dato 86)...  │ Sin respuesta │ 1 │
+│  └─ PRAIS (rowspan=2)                                            │
+│     ├─ octubre (rowspan=1)                                       │
+│     │  │ SERIE A Hoja Nombre error al enviar...│ Corregido │  1  │
+│     └─ noviembre (rowspan=1)                                     │
+│        │ SERIE A se envía una nueva versión...│ Corregido │  1   │
+│        │ SERIE A Hoja Nombre error al enviar...│ Corregido │  1  │
+├──────────────────────────────────────────────────────────────────┤
+│  PUERTO OCTAY (rowspan=3, azul oscuro)                           │
+│  ├─ HOSPITAL PUERTO OCTAY (rowspan=2)                            │
+│  │  ├─ octubre (rowspan=1)                                       │
+│  │  │  │ SERIE A A28 ingresos de rehabilitación...│ Corregido│ 1 │
+│  │  ─ noviembre (rowspan=1)                                     │
+│  │     │ SERIE A se envía una nueva versión...  │ Corregido │  1  │
+│  └─ PSR RUPANCO (rowspan=1)                                      │
+│     └─ octubre (rowspan=1)                                       │
+│        │ SERIE A Renombre archivo Version...    │ Corregido │  1  │
+──────────────────────────────────────────────────────────────────┘
+```
+
+### 6.3 Optimización de Rendimiento
+
+Índices compuestos añadidos (migration 2026-05-08):
+
+| Índice | Columnas | Optimiza |
+|--------|----------|----------|
+| `idx_anio_tipo_error` | (anio, tipo_error) | Reportes Grupo A (Errores) |
+| `idx_anio_plazo` | (anio, plazo_entrega) | Reportes Grupo B (Fuera de Plazo) |
+| `idx_anio_validador` | (anio, usa_validador) | Reportes Grupo C (Validador) |
+| `idx_anio_serie_error` | (anio, codigo_serie, tipo_error) | Reporte Serie×Error |
+| `idx_anio_hoja` | (anio, codigo_hoja) | Reporte por Hoja |
+| `idx_anio_estado` | (anio, estado_actual) | PDF Detallado con filtro estado |
+
+---
+
+## 7. Consideraciones Técnicas
 
 - **Base de datos:** MySQL en servidor `10.8.152.199:3306`, base `observaciones_rem`.
 - **Asignaciones por año:** Las asignaciones de establecimientos a registradores son anuales. Cada año debe reasignarse (o copiarse desde el año anterior).
 - **Establecimientos activos:** Solo los establecimientos marcados como `activo = 1` aparecen en el sistema.
 - **Validación de seguridad:** El backend valida en cada operación de creación/actualización que un registrador solo use establecimientos asignados, incluso si intenta saltarse la restricción del frontend.
 - **Comunas actuales:** OSORNO, PURRANQUE, PUYEHUE, RIO NEGRO, PUERTO OCTAY, SAN JUAN DE LA COSTA, SAN PABLO.
+- **Sesión:** `session_start()` se maneja exclusivamente en `config/config.php`. Las APIs no deben llamarlo directamente.
+- **CSRF:** Token generado en `includes/header.php` (meta tag), validado en `CSRF::validateRequest()` para POST/PUT/DELETE.
 
 ---
 
-*Documento generado automáticamente por el Sistema de Observaciones REM.*
+*Documento actualizado — Sistema de Observaciones REM v2.1.0 — Mayo 2026*

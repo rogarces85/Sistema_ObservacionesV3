@@ -532,5 +532,297 @@ class Observation
         $sql .= " GROUP BY o.usa_validador";
         return $this->db->query($sql, $params);
     }
+
+    /**
+     * GRUPO A: Reportes de Errores (tipo_error = 'ERROR')
+     */
+    public function reporteErroresPorMes($year, $userId = null, $userRole = null)
+    {
+        $sql = "SELECT o.mes, COUNT(*) as total 
+                FROM observaciones o 
+                WHERE o.anio = ? AND o.tipo_error = 'ERROR'";
+        $params = [$year];
+        if ($userRole === ROL_REGISTRADOR && $userId) {
+            $sql .= " AND o.usuario_registro_id = ?";
+            $params[] = $userId;
+        }
+        $sql .= " GROUP BY o.mes ORDER BY FIELD(o.mes, 'Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre')";
+        return $this->db->query($sql, $params);
+    }
+
+    public function reporteErroresPorEstablecimiento($year, $userId = null, $userRole = null)
+    {
+        $sql = "SELECT e.id, e.nombre, e.nombre_corto, COUNT(*) as total 
+                FROM observaciones o 
+                INNER JOIN establecimientos e ON o.establecimiento_id = e.id 
+                WHERE o.anio = ? AND o.tipo_error = 'ERROR'";
+        $params = [$year];
+        if ($userRole === ROL_REGISTRADOR && $userId) {
+            $sql .= " AND o.usuario_registro_id = ?";
+            $params[] = $userId;
+        }
+        $sql .= " GROUP BY e.id, e.nombre, e.nombre_corto ORDER BY total DESC";
+        return $this->db->query($sql, $params);
+    }
+
+    public function reporteErroresPorComuna($year, $userId = null, $userRole = null)
+    {
+        $sql = "SELECT c.id, c.nombre, COUNT(*) as total 
+                FROM observaciones o 
+                INNER JOIN establecimientos e ON o.establecimiento_id = e.id 
+                INNER JOIN comunas c ON e.comuna_id = c.id 
+                WHERE o.anio = ? AND o.tipo_error = 'ERROR'";
+        $params = [$year];
+        if ($userRole === ROL_REGISTRADOR && $userId) {
+            $sql .= " AND o.usuario_registro_id = ?";
+            $params[] = $userId;
+        }
+        $sql .= " GROUP BY c.id, c.nombre ORDER BY total DESC";
+        return $this->db->query($sql, $params);
+    }
+
+    /**
+     * GRUPO B: Reportes Fuera de Plazo
+     */
+    public function reporteFueraPlazoPorMes($year, $userId = null, $userRole = null)
+    {
+        $sql = "SELECT o.mes, COUNT(*) as total 
+                FROM observaciones o 
+                WHERE o.anio = ? AND o.plazo_entrega = 'fuera_plazo'";
+        $params = [$year];
+        if ($userRole === ROL_REGISTRADOR && $userId) {
+            $sql .= " AND o.usuario_registro_id = ?";
+            $params[] = $userId;
+        }
+        $sql .= " GROUP BY o.mes ORDER BY FIELD(o.mes, 'Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre')";
+        return $this->db->query($sql, $params);
+    }
+
+    public function reporteFueraPlazoPorEstablecimiento($year, $userId = null, $userRole = null)
+    {
+        $sql = "SELECT e.id, e.nombre, e.nombre_corto, COUNT(*) as total 
+                FROM observaciones o 
+                INNER JOIN establecimientos e ON o.establecimiento_id = e.id 
+                WHERE o.anio = ? AND o.plazo_entrega = 'fuera_plazo'";
+        $params = [$year];
+        if ($userRole === ROL_REGISTRADOR && $userId) {
+            $sql .= " AND o.usuario_registro_id = ?";
+            $params[] = $userId;
+        }
+        $sql .= " GROUP BY e.id, e.nombre, e.nombre_corto ORDER BY total DESC";
+        return $this->db->query($sql, $params);
+    }
+
+    public function reporteFueraPlazoPorComuna($year, $userId = null, $userRole = null)
+    {
+        $sql = "SELECT c.id, c.nombre, COUNT(*) as total 
+                FROM observaciones o 
+                INNER JOIN establecimientos e ON o.establecimiento_id = e.id 
+                INNER JOIN comunas c ON e.comuna_id = c.id 
+                WHERE o.anio = ? AND o.plazo_entrega = 'fuera_plazo'";
+        $params = [$year];
+        if ($userRole === ROL_REGISTRADOR && $userId) {
+            $sql .= " AND o.usuario_registro_id = ?";
+            $params[] = $userId;
+        }
+        $sql .= " GROUP BY c.id, c.nombre ORDER BY total DESC";
+        return $this->db->query($sql, $params);
+    }
+
+    /**
+     * GRUPO C: Reportes de Uso del Validador
+     */
+    public function reporteValidadorPorMes($year, $userId = null, $userRole = null)
+    {
+        $sql = "SELECT o.mes, COUNT(*) as total 
+                FROM observaciones o 
+                WHERE o.anio = ? AND o.usa_validador = 'si'";
+        $params = [$year];
+        if ($userRole === ROL_REGISTRADOR && $userId) {
+            $sql .= " AND o.usuario_registro_id = ?";
+            $params[] = $userId;
+        }
+        $sql .= " GROUP BY o.mes ORDER BY FIELD(o.mes, 'Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre')";
+        return $this->db->query($sql, $params);
+    }
+
+    public function reporteValidadorPorEstablecimiento($year, $userId = null, $userRole = null)
+    {
+        $sql = "SELECT e.id, e.nombre, e.nombre_corto, COUNT(*) as total 
+                FROM observaciones o 
+                INNER JOIN establecimientos e ON o.establecimiento_id = e.id 
+                WHERE o.anio = ? AND o.usa_validador = 'si'";
+        $params = [$year];
+        if ($userRole === ROL_REGISTRADOR && $userId) {
+            $sql .= " AND o.usuario_registro_id = ?";
+            $params[] = $userId;
+        }
+        $sql .= " GROUP BY e.id, e.nombre, e.nombre_corto ORDER BY total DESC";
+        return $this->db->query($sql, $params);
+    }
+
+    public function reporteValidadorPorComuna($year, $userId = null, $userRole = null)
+    {
+        $sql = "SELECT c.id, c.nombre, COUNT(*) as total 
+                FROM observaciones o 
+                INNER JOIN establecimientos e ON o.establecimiento_id = e.id 
+                INNER JOIN comunas c ON e.comuna_id = c.id 
+                WHERE o.anio = ? AND o.usa_validador = 'si'";
+        $params = [$year];
+        if ($userRole === ROL_REGISTRADOR && $userId) {
+            $sql .= " AND o.usuario_registro_id = ?";
+            $params[] = $userId;
+        }
+        $sql .= " GROUP BY c.id, c.nombre ORDER BY total DESC";
+        return $this->db->query($sql, $params);
+    }
+
+    /**
+     * GRUPO D: Reporte por Serie REM × Tipo Error
+     */
+    public function reportePorSerieDetalle($year, $userId = null, $userRole = null)
+    {
+        $sql = "SELECT o.codigo_serie, o.tipo_error, COUNT(*) as total 
+                FROM observaciones o 
+                WHERE o.anio = ? AND o.codigo_serie IS NOT NULL AND o.codigo_serie != ''";
+        $params = [$year];
+        if ($userRole === ROL_REGISTRADOR && $userId) {
+            $sql .= " AND o.usuario_registro_id = ?";
+            $params[] = $userId;
+        }
+        $sql .= " GROUP BY o.codigo_serie, o.tipo_error ORDER BY o.codigo_serie, total DESC";
+        return $this->db->query($sql, $params);
+    }
+
+    /**
+     * GRUPO D: Reporte por Hoja REM × Descripción
+     */
+    public function reportePorHojaDetalle($year, $userId = null, $userRole = null)
+    {
+        $sql = "SELECT o.codigo_hoja, o.tipo_error, o.detalle_observacion, COUNT(*) as total 
+                FROM observaciones o 
+                WHERE o.anio = ? AND o.codigo_hoja IS NOT NULL AND o.codigo_hoja != ''";
+        $params = [$year];
+        if ($userRole === ROL_REGISTRADOR && $userId) {
+            $sql .= " AND o.usuario_registro_id = ?";
+            $params[] = $userId;
+        }
+        $sql .= " GROUP BY o.codigo_hoja, o.tipo_error ORDER BY total DESC";
+        return $this->db->query($sql, $params);
+    }
+
+    /**
+     * Reporte detallado para PDF (jerárquico: comuna → establecimiento → mes)
+     */
+    public function reporteDetalladoPDF($filters = [], $userId = null, $userRole = null)
+    {
+        $sql = "SELECT 
+                    c.nombre as comuna,
+                    e.nombre as establecimiento,
+                    e.nombre_corto,
+                    o.mes,
+                    o.codigo_serie,
+                    o.codigo_hoja,
+                    o.tipo_error,
+                    o.detalle_observacion,
+                    o.plazo_entrega,
+                    o.usa_validador,
+                    o.estado_actual,
+                    o.clasificacion,
+                    o.detalle_error,
+                    o.fecha_registro,
+                    ur.nombre_completo as registrador,
+                    us.nombre_completo as supervisor
+                FROM observaciones o
+                INNER JOIN establecimientos e ON o.establecimiento_id = e.id
+                INNER JOIN comunas c ON e.comuna_id = c.id
+                INNER JOIN usuarios ur ON o.usuario_registro_id = ur.id
+                LEFT JOIN usuarios us ON o.usuario_supervisor_id = us.id
+                WHERE 1=1";
+        $params = [];
+
+        if (!empty($filters['anio'])) {
+            $sql .= " AND o.anio = ?";
+            $params[] = $filters['anio'];
+        }
+        if (!empty($filters['comuna_id'])) {
+            $sql .= " AND c.id = ?";
+            $params[] = $filters['comuna_id'];
+        }
+        if (!empty($filters['establecimiento_id'])) {
+            $sql .= " AND e.id = ?";
+            $params[] = $filters['establecimiento_id'];
+        }
+        if (!empty($filters['mes'])) {
+            $sql .= " AND o.mes = ?";
+            $params[] = $filters['mes'];
+        }
+        if (!empty($filters['estado'])) {
+            $sql .= " AND o.estado_actual = ?";
+            $params[] = $filters['estado'];
+        }
+        if (!empty($filters['tipo_error'])) {
+            $sql .= " AND o.tipo_error = ?";
+            $params[] = $filters['tipo_error'];
+        }
+
+        if ($userRole === ROL_REGISTRADOR && $userId) {
+            $sql .= " AND o.usuario_registro_id = ?";
+            $params[] = $userId;
+        }
+
+        $sql .= " ORDER BY c.nombre, e.nombre, FIELD(o.mes, 'Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'), o.fecha_registro";
+
+        return $this->db->query($sql, $params);
+    }
+
+    /**
+     * Obtener lista de comunas para filtros
+     */
+    public function getComunasConDatos($year = null, $userId = null, $userRole = null)
+    {
+        $sql = "SELECT DISTINCT c.id, c.nombre 
+                FROM observaciones o
+                INNER JOIN establecimientos e ON o.establecimiento_id = e.id
+                INNER JOIN comunas c ON e.comuna_id = c.id
+                WHERE 1=1";
+        $params = [];
+        if ($year) {
+            $sql .= " AND o.anio = ?";
+            $params[] = $year;
+        }
+        if ($userRole === ROL_REGISTRADOR && $userId) {
+            $sql .= " AND o.usuario_registro_id = ?";
+            $params[] = $userId;
+        }
+        $sql .= " ORDER BY c.nombre";
+        return $this->db->query($sql, $params);
+    }
+
+    /**
+     * Obtener lista de establecimientos para filtros
+     */
+    public function getEstablecimientosConDatos($year = null, $comunaId = null, $userId = null, $userRole = null)
+    {
+        $sql = "SELECT DISTINCT e.id, e.nombre, e.nombre_corto, e.comuna_id
+                FROM observaciones o
+                INNER JOIN establecimientos e ON o.establecimiento_id = e.id
+                WHERE 1=1";
+        $params = [];
+        if ($year) {
+            $sql .= " AND o.anio = ?";
+            $params[] = $year;
+        }
+        if ($comunaId) {
+            $sql .= " AND e.comuna_id = ?";
+            $params[] = $comunaId;
+        }
+        if ($userRole === ROL_REGISTRADOR && $userId) {
+            $sql .= " AND o.usuario_registro_id = ?";
+            $params[] = $userId;
+        }
+        $sql .= " ORDER BY e.nombre";
+        return $this->db->query($sql, $params);
+    }
 }
 
