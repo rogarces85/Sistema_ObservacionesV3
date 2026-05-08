@@ -101,49 +101,49 @@ CREATE TABLE IF NOT EXISTS logs (
     INDEX idx_fecha (fecha)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Insertar comunas del Servicio de Salud Osorno
+-- Insertar comunas del Servicio de Salud Osorno (códigos oficiales DEIS)
 INSERT INTO comunas (codigo_comuna, nombre) VALUES
-(10001, 'Osorno'),
-(10002, 'Purranque'),
-(10003, 'Entre Lagos'),
-(10004, 'Río Negro'),
-(10005, 'San Pablo'),
-(10006, 'San Juan de la Costa'),
-(10007, 'Puerto Octay')
+(10301, 'OSORNO'),
+(10302, 'PUERTO OCTAY'),
+(10303, 'PURRANQUE'),
+(10304, 'PUYEHUE'),
+(10305, 'RIO NEGRO'),
+(10306, 'SAN JUAN DE LA COSTA'),
+(10307, 'SAN PABLO')
 ON DUPLICATE KEY UPDATE nombre = VALUES(nombre);
 
 -- Insertar establecimientos
 INSERT INTO establecimientos (codigo_establecimiento, nombre, nombre_corto, comuna_id) VALUES
--- Osorno (comuna_id: 1)
+-- OSORNO (comuna_id: 1)
 (101, 'Hospital Base San José de Osorno', 'HBSJO', 1),
 (102, 'CESFAM Dr. Marcelo Lopetegui', 'Lopetegui', 1),
 (103, 'CESFAM Quinto Centenario', 'Quinto Centenario', 1),
 (104, 'CESFAM Pampa Gentile', 'Pampa Gentile', 1),
--- Purranque (comuna_id: 2)
-(201, 'Hospital de Purranque', 'H. Purranque', 2),
-(202, 'CESFAM Purranque', 'CESFAM Purranque', 2),
--- Puerto Octay (comuna_id: 7)
-(701, 'Hospital de Puerto Octay', 'H. Puerto Octay', 7),
+-- PURRANQUE (comuna_id: 3)
+(201, 'Hospital de Purranque', 'H. Purranque', 3),
+(202, 'CESFAM Purranque', 'CESFAM Purranque', 3),
+-- PUERTO OCTAY (comuna_id: 2)
+(701, 'Hospital de Puerto Octay', 'H. Puerto Octay', 2),
 -- Establecimientos adicionales de ejemplo
 (1001, 'Posta Rural Ejemplo 1', 'Posta 1', 1),
-(1002, 'Posta Rural Ejemplo 2', 'Posta 2', 2),
-(1003, 'Posta Rural Ejemplo 3', 'Posta 3', 3),
-(1004, 'Posta Rural Ejemplo 4', 'Posta 4', 4),
-(1005, 'Posta Rural Ejemplo 5', 'Posta 5', 5),
+(1002, 'Posta Rural Ejemplo 2', 'Posta 2', 3),
+(1003, 'Posta Rural Ejemplo 3', 'Posta 3', 4),
+(1004, 'Posta Rural Ejemplo 4', 'Posta 4', 5),
+(1005, 'Posta Rural Ejemplo 5', 'Posta 5', 7),
 (1006, 'Posta Rural Ejemplo 6', 'Posta 6', 6),
-(1007, 'Posta Rural Ejemplo 7', 'Posta 7', 7),
+(1007, 'Posta Rural Ejemplo 7', 'Posta 7', 2),
 (1008, 'Posta Rural Ejemplo 8', 'Posta 8', 1),
-(1009, 'Posta Rural Ejemplo 9', 'Posta 9', 2),
-(1010, 'Posta Rural Ejemplo 10', 'Posta 10', 3),
-(1011, 'Posta Rural Ejemplo 11', 'Posta 11', 4),
-(1012, 'Posta Rural Ejemplo 12', 'Posta 12', 5),
+(1009, 'Posta Rural Ejemplo 9', 'Posta 9', 3),
+(1010, 'Posta Rural Ejemplo 10', 'Posta 10', 4),
+(1011, 'Posta Rural Ejemplo 11', 'Posta 11', 5),
+(1012, 'Posta Rural Ejemplo 12', 'Posta 12', 7),
 (1013, 'Posta Rural Ejemplo 13', 'Posta 13', 6),
-(1014, 'Posta Rural Ejemplo 14', 'Posta 14', 7),
+(1014, 'Posta Rural Ejemplo 14', 'Posta 14', 2),
 (1015, 'Posta Rural Ejemplo 15', 'Posta 15', 1),
-(1016, 'Posta Rural Ejemplo 16', 'Posta 16', 2),
-(1017, 'Posta Rural Ejemplo 17', 'Posta 17', 3),
-(1018, 'Posta Rural Ejemplo 18', 'Posta 18', 4),
-(1019, 'Posta Rural Ejemplo 19', 'Posta 19', 5),
+(1016, 'Posta Rural Ejemplo 16', 'Posta 16', 3),
+(1017, 'Posta Rural Ejemplo 17', 'Posta 17', 4),
+(1018, 'Posta Rural Ejemplo 18', 'Posta 18', 5),
+(1019, 'Posta Rural Ejemplo 19', 'Posta 19', 7),
 (1020, 'Posta Rural Ejemplo 20', 'Posta 20', 6)
 ON DUPLICATE KEY UPDATE nombre = VALUES(nombre);
 

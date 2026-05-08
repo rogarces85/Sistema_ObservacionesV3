@@ -135,4 +135,89 @@ class Location
             return false;
         }
     }
+
+    /**
+     * Actualizar establecimiento
+     */
+    public function updateEstablecimiento($id, $data)
+    {
+        $fields = [];
+        $params = [];
+
+        if (isset($data['codigo_establecimiento'])) {
+            $fields[] = "codigo_establecimiento = ?";
+            $params[] = $data['codigo_establecimiento'];
+        }
+        if (isset($data['nombre'])) {
+            $fields[] = "nombre = ?";
+            $params[] = $data['nombre'];
+        }
+        if (isset($data['nombre_corto'])) {
+            $fields[] = "nombre_corto = ?";
+            $params[] = $data['nombre_corto'];
+        }
+        if (isset($data['comuna_id'])) {
+            $fields[] = "comuna_id = ?";
+            $params[] = $data['comuna_id'];
+        }
+        if (isset($data['activo'])) {
+            $fields[] = "activo = ?";
+            $params[] = $data['activo'] ? 1 : 0;
+        }
+
+        if (empty($fields)) {
+            return false;
+        }
+
+        $params[] = $id;
+        $sql = "UPDATE establecimientos SET " . implode(', ', $fields) . " WHERE id = ?";
+
+        try {
+            return $this->db->execute($sql, $params);
+        } catch (Exception $e) {
+            error_log("Error al actualizar establecimiento: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Desactivar establecimiento (soft delete)
+     */
+    public function toggleEstablecimiento($id, $activo)
+    {
+        $sql = "UPDATE establecimientos SET activo = ? WHERE id = ?";
+        try {
+            return $this->db->execute($sql, [$activo ? 1 : 0, $id]);
+        } catch (Exception $e) {
+            error_log("Error al cambiar estado establecimiento: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Obtener todos los establecimientos (incluye inactivos para admin)
+     */
+    public function getAllEstablecimientosConInactivos()
+    {
+        $sql = "SELECT e.*, c.nombre as comuna_nombre 
+                FROM establecimientos e
+                INNER JOIN comunas c ON e.comuna_id = c.id
+                ORDER BY e.activo DESC, e.nombre ASC";
+        return $this->db->query($sql);
+    }
+
+    /**
+     * Verificar si un código de establecimiento ya existe
+     */
+    public function codigoEstablecimientoExiste($codigo, $excludeId = null)
+    {
+        $sql = "SELECT COUNT(*) as total FROM establecimientos WHERE codigo_establecimiento = ?";
+        $params = [$codigo];
+        if ($excludeId) {
+            $sql .= " AND id != ?";
+            $params[] = $excludeId;
+        }
+        $result = $this->db->queryOne($sql, $params);
+        return ($result['total'] ?? 0) > 0;
+    }
 }
