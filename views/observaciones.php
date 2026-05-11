@@ -44,15 +44,17 @@ global $TIPOS_ERROR, $MESES;
             <p class="text-slate-600">Gestiona y realiza seguimiento de tus registros REM</p>
         </div>
         <div class="flex gap-2">
-            <?php if ($userRole === ROL_REGISTRADOR && !$tieneAsignaciones): ?>
-                <!-- Sin botones de acción si no tiene asignaciones -->
-            <?php else: ?>
-                <button onclick="openImportModal()" class="btn btn-secondary">
-                    📥 Importar
-                </button>
-                <button onclick="openCreateModal()" class="btn btn-primary">
-                    ➕ Nueva Observación
-                </button>
+            <?php if ($userRole === ROL_REGISTRADOR): ?>
+                <?php if (!$tieneAsignaciones): ?>
+                    <!-- Sin botones de acción si no tiene asignaciones -->
+                <?php else: ?>
+                    <button onclick="openImportModal()" class="btn btn-secondary">
+                        📥 Importar
+                    </button>
+                    <button onclick="openCreateModal()" class="btn btn-primary">
+                        ➕ Nueva Observación
+                    </button>
+                <?php endif; ?>
             <?php endif; ?>
         </div>
     </div>

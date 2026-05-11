@@ -71,9 +71,11 @@ $maxValue = !empty($mesesData) ? max(array_values($mesesData)) : 1;
             <p class="text-slate-600">Resumen estadístico del sistema de observaciones REM</p>
         </div>
         <div class="flex gap-2">
-            <a href="?page=observaciones&year=<?php echo $currentYear; ?>" class="btn btn-primary">
-                📝 Nueva Observación
-            </a>
+            <?php if ($userRole === ROL_REGISTRADOR): ?>
+                <a href="?page=observaciones&year=<?php echo $currentYear; ?>" class="btn btn-primary">
+                    📝 Nueva Observación
+                </a>
+            <?php endif; ?>
             <?php if ($userRole === ROL_SUPERVISOR): ?>
                 <a href="?page=supervision&year=<?php echo $currentYear; ?>" class="btn btn-secondary">
                     👁️ Supervisar
@@ -256,15 +258,17 @@ $maxValue = !empty($mesesData) ? max(array_values($mesesData)) : 1;
                 <span>⚡</span> Acciones Rápidas
             </h3>
             <div class="space-y-3">
-                <a href="?page=observaciones&year=<?php echo $currentYear; ?>"
-                    class="flex items-center gap-3 p-4 rounded-xl bg-sky-50 hover:bg-sky-100 transition-all cursor-pointer group">
-                    <div class="p-2 rounded-lg bg-sky-500 text-white">📝</div>
-                    <div class="flex-1">
-                        <p class="font-semibold text-slate-800 group-hover:text-sky-700">Nueva Observación</p>
-                        <p class="text-xs text-slate-500">Registrar una nueva observación</p>
-                    </div>
-                    <span class="text-sky-500">→</span>
-                </a>
+                <?php if ($userRole === ROL_REGISTRADOR): ?>
+                    <a href="?page=observaciones&year=<?php echo $currentYear; ?>"
+                        class="flex items-center gap-3 p-4 rounded-xl bg-sky-50 hover:bg-sky-100 transition-all cursor-pointer group">
+                        <div class="p-2 rounded-lg bg-sky-500 text-white">📝</div>
+                        <div class="flex-1">
+                            <p class="font-semibold text-slate-800 group-hover:text-sky-700">Nueva Observación</p>
+                            <p class="text-xs text-slate-500">Registrar una nueva observación</p>
+                        </div>
+                        <span class="text-sky-500">→</span>
+                    </a>
+                <?php endif; ?>
 
                 <a href="api/import_template.php"
                     class="flex items-center gap-3 p-4 rounded-xl bg-emerald-50 hover:bg-emerald-100 transition-all cursor-pointer group">
@@ -380,10 +384,12 @@ $maxValue = !empty($mesesData) ? max(array_values($mesesData)) : 1;
             <div class="p-12 text-center">
                 <div class="text-4xl mb-3">📭</div>
                 <p class="text-slate-600 font-medium">No hay observaciones registradas</p>
-                <p class="text-sm text-slate-400 mb-4">Comienza creando tu primera observación</p>
-                <a href="?page=observaciones&year=<?php echo $currentYear; ?>" class="btn btn-primary">
-                    ➕ Crear Observación
-                </a>
+                <?php if ($userRole === ROL_REGISTRADOR): ?>
+                    <p class="text-sm text-slate-400 mb-4">Comienza creando tu primera observación</p>
+                    <a href="?page=observaciones&year=<?php echo $currentYear; ?>" class="btn btn-primary">
+                        ➕ Crear Observación
+                    </a>
+                <?php endif; ?>
             </div>
         <?php endif; ?>
     </div>
