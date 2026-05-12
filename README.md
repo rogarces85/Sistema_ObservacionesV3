@@ -172,12 +172,127 @@ composer install
 ### 5. Acceder al sistema
 `http://localhost/ObservacionesREM_V2/`
 
-## Usuarios de Prueba
+## Usuarios del Sistema
 
-| Usuario | Rol | Contraseña |
-|---------|-----|------------|
-| supervisor1 | Supervisor | admin123 |
-| registrador1 | Registrador | admin123 |
+### Supervisor
+
+| Usuario | Nombre | Contraseña |
+|---------|--------|------------|
+| supervisor1 | Cecilia (Supervisor) | admin123 |
+
+### Registradores
+
+| Usuario | Nombre | Contraseña |
+|---------|--------|------------|
+| registrador1 | Rodrigo Garcés | admin123 |
+| registrador2 | Victoria Martínez | admin123 |
+| registrador3 | Roxana Mancilla | admin123 |
+| registrador4 | Marcelo Horstmeier | admin123 |
+
+## Manejo de Versiones y Despliegue
+
+### Control de versiones con Git
+
+El sistema usa Git para trackear cambios. Cada modificación debe seguir este flujo:
+
+#### 1. Verificar cambios realizados
+```bash
+git status          # Archivos modificados
+git diff            # Diferencias en detalle
+```
+
+#### 2. Preparar el commit
+```bash
+git add .           # Agregar todos los cambios
+# o agregar archivos específicos:
+git add assets/js/app.js api/observations.php
+```
+
+#### 3. Crear commit con mensaje descriptivo
+```bash
+git commit -m "tipo: descripción corta del cambio"
+```
+
+**Convención de mensajes:**
+| Prefijo | Uso |
+|---------|-----|
+| `feat:` | Nueva funcionalidad |
+| `fix:` | Corrección de bug |
+| `refactor:` | Refactorización sin cambio funcional |
+| `style:` | Cambos de estilo visual (CSS, formato) |
+| `docs:` | Actualización de documentación |
+| `chore:` | Tareas de mantenimiento, limpieza |
+| `perf:` | Mejora de rendimiento |
+
+**Ejemplos:**
+```bash
+git commit -m "fix: corrección de ruta API dinámica en logout"
+git commit -m "feat: agregada vista de gestión de referentes"
+git commit -m "docs: actualización de README con usuarios del sistema"
+```
+
+#### 4. Etiquetar versiones (releases)
+```bash
+git tag -a v2.3.0 -m "Versión 2.3.0 - descripción del release"
+```
+
+#### 5. Push al repositorio remoto
+```bash
+git push origin main          # Subir commits
+git push origin v2.3.0        # Subir tag de versión
+```
+
+### Despliegue a producción
+
+#### Opción A: Copia directa por FTP/SMB
+1. Excluir del upload: `vendor/`, `uploads/`, `.git/`
+2. Subir solo los archivos modificados al servidor
+3. Ejecutar `composer install --no-dev` en el servidor si hay nuevas dependencias
+4. Ejecutar migraciones SQL nuevas si las hay:
+   ```bash
+   mysql -h <host> -u <user> -p observaciones_rem < config/migration_XXXX.sql
+   ```
+
+#### Opción B: Git pull en servidor
+1. Conectar al servidor por SSH
+2. Ir al directorio del proyecto:
+   ```bash
+   cd /ruta/al/ObservacionesREM_V2
+   ```
+3. Actualizar código:
+   ```bash
+   git pull origin main
+   ```
+4. Instalar dependencias:
+   ```bash
+   composer install --no-dev
+   ```
+5. Ejecutar migraciones pendientes si existen
+
+#### Opción C: Generar paquete de despliegue
+```bash
+# Crear ZIP sin archivos innecesarios
+git archive --format=zip --output=ObservacionesREM_V2_v2.3.0.zip main
+```
+
+### Rollback (volver a versión anterior)
+```bash
+git log --oneline                    # Ver historial de commits
+git reset --hard <hash-commit>       # Volver a commit específico
+git push --force origin main         # Forzar push (con precaución)
+```
+
+O por tag de versión:
+```bash
+git checkout v2.2.0                  # Ir a versión 2.2.0
+```
+
+### Buenas prácticas
+- **Nunca** commitear archivos con credenciales reales (usar `.gitignore`)
+- Hacer commit frecuente con mensajes claros y específicos
+- Etiquetar cada versión que se despliegue a producción
+- Mantener backup de la base de datos antes de aplicar migraciones
+- Probar en entorno de desarrollo antes de desplegar a producción
 
 ## Sistema de Diseño
 
