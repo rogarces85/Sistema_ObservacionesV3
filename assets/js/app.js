@@ -4,7 +4,7 @@
  */
 
 // Configuración global
-const API_BASE = '/ObservacionesREM_V2/api';
+const API_BASE = window.location.pathname.split('/').slice(0, -1).join('/') + '/api';
 let currentYear = new Date().getFullYear();
 let currentUser = null;
 
@@ -153,7 +153,7 @@ async function logout() {
     if (confirm('¿Está seguro que desea cerrar sesión?')) {
         try {
             await fetchAPI('auth.php?action=logout', { method: 'POST' });
-            window.location.href = 'index.php';
+            window.location.href = './index.php';
         } catch (error) {
             showMessage('Error al cerrar sesión', 'error');
         }
