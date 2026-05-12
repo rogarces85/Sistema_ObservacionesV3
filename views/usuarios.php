@@ -83,6 +83,12 @@ $usuarios = $userModel->getAll();
                                     </button>
                                     <?php if ($usuario['id'] != $_SESSION['user_id']): ?>
                                         <button
+                                            onclick="resetPassword(<?php echo $usuario['id']; ?>, '<?php echo htmlspecialchars($usuario['username']); ?>')"
+                                            class="btn-secondary px-3 py-1 text-xs bg-amber-50 hover:bg-amber-100 text-amber-600"
+                                            title="Restablecer contraseña">
+                                            🔑
+                                        </button>
+                                        <button
                                             onclick="deleteUser(<?php echo $usuario['id']; ?>, '<?php echo htmlspecialchars($usuario['username']); ?>')"
                                             class="btn-secondary px-3 py-1 text-xs bg-rose-50 hover:bg-rose-100 text-rose-600"
                                             title="Eliminar">
@@ -272,6 +278,33 @@ $usuarios = $userModel->getAll();
             if (response.success) {
                 showMessage('Usuario eliminado exitosamente', 'success');
                 setTimeout(() => location.reload(), 1000);
+            }
+        } catch (error) {
+            hideLoading();
+            showMessage(error.message, 'error');
+        }
+    }
+
+    // Restablecer contraseña
+    async function resetPassword(userId, username) {
+        if (!confirm(`¿Restablecer la contraseña del usuario "${username}"?\n\nLa contraseña volverá a: admin123`)) {
+            return;
+        }
+
+        try {
+            showLoading();
+
+            const response = await fetchAPI(`users.php?id=${userId}`, {
+                method: 'PUT',
+                body: JSON.stringify({
+                    action: 'reset_password'
+                })
+            });
+
+            hideLoading();
+
+            if (response.success) {
+                showMessage(`Contraseña de "${username}" restablecida a: admin123`, 'success');
             }
         } catch (error) {
             hideLoading();

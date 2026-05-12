@@ -144,6 +144,25 @@ try {
                 } else {
                     jsonResponse(false, null, 'Error al actualizar contraseña', 500);
                 }
+            } elseif ($action === 'reset_password') {
+                // Restablecer contraseña a credencial por defecto (solo supervisores)
+                if ($userRole !== ROL_SUPERVISOR) {
+                    jsonResponse(false, null, 'Acceso denegado', 403);
+                }
+
+                // No permitir restablecerse a sí mismo
+                if ($userId == $id) {
+                    jsonResponse(false, null, 'Use la sección de perfil para cambiar su propia contraseña', 400);
+                }
+
+                $defaultPassword = 'admin123';
+                $success = $userModel->updatePassword($id, $defaultPassword);
+
+                if ($success) {
+                    jsonResponse(true, null, 'Contraseña restablecida exitosamente');
+                } else {
+                    jsonResponse(false, null, 'Error al restablecer contraseña', 500);
+                }
             } elseif ($action === 'toggle') {
                 // Activar/Desactivar usuario (solo supervisores)
                 if ($userRole !== ROL_SUPERVISOR) {
