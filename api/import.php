@@ -193,17 +193,14 @@ try {
                 $valid[] = [
                     'mes' => $row['mes'],
                     'establecimiento_id' => $estId,
-                    'establecimiento_nombre' => $estNombreOficial, // Nombre oficial de la BD
-                    'codigo_serie' => $row['serie'],           // Mapeo: serie -> codigo_serie (BD)
-                    'codigo_hoja' => $row['rem'],               // Mapeo: rem -> codigo_hoja (BD)
-                    'tipo_error' => $row['tipo'],               // Mapeo: tipo -> tipo_error (BD)
+                    'establecimiento_nombre' => $estNombreOficial,
+                    'codigo_serie' => $row['serie'],
+                    'codigo_hoja' => $row['rem'],
+                    'tipo_error' => $row['tipo'],
                     'detalle_observacion' => $row['detalle_observacion'],
                     'plazo_entrega' => $row['plazo_entrega'],
                     'usa_validador' => $row['usa_validador'],
-                    // Campos opcionales
-                    'respuesta_establecimiento' => $row['respuesta_establecimiento'] ?? '',
-                    'clasificacion' => $row['clasificacion'] ?? '',
-                    'detalle_error' => $row['detalle_error'] ?? ''
+                    'respuesta_establecimiento' => $row['respuesta_establecimiento'] ?? ''
                 ];
             }
         }
@@ -238,10 +235,7 @@ try {
                     'plazo_entrega' => $obs['plazo_entrega'],
                     'usa_validador' => $obs['usa_validador'],
                     'usuario_registro_id' => $userId,
-                    // Campos opcionales
-                    'respuesta_establecimiento' => $obs['respuesta_establecimiento'] ?? '',
-                    'clasificacion' => $obs['clasificacion'] ?? '',
-                    'detalle_error' => $obs['detalle_error'] ?? ''
+                    'respuesta_establecimiento' => $obs['respuesta_establecimiento'] ?? ''
                 ];
 
                 if ($obsModel->create($data)) {

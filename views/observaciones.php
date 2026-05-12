@@ -390,7 +390,12 @@ global $TIPOS_ERROR, $MESES;
                             <tr class="bg-slate-100">
                                 <th class="p-2 text-left">Mes</th>
                                 <th class="p-2 text-left">Establecimiento</th>
-                                <th class="p-2 text-left">Tipo Error</th>
+                                <th class="p-2 text-left">Tipo</th>
+                                <th class="p-2 text-left">Serie</th>
+                                <th class="p-2 text-left">REM</th>
+                                <th class="p-2 text-left">Plazo</th>
+                                <th class="p-2 text-left">Validador</th>
+                                <th class="p-2 text-left">Detalle</th>
                             </tr>
                         </thead>
                         <tbody id="previewBody"></tbody>
@@ -660,13 +665,18 @@ global $TIPOS_ERROR, $MESES;
                 <td class="p-2">${item.mes}</td>
                 <td class="p-2">${item.establecimiento_nombre}</td>
                 <td class="p-2">${item.tipo_error}</td>
+                <td class="p-2">${item.codigo_serie || '-'}</td>
+                <td class="p-2">${item.codigo_hoja || '-'}</td>
+                <td class="p-2">${item.plazo_entrega || '-'}</td>
+                <td class="p-2">${item.usa_validador || '-'}</td>
+                <td class="p-2">${item.detalle_observacion ? item.detalle_observacion.substring(0, 40) + (item.detalle_observacion.length > 40 ? '...' : '') : '-'}</td>
             </tr>
         `).join('');
 
         if (data.preview.length > 5) {
             previewBody.innerHTML += `
                 <tr class="border-b border-slate-100">
-                    <td colspan="3" class="p-2 text-center text-slate-400">
+                    <td colspan="8" class="p-2 text-center text-slate-400">
                         ... y ${data.preview.length - 5} más
                     </td>
                 </tr>
