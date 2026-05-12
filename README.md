@@ -2,7 +2,7 @@
 
 Sistema de gestión de observaciones del Resumen Estadístico Mensual (REM) para el Servicio de Salud Osorno.
 
-**Versión:** 2.1.0 — **Última actualización:** Mayo 2026
+**Versión:** 2.2.0 — **Última actualización:** Mayo 2026
 
 ## Tecnologías
 
@@ -19,22 +19,22 @@ Sistema de gestión de observaciones del Resumen Estadístico Mensual (REM) para
 ```
 ObservacionesREM_V2/
 ├── api/                           # Endpoints REST
-│   ├── auth.php                   # Autenticación y login
+│   ├── auth.php                   # Autenticación, login, logout, check sesión
 │   ├── observations.php           # CRUD de observaciones
 │   ├── reports.php                # Datos agregados para reportes (20+ dimensiones)
-│   ├── export.php                 # Exportación Excel/PDF/CSV (general + específica)
+│   ├── export.php                 # Exportación Excel/PDF/CSV
 │   ├── locations.php              # Comunas y establecimientos
 │   ├── import.php                 # Importación masiva Excel
 │   ├── import_template.php        # Generación plantilla Excel
 │   ├── supervision.php            # Aprobación/rechazo observaciones
 │   ├── users.php                  # Gestión de usuarios
 │   ├── assignments.php            # Asignación de establecimientos
-│   ── deleted.php                # Papelera de eliminadas
+│   └── deleted.php                # Papelera de observaciones eliminadas
 ├── assets/
 │   ├── css/
 │   │   └── styles.css             # Estilos globales (BEM) + tabs de reportes
 │   └── js/
-│       ├── app.js                 # Lógica principal (fetchAPI, modals)
+│       ├── app.js                 # Lógica principal (fetchAPI, modals, logout)
 │       ├── charts.js              # Gráficos dashboard
 │       └── notifications.js       # Sistema de notificaciones toast
 ├── config/
@@ -43,6 +43,7 @@ ObservacionesREM_V2/
 │   ├── init_db.sql                # Script inicialización DB
 │   ├── migration_2026_02_06.sql   # Migración de campos
 │   ├── migration_2026_05_08_reportes.sql  # Índices de optimización reportes
+│   ├── migration_2026_05_08_limpieza_comunas.sql  # Limpieza comunas
 │   ├── create_asignaciones_table.sql
 │   └── update_establecimientos.sql
 ├── includes/                      # Componentes reutilizables
@@ -67,12 +68,11 @@ ObservacionesREM_V2/
 │   ├── usuarios.php               # Gestión usuarios (supervisor)
 │   ├── perfil.php                 # Perfil usuario
 │   ├── asignaciones.php           # Asignar establecimientos (supervisor)
-│   └── eliminadas.php             # Papelera (supervisor)
-├── controllers/                   # (Reservado para futuros controladores)
+│   ├── eliminadas.php             # Papelera (supervisor)
+│   └── establecimientos.php       # Gestión establecimientos y referentes (supervisor)
 ├── uploads/                       # Archivos importados (gitignored)
 ├── vendor/                        # Dependencias PHP (Composer)
 ├── index.php                      # Punto de entrada / router
-├── db_check.php                   # Verificación conexión BD
 ├── composer.json                  # Dependencias PHP
 ├── .gitignore
 └── README.md                      # Documentación
@@ -87,10 +87,10 @@ ObservacionesREM_V2/
 - Filtros por estado, mes, establecimiento y búsqueda de texto
 - Exportación a Excel, PDF y CSV
 - Historial de cambios de estado por observación
-- Papelera de eliminadas con restauración
+- Papelera de eliminadas con restauración (soft-delete)
 
 ### Roles de Usuario
-- **Supervisor**: Panel exclusivo, aprobar/rechazar observaciones, gestionar usuarios, asignar establecimientos, ver todas las observaciones
+- **Supervisor**: Panel exclusivo, aprobar/rechazar observaciones, gestionar usuarios, asignar establecimientos, gestionar referentes, ver todas las observaciones, ver eliminadas
 - **Registrador**: Crear y editar observaciones propias, ver solo sus observaciones, restringido a establecimientos asignados
 
 ### Estados de Observación
@@ -132,6 +132,11 @@ Módulo de reportes completamente renovado con interfaz de tabs:
 - Validación de unicidad (un establecimiento = un registrador por año)
 - Remoción individual de asignaciones
 
+### Gestión de Establecimientos y Referentes
+- Vista exclusiva para supervisores
+- Listado de establecimientos con datos de contacto
+- CRUD de referentes por establecimiento (cargo, nombre, teléfono, email)
+
 ### Seguridad
 - Autenticación con sesiones PHP
 - Permisos basados en roles (supervisor/registrador)
@@ -139,6 +144,7 @@ Módulo de reportes completamente renovado con interfaz de tabs:
 - Contraseñas hasheadas (password_hash bcrypt)
 - Consultas preparadas (PDO)
 - Validación backend de asignaciones (403 Forbidden si intenta usar establecimiento no asignado)
+- Ruta API dinámica calculada desde el cliente (evita errores 404 por hardcodeo)
 
 ## Instalación
 
@@ -155,6 +161,7 @@ Editar `config/config.php` con credenciales MySQL.
 ```bash
 mysql -h localhost -u root -p < config/init_db.sql
 mysql -h localhost -u root -p observaciones_rem < config/migration_2026_05_08_reportes.sql
+mysql -h localhost -u root -p observaciones_rem < config/migration_2026_05_08_limpieza_comunas.sql
 ```
 
 ### 4. Instalar dependencias PHP
@@ -210,6 +217,12 @@ composer install
 
 ## Historial de Versiones
 
+### v2.2.0 — Mayo 2026
+- **Limpieza:** Eliminación de 24 archivos de desarrollo/testing/one-time scripts
+- **Bugfix logout:** Corrección de ruta API dinámica (evita 404 en entornos con ruta distinta)
+- **Nueva vista:** Gestión de establecimientos y referentes (supervisor)
+- **Mejora:** API_BASE calculada dinámicamente desde `window.location.pathname`
+
 ### v2.1.0 — Mayo 2026
 - **Reportes:** Interfaz tabbed con 6 vistas (General, Errores, Fuera de Plazo, Validador, Serie/Hoja, PDF Detallado)
 - **PDF Detallado:** Reporte jerárquico Comuna→Establecimiento→Mes con rowspan, código de colores por estado, header rojo oscuro
@@ -235,6 +248,9 @@ ini_set('display_errors', 1);
 
 ### "No autenticado" al exportar
 - Causa: `session_start()` antes de `config.php` en API. Ya corregido en v2.1.
+
+### Error 404 en logout o APIs
+- Causa: Ruta API hardcodeada. Corregido en v2.2 con cálculo dinámico desde `window.location.pathname`.
 
 ## Licencia
 
