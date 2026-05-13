@@ -7,6 +7,7 @@
 header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../models/User.php';
+require_once __DIR__ . '/../models/UserAudit.php';
 
 // Función para responder en JSON
 function jsonResponse($success, $data = null, $message = '', $statusCode = 200)
@@ -18,6 +19,24 @@ function jsonResponse($success, $data = null, $message = '', $statusCode = 200)
         'message' => $message
     ], JSON_UNESCAPED_UNICODE);
     exit;
+}
+
+// Función para generar contraseña aleatoria segura
+function generateRandomPassword($length = 12) {
+    $chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()';
+    $password = '';
+    for ($i = 0; $i < $length; $i++) {
+        $password .= $chars[random_int(0, strlen($chars) - 1)];
+    }
+    return $password;
+}
+
+// Función para validar política de contraseñas
+function validatePasswordPolicy($password) {
+    if (strlen($password) < 8) return false;
+    if (!preg_match('/[A-Z]/', $password)) return false; // Al menos una mayúscula
+    if (!preg_match('/[0-9]/', $password)) return false; // Al menos un número
+    return true;
 }
 
 // Verificar autenticación
@@ -66,16 +85,23 @@ try {
 
             $username = trim($input['username'] ?? '');
             $password = $input['password'] ?? '';
+            $generatePassword = $input['generate_password'] ?? false;
             $nombreCompleto = trim($input['nombre_completo'] ?? '');
             $rol = $input['rol'] ?? 'registrador';
 
             // Validaciones
-            if (empty($username) || empty($password) || empty($nombreCompleto)) {
-                jsonResponse(false, null, 'Todos los campos son requeridos', 400);
+            if (empty($username) || empty($nombreCompleto)) {
+                jsonResponse(false, null, 'Usuario y nombre completo son requeridos', 400);
             }
 
-            if (strlen($password) < 6) {
-                jsonResponse(false, null, 'La contraseña debe tener al menos 6 caracteres', 400);
+            if ($generatePassword) {
+                $password = generateRandomPassword();
+            } elseif (empty($password)) {
+                jsonResponse(false, null, 'La contraseña es requerida o debe generar una aleatoria', 400);
+            }
+
+            if (!validatePasswordPolicy($password)) {
+                jsonResponse(false, null, 'La contraseña debe tener al menos 8 caracteres, una mayúscula y un número', 400);
             }
 
             if (!in_array($rol, [ROL_REGISTRADOR, ROL_SUPERVISOR])) {
@@ -86,7 +112,14 @@ try {
             $newId = $userModel->create($username, $password, $nombreCompleto, $rol);
 
             if ($newId) {
-                jsonResponse(true, ['id' => $newId], 'Usuario creado exitosamente', 201);
+                $audit = new UserAudit();
+                $audit->logAction($newId, 'CREACION', "Usuario creado por supervisor ID: $userId");
+                
+                $response = ['id' => $newId];
+                if ($generatePassword) {
+                    $response['generated_password'] = $password;
+                }
+                jsonResponse(true, $response, 'Usuario creado exitosamente', 201);
             } else {
                 jsonResponse(false, null, 'Error al crear usuario (el username podría estar duplicado)', 400);
             }
@@ -134,12 +167,14 @@ try {
                     jsonResponse(false, null, 'Las contraseñas no coinciden', 400);
                 }
 
-                if (strlen($newPassword) < 6) {
-                    jsonResponse(false, null, 'La contraseña debe tener al menos 6 caracteres', 400);
+                if (!validatePasswordPolicy($newPassword)) {
+                    jsonResponse(false, null, 'La contraseña debe tener al menos 8 caracteres, una mayúscula y un número', 400);
                 }
 
                 $success = $userModel->updatePassword($id, $newPassword);
                 if ($success) {
+                    $audit = new UserAudit();
+                    $audit->logAction($id, 'CAMBIO_PASSWORD', "Contraseña actualizada por usuario ID: $userId");
                     jsonResponse(true, null, 'Contraseña actualizada exitosamente');
                 } else {
                     jsonResponse(false, null, 'Error al actualizar contraseña', 500);
@@ -178,6 +213,9 @@ try {
                 $success = $userModel->setActive($id, $activo);
 
                 if ($success) {
+                    $audit = new UserAudit();
+                    $estado = $activo ? 'ACTIVADO' : 'DESACTIVADO';
+                    $audit->logAction($id, $estado, "Estado cambiado por supervisor ID: $userId");
                     jsonResponse(true, null, 'Estado de usuario actualizado');
                 } else {
                     jsonResponse(false, null, 'Error al actualizar estado', 500);
@@ -202,6 +240,8 @@ try {
                 $success = $userModel->update($id, $nombreCompleto, $rol);
 
                 if ($success) {
+                    $audit = new UserAudit();
+                    $audit->logAction($id, 'ACTUALIZACION', "Datos actualizados por supervisor ID: $userId. Nuevo rol: $rol");
                     jsonResponse(true, null, 'Usuario actualizado exitosamente');
                 } else {
                     jsonResponse(false, null, 'Error al actualizar usuario', 500);
@@ -227,6 +267,8 @@ try {
             $success = $userModel->delete($id);
 
             if ($success) {
+                $audit = new UserAudit();
+                $audit->logAction($id, 'ELIMINACION', "Usuario eliminado por supervisor ID: $userId");
                 jsonResponse(true, null, 'Usuario eliminado exitosamente');
             } else {
                 jsonResponse(false, null, 'Error al eliminar usuario', 500);

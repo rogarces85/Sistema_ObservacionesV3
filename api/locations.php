@@ -85,8 +85,8 @@ try {
                 $nombreCorto = $body['nombre_corto'] ?? null;
                 $comunaId = $body['comuna_id'] ?? null;
 
-                if (!$codigo || !$nombre || !$nombreCorto || !$comunaId) {
-                    jsonResponse(false, null, 'Todos los campos son obligatorios', 400);
+                if (!$codigo || !$nombre || !$comunaId) {
+                    jsonResponse(false, null, 'Código, nombre y comuna son obligatorios', 400);
                 }
 
                 if ($locationModel->codigoEstablecimientoExiste($codigo)) {
