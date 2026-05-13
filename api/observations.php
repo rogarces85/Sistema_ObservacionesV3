@@ -73,7 +73,11 @@ try {
             // Validar CSRF
             CSRF::validateRequest();
 
-            // Crear nueva observación
+            // Crear nueva observación - SOLO REGISTRADORES
+            if ($userRole !== ROL_REGISTRADOR) {
+                jsonResponse(false, null, 'Solo los registradores pueden crear observaciones', 403);
+            }
+
             $input = json_decode(file_get_contents('php://input'), true);
 
             // Validar datos requeridos
@@ -110,12 +114,11 @@ try {
                 'detalle_error' => $input['detalle_error'] ?? null
             ];
 
-            // Validar que el registrador solo use establecimientos asignados
+            // Validar asignación mensual
             if ($userRole === ROL_REGISTRADOR) {
                 $asigModel = new EstablecimientoAsignacion();
-                $idsAsignados = $asigModel->getIdsAsignados($userId, $year);
-                if (!in_array((int)$data['establecimiento_id'], $idsAsignados, true)) {
-                    jsonResponse(false, null, 'El establecimiento seleccionado no está asignado a su usuario', 403);
+                if (!$asigModel->tieneAsignacionParaMes($userId, $data['establecimiento_id'], $year, $data['mes'])) {
+                    jsonResponse(false, null, 'El establecimiento no está asignado a su usuario para el mes seleccionado', 403);
                 }
             }
 
@@ -160,12 +163,15 @@ try {
                 $input['usuario_supervisor_id'] = $userId;
             }
 
-            // Validar que el registrador solo use establecimientos asignados
-            if ($userRole === ROL_REGISTRADOR && isset($input['establecimiento_id'])) {
+            // Validar que el registrador solo use establecimientos asignados para el mes
+            if ($userRole === ROL_REGISTRADOR) {
+                // Si cambia el establecimiento o el mes, validar asignación
+                $estIdToCheck = $input['establecimiento_id'] ?? $obs['establecimiento_id'];
+                $mesToCheck = $input['mes'] ?? $obs['mes'];
+                
                 $asigModel = new EstablecimientoAsignacion();
-                $idsAsignados = $asigModel->getIdsAsignados($userId, $year);
-                if (!in_array((int)$input['establecimiento_id'], $idsAsignados, true)) {
-                    jsonResponse(false, null, 'El establecimiento seleccionado no está asignado a su usuario', 403);
+                if (!$asigModel->tieneAsignacionParaMes($userId, $estIdToCheck, $year, $mesToCheck)) {
+                    jsonResponse(false, null, 'El establecimiento no está asignado a su usuario para el mes seleccionado', 403);
                 }
             }
 

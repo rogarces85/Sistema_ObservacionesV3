@@ -95,15 +95,23 @@ class EstablecimientoAsignacion
 
     /**
      * Asignar un establecimiento a un registrador para un año
+     * @param string $meses 'ALL' o lista de meses '1,2,3'
      */
-    public function asignar($usuarioId, $establecimientoId, $anio)
+    public function asignar($usuarioId, $establecimientoId, $anio, $meses = 'ALL')
     {
-        // No permitir duplicados para el mismo usuario
+        // Normalizar meses
+        if (empty($meses) || $meses === 'ALL') {
+            $meses = 'ALL';
+        }
+
+        // No permitir duplicados para el mismo usuario y periodo
         $sql = "SELECT COUNT(*) as count FROM asignaciones_establecimientos 
                 WHERE usuario_id = ? AND establecimiento_id = ? AND anio = ?";
         $result = $this->db->queryOne($sql, [$usuarioId, $establecimientoId, $anio]);
         
         if ($result && $result['count'] > 0) {
+            // Si ya existe, actualizamos los meses? 
+            // Por ahora la spec dice no duplicados. Retornamos false.
             return false;
         }
 
@@ -112,11 +120,11 @@ class EstablecimientoAsignacion
             return false;
         }
 
-        $sql = "INSERT INTO asignaciones_establecimientos (usuario_id, establecimiento_id, anio) 
-                VALUES (?, ?, ?)";
+        $sql = "INSERT INTO asignaciones_establecimientos (usuario_id, establecimiento_id, anio, meses) 
+                VALUES (?, ?, ?, ?)";
         
         try {
-            $this->db->execute($sql, [$usuarioId, $establecimientoId, $anio]);
+            $this->db->execute($sql, [$usuarioId, $establecimientoId, $anio, $meses]);
             return true;
         } catch (Exception $e) {
             error_log("Error al asignar establecimiento: " . $e->getMessage());
@@ -158,22 +166,22 @@ class EstablecimientoAsignacion
     /**
      * Asignar múltiples establecimientos a un registrador para un año
      */
-    public function asignarMultiple($usuarioId, $establecimientoIds, $anio)
+    public function asignarMultiple($usuarioId, $establecimientoIds, $anio, $meses = 'ALL')
     {
         try {
             $this->db->beginTransaction();
 
             $this->removerTodas($usuarioId, $anio);
             
-            $sql = "INSERT INTO asignaciones_establecimientos (usuario_id, establecimiento_id, anio) 
-                    VALUES (?, ?, ?)";
+            $sql = "INSERT INTO asignaciones_establecimientos (usuario_id, establecimiento_id, anio, meses) 
+                    VALUES (?, ?, ?, ?)";
             
             foreach ($establecimientoIds as $establecimientoId) {
                 // Saltar si ya está asignado a otro registrador
                 if ($this->estaAsignadoAOtro($usuarioId, $establecimientoId, $anio)) {
                     continue;
                 }
-                $this->db->execute($sql, [$usuarioId, $establecimientoId, $anio]);
+                $this->db->execute($sql, [$usuarioId, $establecimientoId, $anio, $meses]);
             }
             
             $this->db->commit();
@@ -194,6 +202,38 @@ class EstablecimientoAsignacion
                 WHERE usuario_id = ? AND anio = ?";
         $rows = $this->db->query($sql, [$usuarioId, $anio]);
         return array_map(fn($r) => (int)$r['establecimiento_id'], $rows);
+    }
+
+    /**
+     * Verificar si un usuario tiene asignado un establecimiento para un mes específico
+     */
+    public function tieneAsignacionParaMes($usuarioId, $establecimientoId, $anio, $mesNombre)
+    {
+        // Mapeo de nombre de mes a número (1-12)
+        $mesesMap = [
+            'Enero' => 1, 'Febrero' => 2, 'Marzo' => 3, 'Abril' => 4, 
+            'Mayo' => 5, 'Junio' => 6, 'Julio' => 7, 'Agosto' => 8, 
+            'Septiembre' => 9, 'Octubre' => 10, 'Noviembre' => 11, 'Diciembre' => 12
+        ];
+        
+        $mesNum = $mesesMap[$mesNombre] ?? null;
+        if (!$mesNum) return false; // Mes inválido
+
+        // Obtener la asignación
+        $sql = "SELECT meses FROM asignaciones_establecimientos 
+                WHERE usuario_id = ? AND establecimiento_id = ? AND anio = ?";
+        $row = $this->db->queryOne($sql, [$usuarioId, $establecimientoId, $anio]);
+
+        if (!$row) return false;
+
+        // Si es 'ALL', tiene acceso a todos los meses
+        if ($row['meses'] === 'ALL' || empty($row['meses'])) {
+            return true;
+        }
+
+        // Verificar si el mes está en la lista
+        $mesesAsignados = array_map('intval', explode(',', $row['meses']));
+        return in_array($mesNum, $mesesAsignados);
     }
 
     /**
@@ -245,8 +285,8 @@ class EstablecimientoAsignacion
     public function copiarAsignaciones($anioOrigen, $anioDestino)
     {
         try {
-            $sql = "INSERT INTO asignaciones_establecimientos (usuario_id, establecimiento_id, anio)
-                    SELECT usuario_id, establecimiento_id, ? 
+            $sql = "INSERT INTO asignaciones_establecimientos (usuario_id, establecimiento_id, anio, meses)
+                    SELECT usuario_id, establecimiento_id, ?, meses 
                     FROM asignaciones_establecimientos 
                     WHERE anio = ?";
             $this->db->execute($sql, [$anioDestino, $anioOrigen]);

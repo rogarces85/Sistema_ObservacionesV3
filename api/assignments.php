@@ -84,12 +84,13 @@ try {
             if ($action === 'asignar') {
                 $usuarioId = $input['usuario_id'] ?? null;
                 $establecimientoId = $input['establecimiento_id'] ?? null;
+                $meses = $input['meses'] ?? 'ALL';
 
                 if (!$usuarioId || !$establecimientoId) {
                     jsonResponse(false, null, 'Usuario y establecimiento son requeridos', 400);
                 }
 
-                $success = $asignacionModel->asignar($usuarioId, $establecimientoId, $anio);
+                $success = $asignacionModel->asignar($usuarioId, $establecimientoId, $anio, $meses);
                 if ($success) {
                     jsonResponse(true, null, 'Establecimiento asignado exitosamente');
                 } else {
@@ -98,12 +99,13 @@ try {
             } elseif ($action === 'asignar_multiple') {
                 $usuarioId = $input['usuario_id'] ?? null;
                 $establecimientoIds = $input['establecimiento_ids'] ?? [];
+                $meses = $input['meses'] ?? 'ALL';
 
                 if (!$usuarioId || empty($establecimientoIds)) {
                     jsonResponse(false, null, 'Usuario y lista de establecimientos son requeridos', 400);
                 }
 
-                $success = $asignacionModel->asignarMultiple($usuarioId, $establecimientoIds, $anio);
+                $success = $asignacionModel->asignarMultiple($usuarioId, $establecimientoIds, $anio, $meses);
                 if ($success) {
                     jsonResponse(true, null, 'Establecimientos asignados exitosamente');
                 } else {
