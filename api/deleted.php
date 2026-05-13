@@ -49,10 +49,6 @@ try {
                 
                 $deleted = $deletedModel->getAll($filters);
                 jsonResponse(true, $deleted);
-            } elseif ($action === 'stats') {
-                $year = $_GET['anio'] ?? null;
-                $stats = $deletedModel->getStats($year);
-                jsonResponse(true, $stats);
             } else {
                 jsonResponse(false, null, 'Acción no válida', 400);
             }
