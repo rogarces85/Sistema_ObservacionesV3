@@ -1,7 +1,7 @@
 <?php
 /**
  * API de Importación de Observaciones
- * Procesa archivos CSV y XLSX para carga masiva
+ * Procesa archivos XLSX para carga masiva (Solo Registradores)
  */
 
 header('Content-Type: application/json; charset=utf-8');
@@ -23,10 +23,10 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
 $userId = $_SESSION['user_id'];
 $userRole = $_SESSION['rol'];
 
-// Solo supervisores y registradores pueden importar
-if ($userRole !== ROL_SUPERVISOR && $userRole !== ROL_REGISTRADOR) {
+// Solo registradores pueden importar
+if ($userRole !== ROL_REGISTRADOR) {
     http_response_code(403);
-    echo json_encode(['success' => false, 'message' => 'No tiene permisos para importar']);
+    echo json_encode(['success' => false, 'message' => 'Solo los registradores pueden importar archivos']);
     exit;
 }
 
@@ -44,57 +44,37 @@ try {
         $isPreview = isset($_POST['preview']) && $_POST['preview'] == '1';
         $isConfirm = isset($_POST['confirm']) && $_POST['confirm'] == '1';
 
-        // Detectar tipo de archivo
+        // Detectar tipo de archivo - SOLO EXCEL PERMITIDO
         $filename = $file['name'];
         $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
 
         $rows = [];
 
-        if ($extension === 'xlsx' || $extension === 'xls') {
-            // Leer archivo Excel
-            $spreadsheet = IOFactory::load($file['tmp_name']);
-            $worksheet = $spreadsheet->getActiveSheet();
-            $data = $worksheet->toArray();
+        if ($extension !== 'xlsx' && $extension !== 'xls') {
+            throw new Exception('Formato no válido. Solo se permiten archivos Excel (.xlsx, .xls)');
+        }
 
-            if (empty($data)) {
-                throw new Exception('Archivo Excel vacío o formato inválido');
-            }
+        // Leer archivo Excel
+        $spreadsheet = IOFactory::load($file['tmp_name']);
+        $worksheet = $spreadsheet->getActiveSheet();
+        $data = $worksheet->toArray();
 
-            // Primera fila como encabezados
-            $header = array_map('trim', $data[0]);
+        if (empty($data)) {
+            throw new Exception('Archivo Excel vacío o formato inválido');
+        }
 
-            // Resto como datos
-            for ($i = 1; $i < count($data); $i++) {
-                if (!empty($data[$i][0])) { // Solo filas con datos
-                    $row = [];
-                    foreach ($header as $index => $colName) {
-                        $row[$colName] = isset($data[$i][$index]) ? trim($data[$i][$index]) : '';
-                    }
-                    $rows[] = $row;
+        // Primera fila como encabezados
+        $header = array_map('trim', $data[0]);
+
+        // Resto como datos
+        for ($i = 1; $i < count($data); $i++) {
+            if (!empty($data[$i][0])) { // Solo filas con datos
+                $row = [];
+                foreach ($header as $index => $colName) {
+                    $row[$colName] = isset($data[$i][$index]) ? trim($data[$i][$index]) : '';
                 }
+                $rows[] = $row;
             }
-        } else {
-            // Leer archivo CSV
-            $handle = fopen($file['tmp_name'], 'r');
-
-            if ($handle === false) {
-                throw new Exception('No se pudo leer el archivo');
-            }
-
-            // Leer encabezado
-            $header = fgetcsv($handle, 1000, ',');
-
-            if (!$header) {
-                throw new Exception('Archivo CSV vacío o formato inválido');
-            }
-
-            // Leer datos
-            while (($data = fgetcsv($handle, 1000, ',')) !== false) {
-                if (count($data) > 0 && $data[0] !== '') {
-                    $rows[] = array_combine($header, $data);
-                }
-            }
-            fclose($handle);
         }
 
         // Validar y procesar datos
@@ -122,8 +102,7 @@ try {
             $rowNum = $index + 2; // +2 porque empieza en 1 y hay header
             $rowErrors = [];
 
-            // Validar campos requeridos (solo los mínimos obligatorios)
-            // Se requiere codigo_establecimiento O establecimiento (nombre)
+            // Validar campos requeridos (Estrictos: mes, tipo y establecimiento)
             $required = [
                 'mes',
                 'tipo'           // Antes: tipo_error

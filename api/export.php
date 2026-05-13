@@ -150,12 +150,7 @@ switch ($format) {
         $exporter->exportToPDF($data, $filename, $headers, $title);
         break;
 
-    case 'csv':
-        $filename = "Observaciones_REM_{$year}{$filterDesc}_{$timestamp}.csv";
-        $exporter->exportToCSV($data, $filename, $headers);
-        break;
-
     default:
         http_response_code(400);
-        die('Formato no válido. Use: excel, pdf o csv');
+        die('Formato no válido. Use: excel o pdf');
 }
