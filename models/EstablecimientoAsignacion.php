@@ -1,7 +1,8 @@
 <?php
 /**
  * Clase EstablecimientoAsignacion
- * Manejo de asignaciones de establecimientos a registradores por año
+ * Manejo de asignaciones de establecimientos a registradores por año y meses
+ * Soporta reasignaciones temporales por meses sin solapamiento.
  */
 
 require_once __DIR__ . '/Database.php';
@@ -32,7 +33,7 @@ class EstablecimientoAsignacion
      */
     public function getEstablecimientosByRegistrador($registradorId, $anio)
     {
-        $sql = "SELECT ae.id as asignacion_id, ae.anio, e.*, c.nombre as comuna_nombre 
+        $sql = "SELECT ae.id as asignacion_id, ae.anio, ae.meses, e.*, c.nombre as comuna_nombre 
                 FROM asignaciones_establecimientos ae
                 INNER JOIN establecimientos e ON ae.establecimiento_id = e.id
                 INNER JOIN comunas c ON e.comuna_id = c.id
@@ -60,37 +61,115 @@ class EstablecimientoAsignacion
      *
      * Campos extra:
      *   asignado_a_mi  (0/1)
-     *   asignado_a_usuario_id  (NULL o ID del dueño)
-     *   asignado_a_nombre      (NULL o nombre del dueño)
+     *   asignado_a_usuario_id  (NULL o ID del dueño con asignación 'ALL')
+     *   asignado_a_nombre      (NULL o nombre del dueño con asignación 'ALL')
+     *   meses_mios             (NULL o meses asignados a mí)
+     *   meses_otro             (NULL o meses asignados a otro)
      */
     public function getEstablecimientosConAsignacion($registradorId, $anio)
     {
+        // Subconsultas correlacionadas para obtener info del primer otro asignado sin causar duplicados
         $sql = "SELECT e.*, c.nombre as comuna_nombre,
                        CASE WHEN ae_mi.usuario_id IS NOT NULL THEN 1 ELSE 0 END as asignado_a_mi,
-                       ae_otro.usuario_id as asignado_a_usuario_id,
-                       u.nombre_completo as asignado_a_nombre
+                       ae_mi.meses as meses_mios,
+                       (SELECT a1.usuario_id
+                        FROM asignaciones_establecimientos a1
+                        WHERE a1.establecimiento_id = e.id AND a1.anio = ? AND a1.usuario_id != ?
+                        LIMIT 1) as asignado_a_usuario_id,
+                       (SELECT u2.nombre_completo
+                        FROM asignaciones_establecimientos a2
+                        INNER JOIN usuarios u2 ON a2.usuario_id = u2.id
+                        WHERE a2.establecimiento_id = e.id AND a2.anio = ? AND a2.usuario_id != ?
+                        LIMIT 1) as asignado_a_nombre,
+                       (SELECT a3.meses
+                        FROM asignaciones_establecimientos a3
+                        WHERE a3.establecimiento_id = e.id AND a3.anio = ? AND a3.usuario_id != ?
+                        LIMIT 1) as meses_otro
                 FROM establecimientos e
                 INNER JOIN comunas c ON e.comuna_id = c.id
                 LEFT JOIN asignaciones_establecimientos ae_mi
                        ON e.id = ae_mi.establecimiento_id AND ae_mi.anio = ? AND ae_mi.usuario_id = ?
-                LEFT JOIN asignaciones_establecimientos ae_otro
-                       ON e.id = ae_otro.establecimiento_id AND ae_otro.anio = ? AND ae_otro.usuario_id != ?
-                LEFT JOIN usuarios u ON ae_otro.usuario_id = u.id
                 WHERE e.activo = 1
                 ORDER BY c.nombre ASC, e.nombre ASC";
-        return $this->db->query($sql, [$anio, $registradorId, $anio, $registradorId]);
+        return $this->db->query($sql, [$anio, $registradorId, $anio, $registradorId, $anio, $registradorId, $anio, $registradorId]);
     }
 
     /**
-     * Verificar si un establecimiento ya está asignado a otro registrador en un año
+     * Verificar si dos conjuntos de meses se solapan
      */
-    private function estaAsignadoAOtro($usuarioId, $establecimientoId, $anio)
+    private function mesesSolapan($mesesA, $mesesB)
     {
-        $sql = "SELECT usuario_id FROM asignaciones_establecimientos 
-                WHERE establecimiento_id = ? AND anio = ? AND usuario_id != ?
+        // Si alguno es ALL, siempre se solapan
+        if ($mesesA === 'ALL' || empty($mesesA) || $mesesB === 'ALL' || empty($mesesB)) {
+            return true;
+        }
+        $setA = array_map('intval', explode(',', $mesesA));
+        $setB = array_map('intval', explode(',', $mesesB));
+        return count(array_intersect($setA, $setB)) > 0;
+    }
+
+    /**
+     * Obtener los meses asignados a otro usuario para un establecimiento/año
+     * que se solapan con los meses solicitados.
+     */
+    private function getConflictoAsignacion($usuarioId, $establecimientoId, $anio, $meses)
+    {
+        $sql = "SELECT usuario_id, meses FROM asignaciones_establecimientos 
+                WHERE establecimiento_id = ? AND anio = ? AND usuario_id != ?";
+        $rows = $this->db->query($sql, [$establecimientoId, $anio, $usuarioId]);
+        foreach ($rows as $row) {
+            if ($this->mesesSolapan($row['meses'], $meses)) {
+                return $row;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Obtener la asignación propia existente para un establecimiento/año
+     */
+    private function getAsignacionPropia($usuarioId, $establecimientoId, $anio)
+    {
+        $sql = "SELECT id, meses FROM asignaciones_establecimientos 
+                WHERE usuario_id = ? AND establecimiento_id = ? AND anio = ?
                 LIMIT 1";
-        $result = $this->db->queryOne($sql, [$establecimientoId, $anio, $usuarioId]);
-        return $result ? $result['usuario_id'] : false;
+        return $this->db->queryOne($sql, [$usuarioId, $establecimientoId, $anio]);
+    }
+
+    /**
+     * Fusionar dos conjuntos de meses
+     */
+    private function fusionarMeses($mesesA, $mesesB)
+    {
+        if ($mesesA === 'ALL' || $mesesB === 'ALL' || empty($mesesA) || empty($mesesB)) {
+            return 'ALL';
+        }
+        $setA = array_map('intval', explode(',', $mesesA));
+        $setB = array_map('intval', explode(',', $mesesB));
+        $union = array_unique(array_merge($setA, $setB));
+        sort($union);
+        return implode(',', $union);
+    }
+
+    /**
+     * Restar meses de un conjunto
+     */
+    private function restarMeses($mesesTotal, $mesesQuitar)
+    {
+        if ($mesesTotal === 'ALL' || empty($mesesTotal)) {
+            return 'ALL'; // No se pueden quitar meses de un ALL mediante resta parcial
+        }
+        if ($mesesQuitar === 'ALL' || empty($mesesQuitar)) {
+            return $mesesTotal;
+        }
+        $setTotal = array_map('intval', explode(',', $mesesTotal));
+        $setQuitar = array_map('intval', explode(',', $mesesQuitar));
+        $resultado = array_diff($setTotal, $setQuitar);
+        if (empty($resultado)) {
+            return '';
+        }
+        sort($resultado);
+        return implode(',', $resultado);
     }
 
     /**
@@ -100,29 +179,34 @@ class EstablecimientoAsignacion
     public function asignar($usuarioId, $establecimientoId, $anio, $meses = 'ALL')
     {
         // Normalizar meses
-        if (empty($meses) || $meses === 'ALL') {
+        if (empty($meses)) {
             $meses = 'ALL';
         }
 
-        // No permitir duplicados para el mismo usuario y periodo
-        $sql = "SELECT COUNT(*) as count FROM asignaciones_establecimientos 
-                WHERE usuario_id = ? AND establecimiento_id = ? AND anio = ?";
-        $result = $this->db->queryOne($sql, [$usuarioId, $establecimientoId, $anio]);
-        
-        if ($result && $result['count'] > 0) {
-            // Si ya existe, actualizamos los meses? 
-            // Por ahora la spec dice no duplicados. Retornamos false.
-            return false;
+        // Verificar conflictos con otros usuarios
+        $conflicto = $this->getConflictoAsignacion($usuarioId, $establecimientoId, $anio, $meses);
+        if ($conflicto) {
+            return false; // Hay solapamiento con otro usuario
         }
 
-        // No permitir asignar si ya está asignado a otro registrador
-        if ($this->estaAsignadoAOtro($usuarioId, $establecimientoId, $anio)) {
-            return false;
+        // Verificar si ya existe una asignación propia
+        $propia = $this->getAsignacionPropia($usuarioId, $establecimientoId, $anio);
+        if ($propia) {
+            // Fusionar meses
+            $nuevosMeses = $this->fusionarMeses($propia['meses'], $meses);
+            $sql = "UPDATE asignaciones_establecimientos SET meses = ? WHERE id = ?";
+            try {
+                $this->db->execute($sql, [$nuevosMeses, $propia['id']]);
+                return true;
+            } catch (Exception $e) {
+                error_log("Error al actualizar asignación: " . $e->getMessage());
+                return false;
+            }
         }
 
+        // Insertar nueva asignación
         $sql = "INSERT INTO asignaciones_establecimientos (usuario_id, establecimiento_id, anio, meses) 
                 VALUES (?, ?, ?, ?)";
-        
         try {
             $this->db->execute($sql, [$usuarioId, $establecimientoId, $anio, $meses]);
             return true;
@@ -133,18 +217,47 @@ class EstablecimientoAsignacion
     }
 
     /**
-     * Remover asignación
+     * Remover asignación completa o parcial (por meses)
+     * @param string $meses 'ALL' para eliminar todo, o lista de meses '1,2,3' para eliminar solo esos meses
      */
-    public function remover($usuarioId, $establecimientoId, $anio)
+    public function remover($usuarioId, $establecimientoId, $anio, $meses = 'ALL')
     {
-        $sql = "DELETE FROM asignaciones_establecimientos 
-                WHERE usuario_id = ? AND establecimiento_id = ? AND anio = ?";
-        
-        try {
-            return $this->db->execute($sql, [$usuarioId, $establecimientoId, $anio]);
-        } catch (Exception $e) {
-            error_log("Error al remover asignación: " . $e->getMessage());
-            return false;
+        $propia = $this->getAsignacionPropia($usuarioId, $establecimientoId, $anio);
+        if (!$propia) {
+            return false; // No existe asignación
+        }
+
+        if ($meses === 'ALL' || empty($meses) || $propia['meses'] === 'ALL' || empty($propia['meses'])) {
+            // Eliminar todo
+            $sql = "DELETE FROM asignaciones_establecimientos 
+                    WHERE usuario_id = ? AND establecimiento_id = ? AND anio = ?";
+            try {
+                return $this->db->execute($sql, [$usuarioId, $establecimientoId, $anio]);
+            } catch (Exception $e) {
+                error_log("Error al remover asignación: " . $e->getMessage());
+                return false;
+            }
+        }
+
+        // Restar meses específicos
+        $nuevosMeses = $this->restarMeses($propia['meses'], $meses);
+        if (empty($nuevosMeses)) {
+            $sql = "DELETE FROM asignaciones_establecimientos 
+                    WHERE usuario_id = ? AND establecimiento_id = ? AND anio = ?";
+            try {
+                return $this->db->execute($sql, [$usuarioId, $establecimientoId, $anio]);
+            } catch (Exception $e) {
+                error_log("Error al remover asignación: " . $e->getMessage());
+                return false;
+            }
+        } else {
+            $sql = "UPDATE asignaciones_establecimientos SET meses = ? WHERE id = ?";
+            try {
+                return $this->db->execute($sql, [$nuevosMeses, $propia['id']]);
+            } catch (Exception $e) {
+                error_log("Error al actualizar asignación parcial: " . $e->getMessage());
+                return false;
+            }
         }
     }
 
@@ -154,7 +267,6 @@ class EstablecimientoAsignacion
     public function removerTodas($usuarioId, $anio)
     {
         $sql = "DELETE FROM asignaciones_establecimientos WHERE usuario_id = ? AND anio = ?";
-        
         try {
             return $this->db->execute($sql, [$usuarioId, $anio]);
         } catch (Exception $e) {
@@ -165,25 +277,37 @@ class EstablecimientoAsignacion
 
     /**
      * Asignar múltiples establecimientos a un registrador para un año
+     * No elimina asignaciones existentes; fusiona meses si ya existe.
      */
     public function asignarMultiple($usuarioId, $establecimientoIds, $anio, $meses = 'ALL')
     {
+        if (empty($meses)) {
+            $meses = 'ALL';
+        }
+
         try {
             $this->db->beginTransaction();
 
-            $this->removerTodas($usuarioId, $anio);
-            
-            $sql = "INSERT INTO asignaciones_establecimientos (usuario_id, establecimiento_id, anio, meses) 
-                    VALUES (?, ?, ?, ?)";
-            
             foreach ($establecimientoIds as $establecimientoId) {
-                // Saltar si ya está asignado a otro registrador
-                if ($this->estaAsignadoAOtro($usuarioId, $establecimientoId, $anio)) {
-                    continue;
+                // Verificar conflictos con otros usuarios
+                $conflicto = $this->getConflictoAsignacion($usuarioId, $establecimientoId, $anio, $meses);
+                if ($conflicto) {
+                    continue; // Saltar este establecimiento
                 }
-                $this->db->execute($sql, [$usuarioId, $establecimientoId, $anio, $meses]);
+
+                // Verificar si ya existe asignación propia
+                $propia = $this->getAsignacionPropia($usuarioId, $establecimientoId, $anio);
+                if ($propia) {
+                    $nuevosMeses = $this->fusionarMeses($propia['meses'], $meses);
+                    $sql = "UPDATE asignaciones_establecimientos SET meses = ? WHERE id = ?";
+                    $this->db->execute($sql, [$nuevosMeses, $propia['id']]);
+                } else {
+                    $sql = "INSERT INTO asignaciones_establecimientos (usuario_id, establecimiento_id, anio, meses) 
+                            VALUES (?, ?, ?, ?)";
+                    $this->db->execute($sql, [$usuarioId, $establecimientoId, $anio, $meses]);
+                }
             }
-            
+
             $this->db->commit();
             return true;
         } catch (Exception $e) {

@@ -134,7 +134,35 @@ $registradores = $asignacionModel->getEstadisticasAsignaciones($anioSeleccionado
 
                 <div>
                     <label class="block text-sm font-semibold text-slate-700 mb-2">Establecimientos Disponibles</label>
-                    <div id="listaEstablecimientosDisponibles" class="border border-slate-200 rounded-lg max-h-80 overflow-y-auto">
+                    <div id="listaEstablecimientosDisponibles" class="border border-slate-200 rounded-lg max-h-64 overflow-y-auto">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">Periodo de validez</label>
+                    <div class="space-y-2">
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="radio" name="periodoAsignacion" value="ALL" checked onchange="toggleMesesAsignacion()">
+                            <span class="text-sm text-slate-700">Todo el año <span class="text-slate-400" id="anioPeriodoLabel"></span></span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="radio" name="periodoAsignacion" value="MESES" onchange="toggleMesesAsignacion()">
+                            <span class="text-sm text-slate-700">Meses específicos</span>
+                        </label>
+                        <div id="mesesEspecificosContainer" class="hidden pl-6 pt-1">
+                            <div class="grid grid-cols-4 gap-2">
+                                <?php
+                                $nombresMeses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+                                foreach ($nombresMeses as $i => $nombre):
+                                    $numero = $i + 1;
+                                ?>
+                                <label class="flex items-center gap-1.5 text-sm text-slate-700 cursor-pointer hover:bg-slate-50 rounded px-1 py-0.5">
+                                    <input type="checkbox" class="mes-checkbox rounded" value="<?php echo $numero; ?>">
+                                    <?php echo $nombre; ?>
+                                </label>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -274,11 +302,14 @@ $registradores = $asignacionModel->getEstadisticasAsignaciones($anioSeleccionado
                                 <p class="font-semibold text-slate-800">${escapeHtml(est.nombre)}</p>
                                 <p class="text-xs text-slate-500">${escapeHtml(est.nombre_corto)}</p>
                             </div>
-                            <button onclick="removerAsignacion(${est.id})" 
-                                    class="btn-secondary px-3 py-1 text-xs bg-rose-50 hover:bg-rose-100 text-rose-600"
-                                    title="Remover">
-                                ✕
-                            </button>
+                            <div class="flex items-center gap-2">
+                                ${est.meses && est.meses !== 'ALL' ? `<span class="text-xs font-semibold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded" title="${formatearMeses(est.meses)}">⏱️ Temporal</span>` : ''}
+                                <button onclick="removerAsignacion(${est.id})"
+                                        class="btn-secondary px-3 py-1 text-xs bg-rose-50 hover:bg-rose-100 text-rose-600"
+                                        title="Remover">
+                                    ✕
+                                </button>
+                            </div>
                         </div>
                         <div class="referentes-container" data-establecimiento-id="${est.id}">
                             <div class="p-3 text-sm text-slate-400">Cargando contactos...</div>
@@ -338,9 +369,32 @@ $registradores = $asignacionModel->getEstadisticasAsignaciones($anioSeleccionado
         const selectedItem = document.querySelector(`[data-registrador-id="${registradorSeleccionadoId}"]`);
         const nombre = selectedItem.querySelector('.font-semibold').textContent;
         document.getElementById('modalAsignarInfo').textContent = `Para: ${nombre} — Año ${anioActual}`;
+        document.getElementById('anioPeriodoLabel').textContent = anioActual;
 
         await cargarEstablecimientosDisponibles();
         openModal('modalAsignar');
+    }
+
+    function toggleMesesAsignacion() {
+        const esMeses = document.querySelector('input[name="periodoAsignacion"]:checked').value === 'MESES';
+        document.getElementById('mesesEspecificosContainer').classList.toggle('hidden', !esMeses);
+    }
+
+    function obtenerMesesSeleccionados() {
+        const esMeses = document.querySelector('input[name="periodoAsignacion"]:checked').value === 'MESES';
+        if (!esMeses) return 'ALL';
+        const checkboxes = document.querySelectorAll('.mes-checkbox:checked');
+        const meses = Array.from(checkboxes).map(cb => cb.value);
+        return meses.length > 0 ? meses.join(',') : 'ALL';
+    }
+
+    function formatearMeses(meses) {
+        if (!meses || meses === 'ALL') return 'Todo el año';
+        const nombres = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+        const nums = meses.split(',').map(m => parseInt(m.trim())).filter(m => m >= 1 && m <= 12).sort((a,b)=>a-b);
+        if (nums.length === 0) return 'Todo el año';
+        if (nums.length === 12) return 'Todo el año';
+        return nums.map(n => nombres[n-1]).join(', ');
     }
 
     async function cargarEstablecimientosDisponibles() {
@@ -390,24 +444,30 @@ $registradores = $asignacionModel->getEstadisticasAsignaciones($anioSeleccionado
 
             agrupados[comuna].forEach(est => {
                 const asignadoAMi = est.asignado_a_mi == 1;
-                const asignadoAOtro = !!est.asignado_a_usuario_id;
-                const libre = !asignadoAMi && !asignadoAOtro;
+                const asignadoAOtroTotal = est.asignado_a_usuario_id && (!est.meses_otro || est.meses_otro === 'ALL');
+                const asignadoAOtroParcial = est.asignado_a_usuario_id && est.meses_otro && est.meses_otro !== 'ALL';
 
-                const checked = (asignadoAMi || asignadoAOtro) ? 'checked' : '';
-                const disabled = asignadoAOtro ? 'disabled' : '';
-                
+                // Ya asignado a mi: mostrar marcado pero deshabilitado (no se puede quitar desde este modal)
+                const checked = asignadoAMi ? 'checked' : '';
+                const disabled = (asignadoAMi || asignadoAOtroTotal) ? 'disabled' : '';
+
                 let bgClass = '';
                 let badge = '';
                 if (asignadoAMi) {
                     bgClass = 'bg-sky-50';
-                    badge = '<span class="text-xs font-semibold text-sky-600 bg-sky-100 px-1.5 py-0.5 rounded">Asignado a ti</span>';
-                } else if (asignadoAOtro) {
+                    const mesesTexto = est.meses_mios && est.meses_mios !== 'ALL' ? ` (${formatearMeses(est.meses_mios)})` : '';
+                    badge = `<span class="text-xs font-semibold text-sky-600 bg-sky-100 px-1.5 py-0.5 rounded">Asignado a ti${mesesTexto}</span>`;
+                } else if (asignadoAOtroTotal) {
                     bgClass = 'bg-rose-50';
                     badge = `<span class="text-xs font-semibold text-rose-600 bg-rose-100 px-1.5 py-0.5 rounded">Asignado a: ${escapeHtml(est.asignado_a_nombre || 'Otro')}</span>`;
+                } else if (asignadoAOtroParcial) {
+                    bgClass = 'bg-amber-50';
+                    badge = `<span class="text-xs font-semibold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded" title="Puedes asignar meses que no se solapen">Parcial: ${escapeHtml(est.asignado_a_nombre || 'Otro')} (${formatearMeses(est.meses_otro)})</span>`;
                 }
 
+                const allowHover = !asignadoAMi && !asignadoAOtroTotal;
                 html += `
-                    <label class="flex items-center gap-3 p-3 border-b border-slate-50 ${bgClass} ${asignadoAOtro ? '' : 'hover:bg-slate-50 cursor-pointer'}">
+                    <label class="flex items-center gap-3 p-3 border-b border-slate-50 ${bgClass} ${allowHover ? 'hover:bg-slate-50 cursor-pointer' : ''}">
                         <input type="checkbox" value="${est.id}" class="establecimiento-checkbox rounded" ${checked} ${disabled}>
                         <div class="flex-1 min-w-0">
                             <p class="font-medium text-slate-800 text-sm">${escapeHtml(est.nombre)}</p>
@@ -430,13 +490,22 @@ $registradores = $asignacionModel->getEstadisticasAsignaciones($anioSeleccionado
     }
 
     async function guardarAsignaciones() {
-        // Solo guardar los checkeados que NO estén deshabilitados (asignados a otros)
+        // Solo guardar los checkeados que NO estén deshabilitados (asignados a otros con ALL)
         const checkboxes = document.querySelectorAll('.establecimiento-checkbox:checked:not(:disabled)');
         const establecimientoIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
 
         if (establecimientoIds.length === 0) {
             showMessage('Seleccione al menos un establecimiento', 'warning');
             return;
+        }
+
+        const meses = obtenerMesesSeleccionados();
+        if (meses !== 'ALL') {
+            const mesesArray = meses.split(',');
+            if (mesesArray.length === 0) {
+                showMessage('Seleccione al menos un mes o elija "Todo el año"', 'warning');
+                return;
+            }
         }
 
         try {
@@ -448,7 +517,8 @@ $registradores = $asignacionModel->getEstadisticasAsignaciones($anioSeleccionado
                     action: 'asignar_multiple',
                     usuario_id: registradorSeleccionadoId,
                     establecimiento_ids: establecimientoIds,
-                    anio: anioActual
+                    anio: anioActual,
+                    meses: meses
                 })
             });
 
@@ -529,6 +599,9 @@ $registradores = $asignacionModel->getEstadisticasAsignaciones($anioSeleccionado
     function cerrarModalAsignar() {
         closeModal('modalAsignar');
         document.getElementById('buscarEstablecimiento').value = '';
+        document.querySelector('input[name="periodoAsignacion"][value="ALL"]').checked = true;
+        document.querySelectorAll('.mes-checkbox').forEach(cb => cb.checked = false);
+        toggleMesesAsignacion();
     }
 
     function escapeHtml(text) {

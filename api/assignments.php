@@ -114,12 +114,13 @@ try {
             } elseif ($action === 'remover') {
                 $usuarioId = $input['usuario_id'] ?? null;
                 $establecimientoId = $input['establecimiento_id'] ?? null;
+                $meses = $input['meses'] ?? 'ALL';
 
                 if (!$usuarioId || !$establecimientoId) {
                     jsonResponse(false, null, 'Usuario y establecimiento son requeridos', 400);
                 }
 
-                $success = $asignacionModel->remover($usuarioId, $establecimientoId, $anio);
+                $success = $asignacionModel->remover($usuarioId, $establecimientoId, $anio, $meses);
                 if ($success) {
                     jsonResponse(true, null, 'Asignación removida exitosamente');
                 } else {
