@@ -8,13 +8,14 @@
     <link rel="stylesheet" href="assets/css/styles.css">
 </head>
 
-<body style="background: linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%);">
+<body style="background: linear-gradient(135deg, #003366 0%, #0B71B9 100%);">
     <div class="flex items-center justify-center h-screen p-4">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 slide-up">
-            <div class="text-center mb-8">
-                <h1 class="text-3xl font-bold text-slate-800 mb-2">Sistema REM</h1>
-                <p class="text-slate-600">Servicio de Salud Osorno</p>
-                <div class="w-16 h-1 bg-sky-600 mx-auto mt-4 rounded-full"></div>
+            <div class="text-center mb-6">
+                <img src="assets/images/logo.png" alt="DEIS Osorno" style="height: 80px; margin: 0 auto 12px auto; display: block;">
+                <h1 class="text-3xl font-bold text-slate-800 mb-1">Sistema REM</h1>
+                <p class="text-slate-600" style="color: #0B71B9;">Servicio de Salud Osorno</p>
+                <div class="w-16 h-1 mx-auto mt-3 rounded-full" style="background: linear-gradient(90deg, #003366, #00AEEF);"></div>
             </div>
 
             <form id="loginForm" onsubmit="handleLogin(event)">
@@ -22,21 +23,30 @@
                     <div>
                         <label class="block text-sm font-semibold text-slate-700 mb-2">Usuario</label>
                         <input type="text" name="username" id="username" required
-                            class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-sky-500 focus:ring-2 focus:ring-sky-200 transition-all"
+                            class="w-full px-4 py-3 rounded-xl border border-slate-200 transition-all"
+                            style="outline: none;"
+                            onfocus="this.style.borderColor='#0B71B9'; this.style.boxShadow='0 0 0 3px rgba(11, 113, 185, 0.2)';"
+                            onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none';"
                             placeholder="Ingrese su usuario" autocomplete="username">
                     </div>
 
                     <div>
                         <label class="block text-sm font-semibold text-slate-700 mb-2">Contraseña</label>
                         <input type="password" name="password" id="password" required
-                            class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-sky-500 focus:ring-2 focus:ring-sky-200 transition-all"
+                            class="w-full px-4 py-3 rounded-xl border border-slate-200 transition-all"
+                            style="outline: none;"
+                            onfocus="this.style.borderColor='#0B71B9'; this.style.boxShadow='0 0 0 3px rgba(11, 113, 185, 0.2)';"
+                            onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none';"
                             placeholder="Ingrese su contraseña" autocomplete="current-password">
                     </div>
 
                     <div>
                         <label class="block text-sm font-semibold text-slate-700 mb-2">Año de Trabajo</label>
                         <select name="year" id="year"
-                            class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-sky-500 focus:ring-2 focus:ring-sky-200 transition-all">
+                            class="w-full px-4 py-3 rounded-xl border border-slate-200 transition-all"
+                            style="outline: none;"
+                            onfocus="this.style.borderColor='#0B71B9'; this.style.boxShadow='0 0 0 3px rgba(11, 113, 185, 0.2)';"
+                            onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none';">
                             <?php
                             $currentYear = date('Y');
                             for ($y = $currentYear + 1; $y >= 2020; $y--) {
@@ -49,8 +59,11 @@
                 </div>
 
                 <button type="submit"
-                    class="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold py-3 rounded-xl transition-all shadow-lg hover:shadow-xl"
-                    id="loginBtn">
+                    class="w-full text-white font-bold py-3 rounded-xl transition-all shadow-lg hover:shadow-xl"
+                    style="background: linear-gradient(135deg, #0B71B9 0%, #003366 100%);"
+                    id="loginBtn"
+                    onmouseover="this.style.background='linear-gradient(135deg, #003366 0%, #0B71B9 100%)'"
+                    onmouseout="this.style.background='linear-gradient(135deg, #0B71B9 0%, #003366 100%)'">
                     Iniciar Sesión
                 </button>
 
@@ -63,7 +76,15 @@
                 </div>
             </form>
 
-            <div class="mt-8 pt-6 border-t border-slate-100">
+            <div class="mt-6 text-center">
+                <a href="MANUAL_REGISTRO_OBSERVACIONES.html" target="_blank"
+                   class="inline-flex items-center gap-2 text-sm font-medium transition-colors hover:underline"
+                   style="color: #0B71B9;">
+                    <span>📖</span> Manual de Usuario
+                </a>
+            </div>
+
+            <div class="mt-6 pt-6 border-t border-slate-100">
                 <p class="text-xs text-slate-500 text-center mb-2">Credenciales de prueba:</p>
                 <div class="text-xs text-slate-600 space-y-1">
                     <div class="flex justify-between px-4">
