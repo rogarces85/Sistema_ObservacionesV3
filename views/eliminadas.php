@@ -501,7 +501,7 @@ $comunas = $locationModel->getComunas();
 
         if (comunaNombre) {
             try {
-                const response = await fetch(`api/locations.php?action=get_establecimientos&comuna_nombre=${encodeURIComponent(comunaNombre)}`);
+                const response = await fetch(`api/locations.php?action=establecimientos&comuna_nombre=${encodeURIComponent(comunaNombre)}`);
                 const data = await response.json();
 
                 if (data.success) {
