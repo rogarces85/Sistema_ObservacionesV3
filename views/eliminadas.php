@@ -173,6 +173,12 @@ $comunas = $locationModel->getComunas();
                 <label class="form-label">Comentario (opcional)</label>
                 <textarea id="confirmComment" class="form-textarea" rows="3"></textarea>
             </div>
+            <div class="mt-4" id="confirmCheckboxContainer" style="display: none;">
+                <label class="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" id="confirmIrreversible" class="form-checkbox">
+                    <span class="text-sm font-medium text-rose-600">Entiendo que esta acción no se puede deshacer</span>
+                </label>
+            </div>
         </div>
         <div class="modal-footer">
             <button class="btn btn-secondary" onclick="closeConfirmModal()">Cancelar</button>
@@ -258,6 +264,17 @@ $comunas = $locationModel->getComunas();
 
     function renderStats(stats) {
         const container = document.getElementById('statsContainer');
+        const topEliminador = stats.por_eliminador && stats.por_eliminador.length > 0
+            ? stats.por_eliminador[0].nombre_completo
+            : 'N/A';
+        const topEliminadorCount = stats.por_eliminador && stats.por_eliminador.length > 0
+            ? stats.por_eliminador[0].total
+            : 0;
+
+        const estadoBreakdown = stats.por_estado && stats.por_estado.length > 0
+            ? stats.por_estado.map(e => `${e.estado_actual}: ${e.total}`).join(', ')
+            : 'Sin datos';
+
         container.innerHTML = `
             <div class="card p-5" style="background: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%); border-color: #fecdd3;">
                 <div class="flex items-center gap-4">
@@ -273,22 +290,22 @@ $comunas = $locationModel->getComunas();
             <div class="card p-5" style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border-color: #bae6fd;">
                 <div class="flex items-center gap-4">
                     <div class="p-3 rounded-xl" style="background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);">
-                        <span class="text-2xl">♻️</span>
+                        <span class="text-2xl">📊</span>
                     </div>
                     <div>
-                        <div class="text-3xl font-bold text-sky-700">Restaurar</div>
-                        <div class="text-sm font-semibold text-sky-600">Recuperar observaciones</div>
+                        <div class="text-sm font-bold text-sky-700">Por Estado</div>
+                        <div class="text-xs text-sky-600 mt-1">${estadoBreakdown}</div>
                     </div>
                 </div>
             </div>
             <div class="card p-5" style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-color: #fbbf24;">
                 <div class="flex items-center gap-4">
                     <div class="p-3 rounded-xl" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
-                        <span class="text-2xl">⚠️</span>
+                        <span class="text-2xl">👤</span>
                     </div>
                     <div>
-                        <div class="text-3xl font-bold text-amber-700">Cuidado</div>
-                        <div class="text-sm font-semibold text-amber-600">Eliminación permanente</div>
+                        <div class="text-sm font-bold text-amber-700">Mayor Eliminador</div>
+                        <div class="text-xs text-amber-600 mt-1">${escapeHtml(topEliminador)} (${topEliminadorCount})</div>
                     </div>
                 </div>
             </div>
@@ -385,7 +402,35 @@ $comunas = $locationModel->getComunas();
         document.getElementById('confirmComment').value = '';
         document.getElementById('confirmModal').classList.remove('hidden');
 
+        const isPermanentDelete = action.includes('permanent_delete');
+        const checkboxContainer = document.getElementById('confirmCheckboxContainer');
+        const confirmCheckbox = document.getElementById('confirmIrreversible');
+        const confirmBtn = document.getElementById('confirmActionBtn');
+
+        if (isPermanentDelete) {
+            checkboxContainer.style.display = 'block';
+            confirmCheckbox.checked = false;
+            confirmBtn.disabled = true;
+            confirmBtn.style.opacity = '0.5';
+            confirmBtn.style.cursor = 'not-allowed';
+        } else {
+            checkboxContainer.style.display = 'none';
+            confirmBtn.disabled = false;
+            confirmBtn.style.opacity = '';
+            confirmBtn.style.cursor = '';
+        }
+
+        confirmCheckbox.onchange = () => {
+            confirmBtn.disabled = !confirmCheckbox.checked;
+            confirmBtn.style.opacity = confirmCheckbox.checked ? '' : '0.5';
+            confirmBtn.style.cursor = confirmCheckbox.checked ? '' : 'not-allowed';
+        };
+
         document.getElementById('confirmActionBtn').onclick = async () => {
+            if (isPermanentDelete && !confirmCheckbox.checked) {
+                showError('Debe confirmar que entiende que esta acción es irreversible.');
+                return;
+            }
             const comment = document.getElementById('confirmComment').value;
             await executeAction(action, ids, comment);
             closeConfirmModal();
@@ -430,6 +475,12 @@ $comunas = $locationModel->getComunas();
 
     function closeConfirmModal() {
         document.getElementById('confirmModal').classList.add('hidden');
+        document.getElementById('confirmCheckboxContainer').style.display = 'none';
+        document.getElementById('confirmIrreversible').checked = false;
+        const confirmBtn = document.getElementById('confirmActionBtn');
+        confirmBtn.disabled = false;
+        confirmBtn.style.opacity = '';
+        confirmBtn.style.cursor = '';
     }
 
     function clearFilters() {

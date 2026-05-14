@@ -94,9 +94,7 @@ class DeletedObservation
             $params[] = $filters['anio'];
         }
 
-        if (!empty($filters['comuna_id'])) {
-            // Necesitamos hacer JOIN para filtrar por comuna
-            // Pero como ya guardamos el nombre, filtramos por nombre
+        if (!empty($filters['comuna_nombre'])) {
             $sql .= " AND comuna LIKE ?";
             $params[] = '%' . $filters['comuna_nombre'] . '%';
         }
