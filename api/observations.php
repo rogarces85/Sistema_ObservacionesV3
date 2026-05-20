@@ -85,17 +85,26 @@ try {
                 'mes',
                 'establecimiento_id',
                 'codigo_serie',
-                'codigo_hoja',
                 'tipo_error',
                 'detalle_observacion',
                 'plazo_entrega',
                 'usa_validador'
             ];
 
+            // codigo_hoja es requerido EXCEPTO para S/OBSERVACION
+            if ($input['tipo_error'] !== 'S/OBSERVACION') {
+                $required[] = 'codigo_hoja';
+            }
+
             foreach ($required as $field) {
                 if (!isset($input[$field]) || empty($input[$field])) {
                     jsonResponse(false, null, "El campo {$field} es requerido", 400);
                 }
+            }
+
+            // Convertir 'n/a' a 'no' para usa_validador
+            if ($input['usa_validador'] === 'n/a') {
+                $input['usa_validador'] = 'no';
             }
 
             $data = [

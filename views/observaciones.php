@@ -245,7 +245,7 @@ global $TIPOS_ERROR, $MESES;
 
                     <div>
                         <label class="block text-sm font-semibold text-slate-700 mb-2">Tipo *</label>
-                        <select id="tipo_error" name="tipo_error" required>
+                        <select id="tipo_error" name="tipo_error" required onchange="handleTipoChange()">
                             <option value="">Seleccione...</option>
                             <?php foreach ($TIPOS_ERROR as $tipo): ?>
                                 <option value="<?php echo htmlspecialchars($tipo); ?>">
@@ -269,7 +269,7 @@ global $TIPOS_ERROR, $MESES;
                         </select>
                     </div>
 
-                    <div>
+                    <div id="hojaRemContainer">
                         <label class="block text-sm font-semibold text-slate-700 mb-2">REM (Hoja)</label>
                         <select id="codigo_hoja" name="codigo_hoja" disabled>
                             <option value="">Primero seleccione una Serie</option>
@@ -299,11 +299,12 @@ global $TIPOS_ERROR, $MESES;
                             <option value="">Seleccione...</option>
                             <option value="si">Sí</option>
                             <option value="no">No</option>
+                            <option value="n/a">N/A</option>
                         </select>
                     </div>
                 </div>
 
-                <div>
+                <div id="respuestaContainer">
                     <label class="block text-sm font-semibold text-slate-700 mb-2">Respuesta del Establecimiento</label>
                     <textarea id="respuesta_establecimiento" name="respuesta_establecimiento" rows="3"
                         placeholder="Respuesta recibida del establecimiento..."></textarea>
@@ -545,9 +546,20 @@ global $TIPOS_ERROR, $MESES;
         const serieSelect = document.getElementById('codigo_serie');
         const hojaSelect = document.getElementById('codigo_hoja');
         const serieSeleccionada = serieSelect.value;
+        const tipoError = document.getElementById('tipo_error').value;
 
         // Limpiar opciones actuales
         hojaSelect.innerHTML = '';
+
+        // Si es S/OBSERVACION, ocultar el campo de hoja
+        if (tipoError === 'S/OBSERVACION') {
+            document.getElementById('hojaRemContainer').style.display = 'none';
+            hojaSelect.value = '';
+            return;
+        }
+
+        // Mostrar el campo de hoja para otros tipos
+        document.getElementById('hojaRemContainer').style.display = '';
 
         if (!serieSeleccionada) {
             hojaSelect.innerHTML = '<option value="">Primero seleccione una Serie</option>';
@@ -573,6 +585,33 @@ global $TIPOS_ERROR, $MESES;
         }
     }
 
+    // Manejar cambio de tipo de error
+    function handleTipoChange() {
+        const tipoError = document.getElementById('tipo_error').value;
+        const hojaContainer = document.getElementById('hojaRemContainer');
+        const respuestaContainer = document.getElementById('respuestaContainer');
+        const detalleObs = document.getElementById('detalle_observacion');
+
+        if (tipoError === 'S/OBSERVACION') {
+            // Ocultar hoja REM
+            hojaContainer.style.display = 'none';
+            document.getElementById('codigo_hoja').value = '';
+            
+            // Ocultar respuesta del establecimiento
+            respuestaContainer.style.display = 'none';
+            document.getElementById('respuesta_establecimiento').value = '';
+        } else {
+            // Mostrar hoja REM
+            hojaContainer.style.display = '';
+            
+            // Mostrar respuesta del establecimiento
+            respuestaContainer.style.display = '';
+            
+            // Recargar hojas si hay serie seleccionada
+            loadHojasREM();
+        }
+    }
+
     // Abrir modal para crear
     function openCreateModal() {
         document.getElementById('obsId').value = '';
@@ -584,6 +623,9 @@ global $TIPOS_ERROR, $MESES;
         const hojaSelect = document.getElementById('codigo_hoja');
         hojaSelect.innerHTML = '<option value="">Primero seleccione una Serie</option>';
         hojaSelect.disabled = true;
+        // Mostrar todos los campos
+        document.getElementById('hojaRemContainer').style.display = '';
+        document.getElementById('respuestaContainer').style.display = '';
         openModal('modalObservation');
     }
 
@@ -748,19 +790,26 @@ global $TIPOS_ERROR, $MESES;
                 // Cargar código del establecimiento
                 loadEstablecimientoCodigo();
 
-                // Establecer la serie primero
+                // Establecer el tipo primero para manejar la visibilidad
+                document.getElementById('tipo_error').value = obs.tipo_error;
+                handleTipoChange();
+
+                // Establecer la serie
                 document.getElementById('codigo_serie').value = obs.codigo_serie;
 
-                // Cargar las hojas REM para esa serie
-                loadHojasREM();
+                // Cargar las hojas REM para esa serie (si no es S/OBSERVACION)
+                if (obs.tipo_error !== 'S/OBSERVACION') {
+                    loadHojasREM();
+                    // Ahora establecer la hoja seleccionada
+                    document.getElementById('codigo_hoja').value = obs.codigo_hoja;
+                }
 
-                // Ahora establecer la hoja seleccionada
-                document.getElementById('codigo_hoja').value = obs.codigo_hoja;
-
-                document.getElementById('tipo_error').value = obs.tipo_error;
                 document.getElementById('detalle_observacion').value = obs.detalle_observacion;
                 document.getElementById('plazo_entrega').value = obs.plazo_entrega;
-                document.getElementById('usa_validador').value = obs.usa_validador;
+                
+                // Manejar usa_validador - si es 'no' mostrar como 'no' (N/A se guarda como 'no')
+                document.getElementById('usa_validador').value = obs.usa_validador || '';
+                
                 document.getElementById('respuesta_establecimiento').value = obs.respuesta_establecimiento || '';
 
                 document.getElementById('modalTitle').textContent = 'Editar Observación';
@@ -781,16 +830,24 @@ global $TIPOS_ERROR, $MESES;
         if (!validateForm('formObservation')) return;
 
         const obsId = document.getElementById('obsId').value;
+        const tipoError = document.getElementById('tipo_error').value;
+        let usaValidador = document.getElementById('usa_validador').value;
+        
+        // Convertir 'n/a' a 'no' para guardar en BD
+        if (usaValidador === 'n/a') {
+            usaValidador = 'no';
+        }
+
         const formData = {
             mes: document.getElementById('mes').value,
             establecimiento_id: parseInt(document.getElementById('establecimiento_id').value),
             codigo_serie: document.getElementById('codigo_serie').value,
-            codigo_hoja: document.getElementById('codigo_hoja').value,
-            tipo_error: document.getElementById('tipo_error').value,
+            codigo_hoja: tipoError === 'S/OBSERVACION' ? '' : document.getElementById('codigo_hoja').value,
+            tipo_error: tipoError,
             detalle_observacion: document.getElementById('detalle_observacion').value,
             plazo_entrega: document.getElementById('plazo_entrega').value,
-            usa_validador: document.getElementById('usa_validador').value,
-            respuesta_establecimiento: document.getElementById('respuesta_establecimiento').value
+            usa_validador: usaValidador,
+            respuesta_establecimiento: tipoError === 'S/OBSERVACION' ? '' : document.getElementById('respuesta_establecimiento').value
         };
 
         try {
@@ -892,7 +949,10 @@ global $TIPOS_ERROR, $MESES;
 
                 // Validador
                 const validadorBadge = document.getElementById('detailValidador');
-                if (obs.usa_validador && obs.usa_validador !== 'no') {
+                if (obs.tipo_error === 'S/OBSERVACION') {
+                    validadorBadge.textContent = 'N/A';
+                    validadorBadge.classList.remove('hidden');
+                } else if (obs.usa_validador && obs.usa_validador !== 'no') {
                     validadorBadge.textContent = '✓ Usa Validador';
                     validadorBadge.classList.remove('hidden');
                 } else {

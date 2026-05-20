@@ -50,7 +50,12 @@ El año de la observación se toma automáticamente del año activo en la sesió
 **Pasos detallados:**
 
 1. El registrador accede a la sección "Observaciones" y completa el formulario con los datos requeridos.
-2. El sistema valida que los campos obligatorios estén presentes: `mes`, `establecimiento_id`, `codigo_serie`, `codigo_hoja`, `tipo_error`, `detalle_observacion`, `plazo_entrega`, `usa_validador`.
+2. El sistema valida que los campos obligatorios estén presentes: `mes`, `establecimiento_id`, `codigo_serie`, `tipo_error`, `plazo_entrega`, `usa_validador`.
+   - **Campos condicionales según `tipo_error`**:
+     - `codigo_hoja`: **Requerido** para tipos ERROR, REVISAR, F/PLAZO | **Opcional** (se oculta) para S/OBSERVACION
+     - `detalle_observacion`: Opcional para todos los tipos
+     - `respuesta_establecimiento`: Opcional, se oculta para S/OBSERVACION
+   - **Opción N/A para `usa_validador`**: Disponible para todos los tipos, se guarda como `'no'` en la base de datos
 3. El sistema verifica que el `establecimiento_id` seleccionado esté en la lista de establecimientos asignados al registrador para el año activo.
 4. Si las validaciones pasan, el sistema inserta el registro en la base de datos con estado `PENDIENTE` y el año tomado de la sesión.
 5. El sistema crea automáticamente una entrada en `historial_estados` con comentario "Registro inicial".
@@ -156,46 +161,129 @@ Y el sistema crea la observación con éxito
 Y el sistema muestra el mensaje "Observación registrada exitosamente. ID: [ID]"
 ```
 
+### Escenario 6: Crear observación tipo S/OBSERVACION sin hoja REM
+
+```gherkin
+Dado que soy un usuario con rol "Registrador" autenticado
+Y tengo el establecimiento "Hospital San José" asignado para el año activo
+Cuando completo el formulario de nueva observación con los siguientes datos:
+  | Campo               | Valor                    |
+  | mes                 | Marzo                    |
+  | establecimiento_id  | 5                        |
+  | codigo_serie        | SERIE A                  |
+  | tipo_error          | S/OBSERVACION            |
+  | detalle_observacion | Observación general      |
+  | plazo_entrega       | dentro_plazo             |
+  | usa_validador       | si                       |
+Y no selecciono una hoja REM (campo oculto)
+Y envío el formulario
+Entonces el sistema crea la observación con estado "Pendiente"
+Y el campo codigo_hoja se guarda como vacío
+Y el campo respuesta_establecimiento se guarda como vacío
+Y el sistema muestra el mensaje "Observación registrada exitosamente. ID: [ID]"
+```
+
+### Escenario 7: Crear observación con Usa Validador N/A
+
+```gherkin
+Dado que soy un usuario con rol "Registrador" autenticado
+Y tengo el establecimiento "Hospital San José" asignado para el año activo
+Cuando completo el formulario de nueva observación seleccionando "N/A" en "Usa Validador"
+Y envío el formulario
+Entonces el sistema convierte el valor "n/a" a "no" antes de guardar
+Y el sistema crea la observación con usa_validador = "no"
+Y el sistema muestra el mensaje "Observación registrada exitosamente. ID: [ID]"
+```
+
+### Escenario 8: Crear observación tipo ERROR sin hoja REM (debe fallar)
+
+```gherkin
+Dado que soy un usuario con rol "Registrador" autenticado
+Y tengo el establecimiento "Hospital San José" asignado para el año activo
+Cuando intento crear una observación con tipo "ERROR" sin seleccionar una hoja REM
+Entonces el sistema muestra el error "Error: El campo codigo_hoja es requerido"
+Y no se crea ninguna observación
+```
+
 ---
 
 ## Mockup ASCII
 
-### Formulario de Nueva Observación
+### Formulario de Nueva Observación (Tipo ERROR/REVISAR/F/PLAZO)
 
 ```
 +==============================================================================+
 |  NUEVA OBSERVACIÓN                                                           |
 +==============================================================================+
 |                                                                              |
-|  Año: 2026 (automático)                                                      |
+|  Registrado por: Juan Pérez                                                  |
 |                                                                              |
-|  Mes:                  [ Marzo ▼ ]                                           |
-|  Establecimiento:      [ Hospital San José ▼ ]                               |
+|  Mes:                  [ Marzo ▼ ] *                                         |
+|  Establecimiento:      [ Hospital San José ▼ ] *                             |
 |                        (Solo establecimientos asignados)                     |
 |                                                                              |
-|  Serie REM:            [________________]                                    |
-|  Hoja REM:             [________________]                                    |
-|  Tipo:                 [ ERROR ▼ ]                                           |
+|  Código Est.:          [ 12345 ] (automático, solo lectura)                  |
+|  Tipo:                 [ ERROR ▼ ] *                                         |
 |                                                                              |
-|  Detalle de la observación: *                                                |
-|  +------------------------------------------------------------------------+  |
-|  | Falta información en la columna de egresos                             |  |
-|  |                                                                        |  |
-|  |                                                                        |  |
-|  +------------------------------------------------------------------------+  |
+|  Serie REM:            [ SERIE A ▼ ]                                         |
+|  Hoja REM:             [ A01 ▼ ] * (requerido para ERROR/REVISAR/F/PLAZO)    |
 |                                                                              |
-|  Plazo de entrega:     [ A tiempo ▼ ]                                        |
-|  ¿Usa validador?:      [ Si ▼ ]                                              |
+|  Detalle observación:  [_________________________________] (opcional)        |
 |                                                                              |
-|  --- Campos opcionales ---                                                   |
-|  Respuesta establec.:  [________________]                                    |
-|  Clasificación:        [________________]                                    |
-|  Detalle error:        [________________]                                    |
+|  Plazo de entrega:     [ Dentro de Plazo ▼ ]                                 |
+|  ¿Usa validador?:      [ Sí ▼ ] (opciones: Sí / No / N/A)                    |
 |                                                                              |
-|                          [ Cancelar ]    [ Registrar Observación ]           |
+|  Respuesta establec.:  [_________________________________] (opcional)        |
+|                                                                              |
+|                          [ Cancelar ]    [ Guardar ]                         |
 |                                                                              |
 +==============================================================================+
 ```
+
+### Formulario de Nueva Observación (Tipo S/OBSERVACION)
+
+```
++==============================================================================+
+|  NUEVA OBSERVACIÓN                                                           |
++==============================================================================+
+|                                                                              |
+|  Registrado por: Juan Pérez                                                  |
+|                                                                              |
+|  Mes:                  [ Marzo ▼ ] *                                         |
+|  Establecimiento:      [ Hospital San José ▼ ] *                             |
+|                        (Solo establecimientos asignados)                     |
+|                                                                              |
+|  Código Est.:          [ 12345 ] (automático, solo lectura)                  |
+|  Tipo:                 [ S/OBSERVACION ▼ ] *                                 |
+|                                                                              |
+|  Serie REM:            [ SERIE A ▼ ]                                         |
+|  [Hoja REM: OCULTO - No requerido para S/OBSERVACION]                        |
+|                                                                              |
+|  Detalle observación:  [_________________________________] (opcional)        |
+|                                                                              |
+|  Plazo de entrega:     [ Dentro de Plazo ▼ ]                                 |
+|  ¿Usa validador?:      [ N/A ▼ ] (opciones: Sí / No / N/A)                   |
+|                                                                              |
+|  [Respuesta establec.: OCULTO - No requerido para S/OBSERVACION]             |
+|                                                                              |
+|                          [ Cancelar ]    [ Guardar ]                         |
+|                                                                              |
++==============================================================================+
+```
+
+### Comportamiento Condicional del Formulario
+
+| Campo | ERROR/REVISAR/F/PLAZO | S/OBSERVACION |
+|-------|----------------------|---------------|
+| Mes | ✅ Requerido | ✅ Requerido |
+| Establecimiento | ✅ Requerido | ✅ Requerido |
+| Tipo | ✅ Requerido | ✅ Requerido |
+| Serie | ✅ Requerido | ✅ Requerido |
+| Hoja REM | ✅ Requerido | ❌ Oculto (no requerido) |
+| Detalle Observación |  Opcional | ⚪ Opcional |
+| Plazo de Entrega |  Opcional | ⚪ Opcional |
+| Usa Validador | ⚪ Opcional (Sí/No/N/A) |  Opcional (Sí/No/N/A) |
+| Respuesta Establecimiento | ⚪ Opcional | ❌ Oculto |
 
 ---
 
@@ -203,13 +291,15 @@ Y el sistema muestra el mensaje "Observación registrada exitosamente. ID: [ID]"
 
 | # | Asunción | Estado Final |
 |---|----------|-------------|
-| 1 | Campos obligatorios | ✅ Aceptada (8 campos mínimos) |
+| 1 | Campos obligatorios | ✅ Modificada → **6 campos mínimos** (`mes`, `establecimiento_id`, `codigo_serie`, `tipo_error`, `plazo_entrega`, `usa_validador`). `codigo_hoja` es condicional (requerido excepto para S/OBSERVACION). `detalle_observacion` es opcional. |
 | 2 | Estado inicial | ✅ Aceptada → "Pendiente" |
 | 3 | Quién puede registrar | ✅ Modificada → **Solo Registradores**, solo para establecimientos asignados |
 | 4 | Duplicados | ✅ Modificada → **Permitidos sin validación**. El registrador discrimina. |
 | 5 | Historial automático | ✅ Aceptada → "Registro inicial" |
 | 6 | Un registro a la vez | ✅ Aceptada |
-| 7 | Campos opcionales | ✅ Aceptada → respuesta, clasificación, detalle_error |
+| 7 | Campos opcionales | ✅ Modificada → `detalle_observacion`, `respuesta_establecimiento`, `clasificacion`, `detalle_error`. `respuesta_establecimiento` se oculta para S/OBSERVACION. |
 | 8 | Año desde sesión | ✅ Aceptada |
 | 9 | Sin confirmación | ✅ Aceptada |
 | 10 | Sin notificaciones | ✅ Aceptada |
+| 11 | Tipo S/OBSERVACION | ✅ Nueva → **No requiere hoja REM ni respuesta del establecimiento**. Solo requiere Serie. |
+| 12 | Opción N/A en Usa Validador | ✅ Nueva → Disponible para todos los tipos. Se guarda como `'no'` en BD. |

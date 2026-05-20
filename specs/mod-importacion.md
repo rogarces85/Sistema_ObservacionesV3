@@ -25,6 +25,10 @@ La importación vincula los registros de la hoja de cálculo con los establecimi
 **Reglas de Negocio**:
 - **Formato**: Solo se aceptan archivos `.xlsx` y `.xls`.
 - **Campos Obligatorios por Fila**: `mes`, `tipo` (tipo de error) y `establecimiento` (código o nombre). Si falta alguno, la fila se marca como error.
+- **Campo Condicional `rem` (Hoja)**:
+  - **Requerido** para tipos: ERROR, REVISAR, F/PLAZO
+  - **Opcional** (puede estar vacío) para tipo: S/OBSERVACION
+- **Campo `usa_validador`**: Acepta valores "Sí", "No", "N/A". El valor "N/A" se convierte a "NO" antes de guardar.
 - **Vinculación**: El sistema busca el establecimiento primero por `codigo_establecimiento`. Si no lo encuentra, intenta buscar por `nombre_establecimiento`. Si falla en ambos, la fila se marca como error.
 - **Resultado**: Muestra el total de filas procesadas, cuántas son válidas y cuántas tienen error (con detalle del error por fila).
 
@@ -117,6 +121,42 @@ Cuando subo el archivo
 Entonces esa fila se marca como error con el mensaje "Campo 'tipo' es requerido"
 ```
 
+### Escenario: Importar observación tipo S/OBSERVACION sin hoja REM
+```gherkin
+Dado que soy un Registrador autenticado
+Y tengo una fila en Excel con los siguientes datos:
+  | mes    | tipo          | establecimiento | serie   | rem | detalle           |
+  | Marzo  | S/OBSERVACION | 12345           | SERIE A |     | Observación general |
+Cuando subo el archivo para vista previa
+Entonces la fila se marca como válida
+Y el campo rem se guarda como vacío
+Y cuando confirmo la importación
+Entonces el sistema importa la observación con codigo_hoja vacío
+```
+
+### Escenario: Importar observación tipo ERROR sin hoja REM (debe fallar)
+```gherkin
+Dado que soy un Registrador autenticado
+Y tengo una fila en Excel con los siguientes datos:
+  | mes   | tipo  | establecimiento | serie   | rem | detalle          |
+  | Marzo | ERROR | 12345           | SERIE A |     | Falta información |
+Cuando subo el archivo para vista previa
+Entonces la fila se marca como error con el mensaje "Campo 'rem' (Hoja) es requerido para tipo 'ERROR'"
+Y cuando confirmo la importación
+Entonces el sistema omite esa fila
+```
+
+### Escenario: Importar observación con Usa Validador N/A
+```gherkin
+Dado que soy un Registrador autenticado
+Y tengo una fila en Excel con usa_validador = "N/A"
+Cuando subo el archivo para vista previa
+Entonces la fila se marca como válida
+Y el valor "N/A" se convierte a "NO"
+Y cuando confirmo la importación
+Entonces el sistema importa la observación con usa_validador = "no"
+```
+
 ---
 
 ## Mockup ASCII
@@ -176,8 +216,9 @@ Entonces esa fila se marca como error con el mensaje "Campo 'tipo' es requerido"
 | 1 | Formatos soportados | ✅ Modificada → **Solo Excel (.xlsx, .xls)** |
 | 2 | Flujo de dos pasos | ✅ Aceptada → Vista previa y luego confirmación |
 | 3 | Vinculación de Establecimientos | ✅ Aceptada → Prioridad por Código, fallback por Nombre |
-| 4 | Campos obligatorios | ✅ Modificada → **`mes`, `tipo` y `establecimiento` obligatorios** |
+| 4 | Campos obligatorios | ✅ Modificada → **`mes`, `tipo` y `establecimiento` obligatorios**. `rem` (hoja) es condicional: requerido para ERROR/REVISAR/F/PLAZO, opcional para S/OBSERVACION. |
 | 5 | Duplicados | ✅ Aceptada → No se validan duplicados |
 | 6 | Permisos | ✅ Modificada → **Solo Registradores** |
 | 7 | Manejo de Errores | ✅ Aceptada → Omite filas erróneas, importa las válidas |
 | 8 | Año de importación | ✅ Aceptada → Seleccionable o año de sesión |
+| 9 | Opción N/A en Usa Validador | ✅ Nueva → Acepta "N/A" en Excel, se convierte a "NO" antes de guardar |

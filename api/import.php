@@ -126,6 +126,17 @@ try {
             $row['plazo_entrega'] = $row['plazo_entrega'] ?? '';
             $row['usa_validador'] = !empty($row['usa_validador']) ? $row['usa_validador'] : 'NO';
 
+            // Validar campos requeridos según el tipo
+            // Para S/OBSERVACION, codigo_hoja (rem) no es requerido
+            if ($row['tipo'] !== 'S/OBSERVACION' && empty($row['rem'])) {
+                $rowErrors[] = "Campo 'rem' (Hoja) es requerido para tipo '{$row['tipo']}'";
+            }
+
+            // Convertir 'N/A' o 'n/a' a 'NO' para usa_validador
+            if (strtoupper(trim($row['usa_validador'])) === 'N/A') {
+                $row['usa_validador'] = 'NO';
+            }
+
             foreach ($required as $field) {
                 if (empty($row[$field])) {
                     $rowErrors[] = "Campo '{$field}' es requerido";
