@@ -73,7 +73,7 @@ $registradores = $asignacionModel->getEstadisticasAsignaciones($anioSeleccionado
                         <?php endforeach; ?>
                     <?php else: ?>
                         <div class="p-8 text-center">
-                            <div class="text-4xl mb-3">👤</div>
+                            <div class="text-4xl mb-3"></div>
                             <p class="text-slate-600 font-medium">No hay registradores activos</p>
                         </div>
                     <?php endif; ?>
@@ -110,6 +110,24 @@ $registradores = $asignacionModel->getEstadisticasAsignaciones($anioSeleccionado
             </div>
         </div>
     </div>
+
+    <!-- Sección: Reasignaciones Temporales Activas -->
+    <div class="card overflow-hidden">
+        <div class="p-4 border-b border-slate-100 flex justify-between items-center">
+            <div>
+                <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                    <span>⏱️</span> Reasignaciones Temporales Activas
+                </h3>
+                <p class="text-sm text-slate-500 mt-1">Establecimientos reasignados temporalmente para <?php echo $anioSeleccionado; ?></p>
+            </div>
+        </div>
+        <div id="reasignacionesTemporalesContainer" class="p-6">
+            <div class="text-center py-8">
+                <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500"></div>
+                <p class="mt-2 text-slate-500">Cargando reasignaciones...</p>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- Modal para asignar establecimiento -->
@@ -124,6 +142,27 @@ $registradores = $asignacionModel->getEstadisticasAsignaciones($anioSeleccionado
         </div>
         <div class="modal-body">
             <div class="space-y-4">
+                <!-- Tipo de Asignación -->
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">Tipo de Asignación</label>
+                    <div class="space-y-2">
+                        <label class="flex items-center gap-3 p-3 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors">
+                            <input type="radio" name="tipoAsignacion" value="anual" checked onchange="toggleTipoAsignacion()">
+                            <div class="flex-1">
+                                <span class="text-sm font-semibold text-slate-800">📅 Anual</span>
+                                <p class="text-xs text-slate-500">Asignación base para todo el año</p>
+                            </div>
+                        </label>
+                        <label class="flex items-center gap-3 p-3 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors">
+                            <input type="radio" name="tipoAsignacion" value="temporal" onchange="toggleTipoAsignacion()">
+                            <div class="flex-1">
+                                <span class="text-sm font-semibold text-slate-800">⏱️ Temporal</span>
+                                <p class="text-xs text-slate-500">Reasignación por meses específicos (override)</p>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
                 <div>
                     <label class="block text-sm font-semibold text-slate-700 mb-2">Buscar Establecimiento</label>
                     <input type="text" id="buscarEstablecimiento" 
@@ -138,7 +177,7 @@ $registradores = $asignacionModel->getEstadisticasAsignaciones($anioSeleccionado
                     </div>
                 </div>
 
-                <div>
+                <div id="periodoContainer">
                     <label class="block text-sm font-semibold text-slate-700 mb-2">Periodo de validez</label>
                     <div class="space-y-2">
                         <label class="flex items-center gap-2 cursor-pointer">
@@ -181,6 +220,11 @@ $registradores = $asignacionModel->getEstadisticasAsignaciones($anioSeleccionado
     let establecimientosDisponibles = [];
     let establecimientosAsignados = [];
 
+    // Cargar reasignaciones temporales al iniciar
+    document.addEventListener('DOMContentLoaded', function() {
+        cargarReasignacionesTemporales();
+    });
+
     async function cambiarAnio(anio) {
         anioActual = parseInt(anio);
         
@@ -198,6 +242,9 @@ $registradores = $asignacionModel->getEstadisticasAsignaciones($anioSeleccionado
         if (registradorSeleccionadoId) {
             await cargarEstablecimientosAsignados(registradorSeleccionadoId);
         }
+
+        // Recargar reasignaciones temporales
+        await cargarReasignacionesTemporales();
     }
 
     function renderizarListaRegistradores(registradores) {
@@ -295,6 +342,15 @@ $registradores = $asignacionModel->getEstadisticasAsignaciones($anioSeleccionado
                 </div>`;
             
             porComuna[comuna].forEach(est => {
+                // Determinar badge de tipo
+                let tipoBadge = '';
+                if (est.tipo_asignacion === 'temporal' || (est.meses && est.meses !== 'ALL')) {
+                    const mesesTexto = est.meses && est.meses !== 'ALL' ? formatearMeses(est.meses) : 'Todo el año';
+                    tipoBadge = `<span class="text-xs font-semibold text-amber-700 bg-amber-100 px-2 py-0.5 rounded" title="Reasignación temporal: ${mesesTexto}">⏱️ Temporal</span>`;
+                } else {
+                    tipoBadge = `<span class="text-xs font-semibold text-sky-700 bg-sky-100 px-2 py-0.5 rounded" title="Asignación anual">📅 Anual</span>`;
+                }
+
                 html += `
                     <div class="border border-slate-200 border-t-0 bg-white">
                         <div class="flex items-center justify-between p-3 border-b border-slate-100">
@@ -303,8 +359,8 @@ $registradores = $asignacionModel->getEstadisticasAsignaciones($anioSeleccionado
                                 <p class="text-xs text-slate-500">${escapeHtml(est.nombre_corto)}</p>
                             </div>
                             <div class="flex items-center gap-2">
-                                ${est.meses && est.meses !== 'ALL' ? `<span class="text-xs font-semibold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded" title="${formatearMeses(est.meses)}">⏱️ Temporal</span>` : ''}
-                                <button onclick="removerAsignacion(${est.id})"
+                                ${tipoBadge}
+                                <button onclick="removerAsignacion(${est.id}, '${est.tipo_asignacion || 'anual'}')"
                                         class="btn-secondary px-3 py-1 text-xs bg-rose-50 hover:bg-rose-100 text-rose-600"
                                         title="Remover">
                                     ✕
@@ -378,6 +434,24 @@ $registradores = $asignacionModel->getEstadisticasAsignaciones($anioSeleccionado
     function toggleMesesAsignacion() {
         const esMeses = document.querySelector('input[name="periodoAsignacion"]:checked').value === 'MESES';
         document.getElementById('mesesEspecificosContainer').classList.toggle('hidden', !esMeses);
+    }
+
+    function toggleTipoAsignacion() {
+        const esTemporal = document.querySelector('input[name="tipoAsignacion"]:checked').value === 'temporal';
+        const periodoContainer = document.getElementById('periodoContainer');
+        
+        if (esTemporal) {
+            // Forzar selección de meses específicos para temporal
+            document.querySelector('input[name="periodoAsignacion"][value="MESES"]').checked = true;
+            document.getElementById('mesesEspecificosContainer').classList.remove('hidden');
+            // Deshabilitar opción "Todo el año" para temporal
+            document.querySelector('input[name="periodoAsignacion"][value="ALL"]').disabled = true;
+            document.querySelector('input[name="periodoAsignacion"][value="ALL"]').parentElement.style.opacity = '0.5';
+        } else {
+            // Habilitar opción "Todo el año" para anual
+            document.querySelector('input[name="periodoAsignacion"][value="ALL"]').disabled = false;
+            document.querySelector('input[name="periodoAsignacion"][value="ALL"]').parentElement.style.opacity = '1';
+        }
     }
 
     function obtenerMesesSeleccionados() {
@@ -455,14 +529,21 @@ $registradores = $asignacionModel->getEstadisticasAsignaciones($anioSeleccionado
                 let badge = '';
                 if (asignadoAMi) {
                     bgClass = 'bg-sky-50';
+                    const tipoMi = est.tipo_asignacion_mi || 'anual';
                     const mesesTexto = est.meses_mios && est.meses_mios !== 'ALL' ? ` (${formatearMeses(est.meses_mios)})` : '';
-                    badge = `<span class="text-xs font-semibold text-sky-600 bg-sky-100 px-1.5 py-0.5 rounded">Asignado a ti${mesesTexto}</span>`;
+                    const tipoIcon = tipoMi === 'temporal' ? '⏱️' : '📅';
+                    const tipoLabel = tipoMi === 'temporal' ? 'Temporal' : 'Anual';
+                    badge = `<span class="text-xs font-semibold text-sky-700 bg-sky-100 px-1.5 py-0.5 rounded">${tipoIcon} ${tipoLabel}${mesesTexto}</span>`;
                 } else if (asignadoAOtroTotal) {
                     bgClass = 'bg-rose-50';
-                    badge = `<span class="text-xs font-semibold text-rose-600 bg-rose-100 px-1.5 py-0.5 rounded">Asignado a: ${escapeHtml(est.asignado_a_nombre || 'Otro')}</span>`;
+                    const tipoOtro = est.tipo_asignacion_otro || 'anual';
+                    const tipoIcon = tipoOtro === 'temporal' ? '⏱️' : '📅';
+                    badge = `<span class="text-xs font-semibold text-rose-600 bg-rose-100 px-1.5 py-0.5 rounded">${tipoIcon} Asignado a: ${escapeHtml(est.asignado_a_nombre || 'Otro')}</span>`;
                 } else if (asignadoAOtroParcial) {
                     bgClass = 'bg-amber-50';
-                    badge = `<span class="text-xs font-semibold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded" title="Puedes asignar meses que no se solapen">Parcial: ${escapeHtml(est.asignado_a_nombre || 'Otro')} (${formatearMeses(est.meses_otro)})</span>`;
+                    const tipoOtro = est.tipo_asignacion_otro || 'anual';
+                    const tipoIcon = tipoOtro === 'temporal' ? '⏱️' : '📅';
+                    badge = `<span class="text-xs font-semibold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded" title="Puedes asignar meses que no se solapen">${tipoIcon} Parcial: ${escapeHtml(est.asignado_a_nombre || 'Otro')} (${formatearMeses(est.meses_otro)})</span>`;
                 }
 
                 const allowHover = !asignadoAMi && !asignadoAOtroTotal;
@@ -499,11 +580,22 @@ $registradores = $asignacionModel->getEstadisticasAsignaciones($anioSeleccionado
             return;
         }
 
+        // Obtener tipo de asignación
+        const tipoAsignacion = document.querySelector('input[name="tipoAsignacion"]:checked').value;
+        
+        // Obtener meses
         const meses = obtenerMesesSeleccionados();
+        
+        // Validar que temporal tenga meses específicos
+        if (tipoAsignacion === 'temporal' && (meses === 'ALL' || !meses)) {
+            showMessage('Para asignación temporal debe seleccionar meses específicos', 'warning');
+            return;
+        }
+
         if (meses !== 'ALL') {
             const mesesArray = meses.split(',');
             if (mesesArray.length === 0) {
-                showMessage('Seleccione al menos un mes o elija "Todo el año"', 'warning');
+                showMessage('Seleccione al menos un mes', 'warning');
                 return;
             }
         }
@@ -518,14 +610,15 @@ $registradores = $asignacionModel->getEstadisticasAsignaciones($anioSeleccionado
                     usuario_id: registradorSeleccionadoId,
                     establecimiento_ids: establecimientoIds,
                     anio: anioActual,
-                    meses: meses
+                    meses: meses,
+                    tipo_asignacion: tipoAsignacion
                 })
             });
 
             hideLoading();
 
             if (response.success) {
-                showMessage('Establecimientos asignados exitosamente', 'success');
+                showMessage(response.message, 'success');
                 cerrarModalAsignar();
                 await cargarEstablecimientosAsignados(registradorSeleccionadoId);
                 await cambiarAnio(anioActual);
@@ -536,8 +629,9 @@ $registradores = $asignacionModel->getEstadisticasAsignaciones($anioSeleccionado
         }
     }
 
-    async function removerAsignacion(establecimientoId) {
-        if (!confirm('¿Remover este establecimiento del registrador?')) return;
+    async function removerAsignacion(establecimientoId, tipo = 'anual') {
+        const tipoLabel = tipo === 'temporal' ? 'reasignación temporal' : 'asignación';
+        if (!confirm(`¿Remover esta ${tipoLabel} del registrador?`)) return;
 
         try {
             showLoading();
@@ -548,14 +642,15 @@ $registradores = $asignacionModel->getEstadisticasAsignaciones($anioSeleccionado
                     action: 'remover',
                     usuario_id: registradorSeleccionadoId,
                     establecimiento_id: establecimientoId,
-                    anio: anioActual
+                    anio: anioActual,
+                    tipo_asignacion: tipo
                 })
             });
 
             hideLoading();
 
             if (response.success) {
-                showMessage('Asignación removida', 'success');
+                showMessage(response.message, 'success');
                 await cargarEstablecimientosAsignados(registradorSeleccionadoId);
                 await cambiarAnio(anioActual);
             }
@@ -596,11 +691,124 @@ $registradores = $asignacionModel->getEstadisticasAsignaciones($anioSeleccionado
         }
     }
 
+    async function cargarReasignacionesTemporales() {
+        const container = document.getElementById('reasignacionesTemporalesContainer');
+        
+        try {
+            const response = await fetchAPI(`assignments.php?action=temporales&anio=${anioActual}`);
+            
+            if (response.success && response.data.length > 0) {
+                let html = `
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr class="bg-amber-50 text-amber-800">
+                                    <th class="text-left py-3 px-4 font-semibold">Establecimiento</th>
+                                    <th class="text-left py-3 px-4 font-semibold">Comuna</th>
+                                    <th class="text-left py-3 px-4 font-semibold">Titular Anual</th>
+                                    <th class="text-left py-3 px-4 font-semibold">Reasignado a</th>
+                                    <th class="text-left py-3 px-4 font-semibold">Meses</th>
+                                    <th class="text-left py-3 px-4 font-semibold">Fecha</th>
+                                    <th class="text-right py-3 px-4 font-semibold">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+                
+                response.data.forEach(temp => {
+                    const titularNombre = temp.titular_anual ? escapeHtml(temp.titular_anual.nombre_completo) : '<span class="text-slate-400 italic">Sin titular anual</span>';
+                    const mesesTexto = formatearMeses(temp.meses);
+                    const fecha = new Date(temp.fecha_asignacion).toLocaleDateString('es-CL');
+                    
+                    html += `
+                        <tr class="border-b border-slate-100 hover:bg-slate-50">
+                            <td class="py-3 px-4">
+                                <div class="font-semibold text-slate-800">${escapeHtml(temp.establecimiento_nombre)}</div>
+                                <div class="text-xs text-slate-500">${escapeHtml(temp.codigo_establecimiento)}</div>
+                            </td>
+                            <td class="py-3 px-4 text-slate-600">${escapeHtml(temp.comuna_nombre)}</td>
+                            <td class="py-3 px-4">${titularNombre}</td>
+                            <td class="py-3 px-4">
+                                <span class="font-semibold text-amber-700">${escapeHtml(temp.registrador_nombre)}</span>
+                            </td>
+                            <td class="py-3 px-4">
+                                <span class="inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full bg-amber-100 text-amber-800">
+                                    ️ ${mesesTexto}
+                                </span>
+                            </td>
+                            <td class="py-3 px-4 text-slate-500">${fecha}</td>
+                            <td class="py-3 px-4 text-right">
+                                <button onclick="removerReasignacionTemporal(${temp.id}, ${temp.establecimiento_id}, ${temp.registrador_id})"
+                                        class="btn-secondary px-3 py-1 text-xs bg-rose-50 hover:bg-rose-100 text-rose-600"
+                                        title="Remover reasignación temporal">
+                                    ✕ Remover
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+                
+                html += `
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+                
+                container.innerHTML = html;
+            } else {
+                container.innerHTML = `
+                    <div class="text-center py-8">
+                        <div class="text-4xl mb-3">✅</div>
+                        <p class="text-slate-600 font-medium">No hay reasignaciones temporales activas</p>
+                        <p class="text-sm text-slate-400 mt-1">Todas las asignaciones son anuales</p>
+                    </div>
+                `;
+            }
+        } catch (error) {
+            container.innerHTML = '<div class="text-center py-8 text-rose-600">Error al cargar reasignaciones</div>';
+        }
+    }
+
+    async function removerReasignacionTemporal(asignacionId, establecimientoId, registradorId) {
+        if (!confirm('¿Remover esta reasignación temporal? El establecimiento volverá al titular anual.')) return;
+
+        try {
+            showLoading();
+
+            const response = await fetchAPI('assignments.php', {
+                method: 'POST',
+                body: JSON.stringify({
+                    action: 'remover',
+                    usuario_id: registradorId,
+                    establecimiento_id: establecimientoId,
+                    anio: anioActual,
+                    tipo_asignacion: 'temporal'
+                })
+            });
+
+            hideLoading();
+
+            if (response.success) {
+                showMessage(response.message, 'success');
+                await cargarReasignacionesTemporales();
+                if (registradorSeleccionadoId) {
+                    await cargarEstablecimientosAsignados(registradorSeleccionadoId);
+                }
+            }
+        } catch (error) {
+            hideLoading();
+            showMessage(error.message, 'error');
+        }
+    }
+
     function cerrarModalAsignar() {
         closeModal('modalAsignar');
         document.getElementById('buscarEstablecimiento').value = '';
         document.querySelector('input[name="periodoAsignacion"][value="ALL"]').checked = true;
         document.querySelectorAll('.mes-checkbox').forEach(cb => cb.checked = false);
+        // Resetear tipo de asignación a anual
+        document.querySelector('input[name="tipoAsignacion"][value="anual"]').checked = true;
+        toggleTipoAsignacion();
         toggleMesesAsignacion();
     }
 

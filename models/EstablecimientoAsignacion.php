@@ -33,7 +33,7 @@ class EstablecimientoAsignacion
      */
     public function getEstablecimientosByRegistrador($registradorId, $anio)
     {
-        $sql = "SELECT ae.id as asignacion_id, ae.anio, ae.meses, e.*, c.nombre as comuna_nombre 
+        $sql = "SELECT ae.id as asignacion_id, ae.anio, ae.meses, ae.tipo_asignacion, e.*, c.nombre as comuna_nombre 
                 FROM asignaciones_establecimientos ae
                 INNER JOIN establecimientos e ON ae.establecimiento_id = e.id
                 INNER JOIN comunas c ON e.comuna_id = c.id
@@ -65,6 +65,8 @@ class EstablecimientoAsignacion
      *   asignado_a_nombre      (NULL o nombre del dueño con asignación 'ALL')
      *   meses_mios             (NULL o meses asignados a mí)
      *   meses_otro             (NULL o meses asignados a otro)
+     *   tipo_asignacion_mi     (NULL o tipo de mi asignación)
+     *   tipo_asignacion_otro   (NULL o tipo de asignación de otro)
      */
     public function getEstablecimientosConAsignacion($registradorId, $anio)
     {
@@ -72,6 +74,7 @@ class EstablecimientoAsignacion
         $sql = "SELECT e.*, c.nombre as comuna_nombre,
                        CASE WHEN ae_mi.usuario_id IS NOT NULL THEN 1 ELSE 0 END as asignado_a_mi,
                        ae_mi.meses as meses_mios,
+                       ae_mi.tipo_asignacion as tipo_asignacion_mi,
                        (SELECT a1.usuario_id
                         FROM asignaciones_establecimientos a1
                         WHERE a1.establecimiento_id = e.id AND a1.anio = ? AND a1.usuario_id != ?
@@ -84,14 +87,18 @@ class EstablecimientoAsignacion
                        (SELECT a3.meses
                         FROM asignaciones_establecimientos a3
                         WHERE a3.establecimiento_id = e.id AND a3.anio = ? AND a3.usuario_id != ?
-                        LIMIT 1) as meses_otro
+                        LIMIT 1) as meses_otro,
+                       (SELECT a4.tipo_asignacion
+                        FROM asignaciones_establecimientos a4
+                        WHERE a4.establecimiento_id = e.id AND a4.anio = ? AND a4.usuario_id != ?
+                        LIMIT 1) as tipo_asignacion_otro
                 FROM establecimientos e
                 INNER JOIN comunas c ON e.comuna_id = c.id
                 LEFT JOIN asignaciones_establecimientos ae_mi
                        ON e.id = ae_mi.establecimiento_id AND ae_mi.anio = ? AND ae_mi.usuario_id = ?
                 WHERE e.activo = 1
                 ORDER BY c.nombre ASC, e.nombre ASC";
-        return $this->db->query($sql, [$anio, $registradorId, $anio, $registradorId, $anio, $registradorId, $anio, $registradorId]);
+        return $this->db->query($sql, [$anio, $registradorId, $anio, $registradorId, $anio, $registradorId, $anio, $registradorId, $anio, $registradorId]);
     }
 
     /**
@@ -109,17 +116,78 @@ class EstablecimientoAsignacion
     }
 
     /**
+     * Verificar si un conjunto de meses contiene un mes específico
+     */
+    private function tieneMes($meses, $mesNum)
+    {
+        if ($meses === 'ALL' || empty($meses)) {
+            return true;
+        }
+        $mesesArray = array_map('intval', explode(',', $meses));
+        return in_array($mesNum, $mesesArray);
+    }
+
+    /**
+     * Convertir nombre de mes a número (1-12)
+     */
+    private function getMesNumero($mesNombre)
+    {
+        $mesesMap = [
+            'Enero' => 1, 'Febrero' => 2, 'Marzo' => 3, 'Abril' => 4, 
+            'Mayo' => 5, 'Junio' => 6, 'Julio' => 7, 'Agosto' => 8, 
+            'Septiembre' => 9, 'Octubre' => 10, 'Noviembre' => 11, 'Diciembre' => 12
+        ];
+        return $mesesMap[$mesNombre] ?? null;
+    }
+
+    /**
+     * Verificar si existe una reasignación temporal de OTRO usuario para un mes específico
+     */
+    private function existeReasignacionTemporalOtro($usuarioId, $establecimientoId, $anio, $mesNum)
+    {
+        $sql = "SELECT meses FROM asignaciones_establecimientos 
+                WHERE establecimiento_id = ? AND anio = ? AND usuario_id != ?
+                AND tipo_asignacion = 'temporal'";
+        $rows = $this->db->query($sql, [$establecimientoId, $anio, $usuarioId]);
+        
+        foreach ($rows as $row) {
+            if ($this->tieneMes($row['meses'], $mesNum)) {
+                return true; // Otro usuario tiene reasignación temporal para este mes
+            }
+        }
+        return false;
+    }
+
+    /**
      * Obtener los meses asignados a otro usuario para un establecimiento/año
      * que se solapan con los meses solicitados.
+     * 
+     * @param string $tipo 'anual' o 'temporal'
      */
-    private function getConflictoAsignacion($usuarioId, $establecimientoId, $anio, $meses)
+    private function getConflictoAsignacion($usuarioId, $establecimientoId, $anio, $meses, $tipo = 'anual')
     {
-        $sql = "SELECT usuario_id, meses FROM asignaciones_establecimientos 
+        // Si es asignación TEMPORAL, permitir solapamiento con anual
+        // Solo verificar conflicto con otra asignación TEMPORAL del mismo periodo
+        if ($tipo === 'temporal') {
+            $sql = "SELECT usuario_id, meses FROM asignaciones_establecimientos 
+                    WHERE establecimiento_id = ? AND anio = ? AND usuario_id != ?
+                    AND tipo_asignacion = 'temporal'";
+            $rows = $this->db->query($sql, [$establecimientoId, $anio, $usuarioId]);
+            foreach ($rows as $row) {
+                if ($this->mesesSolapan($row['meses'], $meses)) {
+                    return $row; // Conflicto con otra temporal
+                }
+            }
+            return false; // No hay conflicto, permitir temporal sobre anual
+        }
+
+        // Si es asignación ANUAL, verificar conflictos con cualquier tipo
+        $sql = "SELECT usuario_id, meses, tipo_asignacion FROM asignaciones_establecimientos 
                 WHERE establecimiento_id = ? AND anio = ? AND usuario_id != ?";
         $rows = $this->db->query($sql, [$establecimientoId, $anio, $usuarioId]);
         foreach ($rows as $row) {
             if ($this->mesesSolapan($row['meses'], $meses)) {
-                return $row;
+                return $row; // Conflicto encontrado
             }
         }
         return false;
@@ -127,13 +195,14 @@ class EstablecimientoAsignacion
 
     /**
      * Obtener la asignación propia existente para un establecimiento/año
+     * @param string $tipo 'anual' o 'temporal'
      */
-    private function getAsignacionPropia($usuarioId, $establecimientoId, $anio)
+    private function getAsignacionPropia($usuarioId, $establecimientoId, $anio, $tipo = 'anual')
     {
         $sql = "SELECT id, meses FROM asignaciones_establecimientos 
-                WHERE usuario_id = ? AND establecimiento_id = ? AND anio = ?
+                WHERE usuario_id = ? AND establecimiento_id = ? AND anio = ? AND tipo_asignacion = ?
                 LIMIT 1";
-        return $this->db->queryOne($sql, [$usuarioId, $establecimientoId, $anio]);
+        return $this->db->queryOne($sql, [$usuarioId, $establecimientoId, $anio, $tipo]);
     }
 
     /**
@@ -175,22 +244,28 @@ class EstablecimientoAsignacion
     /**
      * Asignar un establecimiento a un registrador para un año
      * @param string $meses 'ALL' o lista de meses '1,2,3'
+     * @param string $tipo 'anual' o 'temporal'
      */
-    public function asignar($usuarioId, $establecimientoId, $anio, $meses = 'ALL')
+    public function asignar($usuarioId, $establecimientoId, $anio, $meses = 'ALL', $tipo = 'anual')
     {
         // Normalizar meses
         if (empty($meses)) {
             $meses = 'ALL';
         }
 
+        // Normalizar tipo
+        if ($tipo !== 'temporal') {
+            $tipo = 'anual';
+        }
+
         // Verificar conflictos con otros usuarios
-        $conflicto = $this->getConflictoAsignacion($usuarioId, $establecimientoId, $anio, $meses);
+        $conflicto = $this->getConflictoAsignacion($usuarioId, $establecimientoId, $anio, $meses, $tipo);
         if ($conflicto) {
             return false; // Hay solapamiento con otro usuario
         }
 
-        // Verificar si ya existe una asignación propia
-        $propia = $this->getAsignacionPropia($usuarioId, $establecimientoId, $anio);
+        // Verificar si ya existe una asignación propia del MISMO tipo
+        $propia = $this->getAsignacionPropia($usuarioId, $establecimientoId, $anio, $tipo);
         if ($propia) {
             // Fusionar meses
             $nuevosMeses = $this->fusionarMeses($propia['meses'], $meses);
@@ -205,10 +280,10 @@ class EstablecimientoAsignacion
         }
 
         // Insertar nueva asignación
-        $sql = "INSERT INTO asignaciones_establecimientos (usuario_id, establecimiento_id, anio, meses) 
-                VALUES (?, ?, ?, ?)";
+        $sql = "INSERT INTO asignaciones_establecimientos (usuario_id, establecimiento_id, anio, meses, tipo_asignacion) 
+                VALUES (?, ?, ?, ?, ?)";
         try {
-            $this->db->execute($sql, [$usuarioId, $establecimientoId, $anio, $meses]);
+            $this->db->execute($sql, [$usuarioId, $establecimientoId, $anio, $meses, $tipo]);
             return true;
         } catch (Exception $e) {
             error_log("Error al asignar establecimiento: " . $e->getMessage());
@@ -219,20 +294,26 @@ class EstablecimientoAsignacion
     /**
      * Remover asignación completa o parcial (por meses)
      * @param string $meses 'ALL' para eliminar todo, o lista de meses '1,2,3' para eliminar solo esos meses
+     * @param string $tipo 'anual' o 'temporal'
      */
-    public function remover($usuarioId, $establecimientoId, $anio, $meses = 'ALL')
+    public function remover($usuarioId, $establecimientoId, $anio, $meses = 'ALL', $tipo = 'anual')
     {
-        $propia = $this->getAsignacionPropia($usuarioId, $establecimientoId, $anio);
+        // Normalizar tipo
+        if ($tipo !== 'temporal') {
+            $tipo = 'anual';
+        }
+
+        $propia = $this->getAsignacionPropia($usuarioId, $establecimientoId, $anio, $tipo);
         if (!$propia) {
-            return false; // No existe asignación
+            return false; // No existe asignación de ese tipo
         }
 
         if ($meses === 'ALL' || empty($meses) || $propia['meses'] === 'ALL' || empty($propia['meses'])) {
             // Eliminar todo
             $sql = "DELETE FROM asignaciones_establecimientos 
-                    WHERE usuario_id = ? AND establecimiento_id = ? AND anio = ?";
+                    WHERE usuario_id = ? AND establecimiento_id = ? AND anio = ? AND tipo_asignacion = ?";
             try {
-                return $this->db->execute($sql, [$usuarioId, $establecimientoId, $anio]);
+                return $this->db->execute($sql, [$usuarioId, $establecimientoId, $anio, $tipo]);
             } catch (Exception $e) {
                 error_log("Error al remover asignación: " . $e->getMessage());
                 return false;
@@ -243,9 +324,9 @@ class EstablecimientoAsignacion
         $nuevosMeses = $this->restarMeses($propia['meses'], $meses);
         if (empty($nuevosMeses)) {
             $sql = "DELETE FROM asignaciones_establecimientos 
-                    WHERE usuario_id = ? AND establecimiento_id = ? AND anio = ?";
+                    WHERE usuario_id = ? AND establecimiento_id = ? AND anio = ? AND tipo_asignacion = ?";
             try {
-                return $this->db->execute($sql, [$usuarioId, $establecimientoId, $anio]);
+                return $this->db->execute($sql, [$usuarioId, $establecimientoId, $anio, $tipo]);
             } catch (Exception $e) {
                 error_log("Error al remover asignación: " . $e->getMessage());
                 return false;
@@ -278,11 +359,17 @@ class EstablecimientoAsignacion
     /**
      * Asignar múltiples establecimientos a un registrador para un año
      * No elimina asignaciones existentes; fusiona meses si ya existe.
+     * @param string $tipo 'anual' o 'temporal'
      */
-    public function asignarMultiple($usuarioId, $establecimientoIds, $anio, $meses = 'ALL')
+    public function asignarMultiple($usuarioId, $establecimientoIds, $anio, $meses = 'ALL', $tipo = 'anual')
     {
         if (empty($meses)) {
             $meses = 'ALL';
+        }
+
+        // Normalizar tipo
+        if ($tipo !== 'temporal') {
+            $tipo = 'anual';
         }
 
         try {
@@ -290,21 +377,21 @@ class EstablecimientoAsignacion
 
             foreach ($establecimientoIds as $establecimientoId) {
                 // Verificar conflictos con otros usuarios
-                $conflicto = $this->getConflictoAsignacion($usuarioId, $establecimientoId, $anio, $meses);
+                $conflicto = $this->getConflictoAsignacion($usuarioId, $establecimientoId, $anio, $meses, $tipo);
                 if ($conflicto) {
                     continue; // Saltar este establecimiento
                 }
 
-                // Verificar si ya existe asignación propia
-                $propia = $this->getAsignacionPropia($usuarioId, $establecimientoId, $anio);
+                // Verificar si ya existe asignación propia del mismo tipo
+                $propia = $this->getAsignacionPropia($usuarioId, $establecimientoId, $anio, $tipo);
                 if ($propia) {
                     $nuevosMeses = $this->fusionarMeses($propia['meses'], $meses);
                     $sql = "UPDATE asignaciones_establecimientos SET meses = ? WHERE id = ?";
                     $this->db->execute($sql, [$nuevosMeses, $propia['id']]);
                 } else {
-                    $sql = "INSERT INTO asignaciones_establecimientos (usuario_id, establecimiento_id, anio, meses) 
-                            VALUES (?, ?, ?, ?)";
-                    $this->db->execute($sql, [$usuarioId, $establecimientoId, $anio, $meses]);
+                    $sql = "INSERT INTO asignaciones_establecimientos (usuario_id, establecimiento_id, anio, meses, tipo_asignacion) 
+                            VALUES (?, ?, ?, ?, ?)";
+                    $this->db->execute($sql, [$usuarioId, $establecimientoId, $anio, $meses, $tipo]);
                 }
             }
 
@@ -330,34 +417,50 @@ class EstablecimientoAsignacion
 
     /**
      * Verificar si un usuario tiene asignado un establecimiento para un mes específico
+     * Lógica de prioridad: Las asignaciones temporales tienen prioridad sobre las anuales
      */
     public function tieneAsignacionParaMes($usuarioId, $establecimientoId, $anio, $mesNombre)
     {
-        // Mapeo de nombre de mes a número (1-12)
-        $mesesMap = [
-            'Enero' => 1, 'Febrero' => 2, 'Marzo' => 3, 'Abril' => 4, 
-            'Mayo' => 5, 'Junio' => 6, 'Julio' => 7, 'Agosto' => 8, 
-            'Septiembre' => 9, 'Octubre' => 10, 'Noviembre' => 11, 'Diciembre' => 12
-        ];
-        
-        $mesNum = $mesesMap[$mesNombre] ?? null;
-        if (!$mesNum) return false; // Mes inválido
+        $mesNum = $this->getMesNumero($mesNombre);
+        if (!$mesNum) return false;
 
-        // Obtener la asignación
+        // 1. Buscar asignación TEMPORAL del usuario primero (prioridad)
         $sql = "SELECT meses FROM asignaciones_establecimientos 
-                WHERE usuario_id = ? AND establecimiento_id = ? AND anio = ?";
+                WHERE usuario_id = ? AND establecimiento_id = ? AND anio = ? 
+                AND tipo_asignacion = 'temporal'";
         $row = $this->db->queryOne($sql, [$usuarioId, $establecimientoId, $anio]);
+        
+        if ($row && $this->tieneMes($row['meses'], $mesNum)) {
+            return true; // Tiene asignación temporal para este mes
+        }
 
+        // 2. Buscar asignación ANUAL del usuario
+        $sql = "SELECT meses FROM asignaciones_establecimientos 
+                WHERE usuario_id = ? AND establecimiento_id = ? AND anio = ? 
+                AND tipo_asignacion = 'anual'";
+        $row = $this->db->queryOne($sql, [$usuarioId, $establecimientoId, $anio]);
+        
         if (!$row) return false;
 
-        // Si es 'ALL', tiene acceso a todos los meses
+        // Si es ALL, tiene acceso a todos los meses (salvo que haya reasignación temporal de otro)
         if ($row['meses'] === 'ALL' || empty($row['meses'])) {
+            // Verificar que no haya una reasignación temporal de OTRO usuario para este mes
+            if ($this->existeReasignacionTemporalOtro($usuarioId, $establecimientoId, $anio, $mesNum)) {
+                return false; // Otro usuario tiene reasignación temporal para este mes
+            }
             return true;
         }
 
-        // Verificar si el mes está en la lista
-        $mesesAsignados = array_map('intval', explode(',', $row['meses']));
-        return in_array($mesNum, $mesesAsignados);
+        // Verificar si el mes está en la lista de la asignación anual
+        if ($this->tieneMes($row['meses'], $mesNum)) {
+            // Verificar que no haya una reasignación temporal de OTRO usuario
+            if ($this->existeReasignacionTemporalOtro($usuarioId, $establecimientoId, $anio, $mesNum)) {
+                return false; // Otro usuario tiene reasignación temporal para este mes
+            }
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -405,12 +508,13 @@ class EstablecimientoAsignacion
 
     /**
      * Copiar asignaciones de un año a otro
+     * Incluye tanto asignaciones anuales como temporales
      */
     public function copiarAsignaciones($anioOrigen, $anioDestino)
     {
         try {
-            $sql = "INSERT INTO asignaciones_establecimientos (usuario_id, establecimiento_id, anio, meses)
-                    SELECT usuario_id, establecimiento_id, ?, meses 
+            $sql = "INSERT INTO asignaciones_establecimientos (usuario_id, establecimiento_id, anio, meses, tipo_asignacion)
+                    SELECT usuario_id, establecimiento_id, ?, meses, tipo_asignacion
                     FROM asignaciones_establecimientos 
                     WHERE anio = ?";
             $this->db->execute($sql, [$anioDestino, $anioOrigen]);
@@ -444,5 +548,38 @@ class EstablecimientoAsignacion
                 WHERE establecimiento_id IN ($placeholders) AND activo = 1
                 ORDER BY establecimiento_id, FIELD(cargo, 'Encargado Estadísticas', 'Digitador Estadísticas') ASC";
         return $this->db->query($sql, $establecimientoIds);
+    }
+
+    /**
+     * Obtener todas las asignaciones temporales activas para un año
+     * Incluye información del registrador temporal y el establecimiento
+     */
+    public function getAsignacionesTemporalesActivas($anio)
+    {
+        $sql = "SELECT ae.id, ae.meses, ae.fecha_asignacion,
+                       u.id as registrador_id, u.nombre_completo as registrador_nombre,
+                       e.id as establecimiento_id, e.nombre as establecimiento_nombre, 
+                       e.codigo_establecimiento, e.nombre_corto,
+                       c.nombre as comuna_nombre
+                FROM asignaciones_establecimientos ae
+                INNER JOIN usuarios u ON ae.usuario_id = u.id
+                INNER JOIN establecimientos e ON ae.establecimiento_id = e.id
+                INNER JOIN comunas c ON e.comuna_id = c.id
+                WHERE ae.anio = ? AND ae.tipo_asignacion = 'temporal'
+                ORDER BY ae.fecha_asignacion DESC";
+        return $this->db->query($sql, [$anio]);
+    }
+
+    /**
+     * Obtener el titular anual de un establecimiento (para mostrar en reasignaciones temporales)
+     */
+    public function getTitularAnual($establecimientoId, $anio)
+    {
+        $sql = "SELECT u.id, u.nombre_completo, ae.meses
+                FROM asignaciones_establecimientos ae
+                INNER JOIN usuarios u ON ae.usuario_id = u.id
+                WHERE ae.establecimiento_id = ? AND ae.anio = ? AND ae.tipo_asignacion = 'anual'
+                LIMIT 1";
+        return $this->db->queryOne($sql, [$establecimientoId, $anio]);
     }
 }
