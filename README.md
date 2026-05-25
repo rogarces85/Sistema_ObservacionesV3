@@ -2,7 +2,7 @@
 
 Sistema de gestión de observaciones del Resumen Estadístico Mensual (REM) para el Servicio de Salud Osorno.
 
-**Versión:** 2.2.0 — **Última actualización:** Mayo 2026
+**Versión:** 2.3.0 — **Última actualización:** Mayo 2026
 
 ## Tecnologías
 
@@ -26,10 +26,11 @@ ObservacionesREM_V2/
 │   ├── locations.php              # Comunas y establecimientos
 │   ├── import.php                 # Importación masiva Excel
 │   ├── import_template.php        # Generación plantilla Excel
-│   ├── supervision.php            # Aprobación/rechazo observaciones
+│   ├── supervision.php            # Aprobación/rechazo observaciones (selector estado)
 │   ├── users.php                  # Gestión de usuarios
 │   ├── assignments.php            # Asignación de establecimientos
-│   └── deleted.php                # Papelera de observaciones eliminadas
+│   ├── deleted.php                # Papelera de observaciones eliminadas
+│   └── versioning.php             # Snapshots y rollback del sistema
 ├── assets/
 │   ├── css/
 │   │   └── styles.css             # Estilos globales (BEM) + tabs de reportes
@@ -57,8 +58,11 @@ ObservacionesREM_V2/
 │   ├── Observation.php            # Modelo observaciones (32 métodos)
 │   ├── Location.php               # Modelo ubicaciones
 │   ├── Exporter.php               # Exportación Excel/PDF/CSV + PDF detallado
-│   ├── EstablecimientoAsignacion.php  # Asignaciones
-│   └── DeletedObservation.php     # Papelera soft-delete
+│   ├── EstablecimientoAsignacion.php  # Asignaciones (anual + temporal)
+│   ├── DeletedObservation.php     # Papelera soft-delete
+│   ├── Version.php                # Snapshots y rollback del sistema
+│   ├── ReportQueue.php            # Cola de reportes asíncronos
+│   └── UserAudit.php              # Auditoría de cambios en usuarios
 ├── views/                         # Vistas del sistema
 │   ├── login.php                  # Página inicio sesión
 │   ├── dashboard.php              # Panel de control con alertas
@@ -83,24 +87,26 @@ ObservacionesREM_V2/
 ### Gestión de Observaciones
 - Crear, editar y eliminar observaciones REM
 - Campos: clasificación, detalle error, establecimiento, fecha, serie, hoja, tipo de error, plazo de entrega, uso de validador
+- Modal de detalle en supervisión muestra: Serie REM, Hoja REM y Respuesta del Establecimiento (además de los campos existentes)
 - Importación masiva desde archivo Excel (.xlsx) con validación previa (preview → confirm)
+- Plantilla Excel descargable con instrucciones y ejemplos
 - Filtros por estado, mes, establecimiento y búsqueda de texto
-- Exportación a Excel, PDF y CSV
+- Exportación a Excel, PDF y CSV (20+ dimensiones de reportes)
 - Historial de cambios de estado por observación
 - Papelera de eliminadas con restauración (soft-delete)
 
 ### Roles de Usuario
-- **Supervisor**: Panel exclusivo, aprobar/rechazar observaciones, gestionar usuarios, asignar establecimientos, gestionar referentes, ver todas las observaciones, ver eliminadas
-- **Registrador**: Crear y editar observaciones propias, ver solo sus observaciones, restringido a establecimientos asignados
+- **Supervisor**: Panel exclusivo, aprobar observaciones con selector de estado ("Sin Observación" / "Error"), cancelar, eliminar a papelera, gestionar usuarios, asignar establecimientos (anual y temporal), gestionar referentes, ver todas las observaciones, ver eliminadas, restaurar observaciones
+- **Registrador**: Crear y editar observaciones propias, importar masivamente, ver solo sus observaciones, restringido a establecimientos asignados (validación mensual)
 
 ### Estados de Observación
 | Estado | Descripción |
 |--------|-------------|
 | pendiente | Aguardando revisión del supervisor |
-| aprobado | Revisado y aprobado |
+| aprobado | Revisado y aprobado (Sin Observación) |
 | rechazado | No aprobado (requiere justificación) |
 | justificado | Rechazo justificado por registrador |
-| error | Requiere corrección |
+| error | Error confirmado por supervisor (aparece en reportes de errores) |
 
 ### Dashboard
 - Estadísticas en tiempo real (contadores por estado)
@@ -127,10 +133,11 @@ Módulo de reportes completamente renovado con interfaz de tabs:
 - Botón "PDF Detallado" para reporte jerárquico con agrupamiento visual y código de colores por estado
 
 ### Asignación de Establecimientos
-- Asignación anual de establecimientos a registradores
-- Copiar asignaciones del año anterior
-- Validación de unicidad (un establecimiento = un registrador por año)
-- Remoción individual de asignaciones
+- Asignación anual de establecimientos a registradores (titular)
+- Reasignación temporal por meses (vacaciones, licencias) con prioridad sobre la anual
+- Copiar asignaciones del año anterior (incluye anuales y temporales)
+- Validación de unicidad (sin solapamiento entre temporales del mismo periodo)
+- Remoción individual y masiva de asignaciones
 
 ### Gestión de Establecimientos y Referentes
 - Vista exclusiva para supervisores
@@ -331,6 +338,13 @@ git checkout v2.2.0                  # Ir a versión 2.2.0
 - F/PLAZO
 
 ## Historial de Versiones
+
+### v2.3.0 — Mayo 2026
+- **Supervisión:** Selector de estado en aprobación ("Sin Observación" / "Error") que determina `estado_actual` y `tipo_error`
+- **Supervisión:** Observaciones marcadas como "Error" por el supervisor aparecen en reportes de errores
+- **Modal Detalle:** Nuevos campos visibles — Serie REM, Hoja REM y Respuesta del Establecimiento
+- **Especificaciones:** Auditoría completa y actualización de specs del sistema (10 módulos)
+- **OpenSpec:** Configuración de contexto del proyecto y reglas de artefactos
 
 ### v2.2.0 — Mayo 2026
 - **Limpieza:** Eliminación de 24 archivos de desarrollo/testing/one-time scripts

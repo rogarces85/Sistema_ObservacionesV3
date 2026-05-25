@@ -1,20 +1,42 @@
 schema: spec-driven
 
-# Project context (optional)
-# This is shown to AI when creating artifacts.
-# Add your tech stack, conventions, style guides, domain knowledge, etc.
-# Example:
-#   context: |
-#     Tech stack: TypeScript, React, Node.js
-#     We use conventional commits
-#     Domain: e-commerce platform
+context: |
+  **Sistema:** Observaciones REM V2 — Gestión de observaciones del Resumen Estadístico Mensual (REM)
+  **Propósito:** Documentar incidencias en reportes REM de establecimientos de salud, supervisar su resolución y generar reportes de calidad.
+  **Dominio:** Salud pública chilena — Servicio de Salud Osorno.
 
-# Per-artifact rules (optional)
-# Add custom rules for specific artifacts.
-# Example:
-#   rules:
-#     proposal:
-#       - Keep proposals under 500 words
-#       - Always include a "Non-goals" section
-#     tasks:
-#       - Break tasks into chunks of max 2 hours
+  **Tech Stack:**
+  - Backend: PHP 7.4+, PDO MySQL (sin framework)
+  - Base de Datos: MySQL 5.7+
+  - Frontend: HTML5, CSS3 (Tailwind-like/BEM), JavaScript ES6+ vanilla, Chart.js 4.4
+  - Librerías: PhpSpreadsheet 5.4 (Excel), TCPDF 6.10 (PDF)
+  - Servidor: Apache (XAMPP)
+
+  **Arquitectura:**
+  - Patrón MVC sin framework: index.php como router, views/ para vistas, models/ para lógica de datos, api/ para endpoints REST JSON
+  - Modelo Database: Singleton PDO con métodos query(), queryOne(), execute()
+  - Autenticación: Sesiones PHP + password_hash bcrypt + protección CSRF
+  - Sin sistema de rutas — cada endpoint es un archivo PHP independiente en api/
+
+  **Roles:**
+  - Supervisor: Acceso total (gestiona usuarios, asignaciones, supervisa, ve todo)
+  - Registrador: Limitado a sus propias observaciones y establecimientos asignados
+
+  **Convenciones:**
+  - Commits: conventional commits (feat:, fix:, refactor:, docs:, chore:, style:, perf:)
+  - CSS: Metodología BEM (.sidebar__nav-link--active)
+  - PHP: Clases con nombres en PascalCase, métodos en camelCase
+  - JS: Vanilla ES6+, sin frameworks, fetch API para llamadas al backend
+  - Constantes del sistema en config/constants.php (estados, roles, series REM)
+
+  **Especificaciones:** Documentadas en specs/ (10 módulos + índice maestro)
+
+rules:
+  proposal:
+    - Keep proposals under 500 words
+    - Always include a "Non-goals" or scope boundary
+    - Identify which existing specs are modified (if any)
+  tasks:
+    - Break tasks into chunks of max 2 hours each
+    - Group tasks by layer (frontend, backend, verification)
+    - Use checkbox format: `- [ ] X.Y Task description`
