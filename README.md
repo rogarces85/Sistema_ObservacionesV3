@@ -316,7 +316,7 @@ git checkout v2.2.0                  # Ir a versión 2.2.0
 
 | Serie | Hojas |
 |-------|-------|
-| SERIE A | A01, A02, A03, A04, A05, A06, A07, A09, A11, A11a, A19a, A19b, A21, A23, A24, A25, A26, A27, A29, A30ar, A31, A32, A33, Hoja Control, Renombre archivo |
+| SERIE A | A01, A02, A03, A04, A05, A06, A07, A08, A09, A11, A11a, A19a, A19b, A21, A23, A24, A25, A26, A27, A28, A29, A30, A30ar, A31, A32, A33, A34, Renombre archivo |
 | SERIE BS | B, B17, Hoja Control, Renombre archivo |
 | SERIE BM | BM18, BM18a, Hoja Control, Renombre archivo |
 | SERIE P | P01, P02, P03, P04, P05, P06, P07, P09, P11, P12, P13, Hoja Control, Renombre archivo |

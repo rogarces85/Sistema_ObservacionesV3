@@ -51,6 +51,7 @@ $HOJAS_POR_SERIE = [
         'A05',
         'A06',
         'A07',
+        'A08',
         'A09',
         'A11',
         'A11a',
@@ -62,12 +63,14 @@ $HOJAS_POR_SERIE = [
         'A25',
         'A26',
         'A27',
+        'A28',
         'A29',
+        'A30',
         'A30ar',
         'A31',
         'A32',
         'A33',
-        'Hoja Control',
+        'A34',
         'Renombre archivo'
     ],
     'SERIE BS' => [
