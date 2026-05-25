@@ -39,4 +39,4 @@ rules:
   tasks:
     - Break tasks into chunks of max 2 hours each
     - Group tasks by layer (frontend, backend, verification)
-    - Use checkbox format: `- [ ] X.Y Task description`
+    - "Use checkbox format: - [ ] X.Y Task description"

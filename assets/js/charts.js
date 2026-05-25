@@ -281,4 +281,103 @@ function initializeCharts(statsData) {
 window.createEstadoChart = createEstadoChart;
 window.createTendenciaChart = createTendenciaChart;
 window.createTipoErrorChart = createTipoErrorChart;
+
+/**
+ * Crear gráfico de barras horizontal genérico
+ * @param {string} canvasId - ID del elemento canvas
+ * @param {string[]} labels - Etiquetas (ej. nombres de establecimientos)
+ * @param {number[]} values - Valores (ej. conteos)
+ * @param {string} color - Color base para las barras
+ */
+function createBarHorizontal(canvasId, labels, values, color) {
+    const ctx = document.getElementById(canvasId);
+    if (!ctx) return null;
+    if (!labels.length) return null;
+
+    return new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Cantidad',
+                data: values,
+                backgroundColor: color + 'cc',
+                borderColor: color,
+                borderWidth: 1,
+                borderRadius: 4
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => ` ${ctx.parsed.x}`
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    ticks: { stepSize: 1 }
+                }
+            }
+        }
+    });
+}
+
+/**
+ * Crear gráfico de barras vertical genérico
+ * @param {string} canvasId - ID del elemento canvas
+ * @param {string[]} labels - Etiquetas
+ * @param {number[]} values - Valores
+ * @param {string} color - Color base para las barras
+ */
+function createBarVertical(canvasId, labels, values, color) {
+    const ctx = document.getElementById(canvasId);
+    if (!ctx) return null;
+    if (!labels.length) return null;
+
+    return new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Cantidad',
+                data: values,
+                backgroundColor: color + 'cc',
+                borderColor: color,
+                borderWidth: 1,
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => ` ${ctx.parsed.y}`
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: { stepSize: 1 }
+                },
+                x: {
+                    ticks: { maxRotation: 45, minRotation: 45 }
+                }
+            }
+        }
+    });
+}
+
+window.createBarHorizontal = createBarHorizontal;
+window.createBarVertical = createBarVertical;
 window.initializeCharts = initializeCharts;
