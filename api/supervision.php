@@ -55,8 +55,18 @@ try {
                 $extraData['detalle_error'] = $data['detalle_error'];
             }
 
+            // Determinar estado resultante según selección del supervisor
+            $estadoResultante = $data['estado_resultante'] ?? 'sin_observacion';
+            if ($estadoResultante === 'error') {
+                $nuevoEstado = ESTADO_ERROR;
+                $extraData['tipo_error'] = 'ERROR';
+            } else {
+                $nuevoEstado = ESTADO_APROBADO;
+                $extraData['tipo_error'] = 'S/OBSERVACION';
+            }
+
             if (count($ids) === 1) {
-                $result = $obsModel->updateStatus($ids[0], ESTADO_APROBADO, $_SESSION['user_id'], $comment, $extraData);
+                $result = $obsModel->updateStatus($ids[0], $nuevoEstado, $_SESSION['user_id'], $comment, $extraData);
 
                 if ($result) {
                     echo json_encode([

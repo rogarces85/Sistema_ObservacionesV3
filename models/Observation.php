@@ -294,6 +294,10 @@ class Observation
             $fields[] = "detalle_error = ?";
             $params[] = $extraData['detalle_error'];
         }
+        if (!empty($extraData['tipo_error'])) {
+            $fields[] = "tipo_error = ?";
+            $params[] = $extraData['tipo_error'];
+        }
 
         $params[] = $id;
         $sql = "UPDATE observaciones SET " . implode(', ', $fields) . " WHERE id = ?";

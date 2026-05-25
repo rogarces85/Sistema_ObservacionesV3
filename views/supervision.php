@@ -202,7 +202,20 @@ $comunas = $locationModel->getComunas();
             <!-- Campos de clasificación y detalle - solo visibles al aprobar -->
             <div id="approveExtraFields" class="hidden mt-4 space-y-4">
                 <div>
-                    <label class="form-label">Clasificación de Respuesta</label>
+                    <label class="form-label">Clasificación de Respuesta *</label>
+                    <div class="mt-2 space-x-6">
+                        <label class="inline-flex items-center cursor-pointer">
+                            <input type="radio" name="estadoResultante" value="sin_observacion" class="form-radio">
+                            <span class="ml-2">Sin Observación</span>
+                        </label>
+                        <label class="inline-flex items-center cursor-pointer">
+                            <input type="radio" name="estadoResultante" value="error" class="form-radio">
+                            <span class="ml-2">Error</span>
+                        </label>
+                    </div>
+                </div>
+                <div>
+                    <label class="form-label">Clasificación</label>
                     <select id="approveClasificacion" class="form-select">
                         <option value="">Sin clasificar</option>
                         <option value="corregido">Corregido</option>
@@ -508,6 +521,8 @@ $comunas = $locationModel->getComunas();
             extraFields.classList.remove('hidden');
             document.getElementById('approveClasificacion').value = '';
             document.getElementById('approveDetalleError').value = '';
+            const radios = document.querySelectorAll('input[name="estadoResultante"]');
+            radios.forEach(r => r.checked = false);
         } else {
             extraFields.classList.add('hidden');
         }
@@ -518,12 +533,23 @@ $comunas = $locationModel->getComunas();
             const comment = document.getElementById('confirmComment').value;
             const clasificacion = document.getElementById('approveClasificacion').value;
             const detalleError = document.getElementById('approveDetalleError').value;
-            await executeAction(action, ids, comment, clasificacion, detalleError);
+            let estadoResultante = '';
+
+            if (action === 'approve' && ids.length === 1) {
+                const selected = document.querySelector('input[name="estadoResultante"]:checked');
+                if (!selected) {
+                    alert('Debe seleccionar "Sin Observación" o "Error" como Clasificación de Respuesta');
+                    return;
+                }
+                estadoResultante = selected.value;
+            }
+
+            await executeAction(action, ids, comment, clasificacion, detalleError, estadoResultante);
             closeConfirmModal();
         };
     }
 
-    async function executeAction(action, ids, comment, clasificacion = '', detalleError = '') {
+    async function executeAction(action, ids, comment, clasificacion = '', detalleError = '', estadoResultante = '') {
         try {
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
 
@@ -536,6 +562,9 @@ $comunas = $locationModel->getComunas();
             if (action === 'approve') {
                 payload.clasificacion = clasificacion || undefined;
                 payload.detalle_error = detalleError || undefined;
+                if (estadoResultante) {
+                    payload.estado_resultante = estadoResultante;
+                }
             }
 
             const response = await fetch(`api/supervision.php?action=${action}`, {
