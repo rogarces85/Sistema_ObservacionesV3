@@ -1,139 +1,158 @@
-# Especificación: Sistema de Versionado de Cambios
+# Especificación: MOD-VER — Sistema de Versionado (Snapshots)
 
 ## Historia de Usuario
 
-> **Como** administrador técnico del sistema Observaciones,
-> **necesito** manejar las versiones de cada cambio ejecutado en el código del sistema,
-> **para** poder recuperar versiones anteriores si un cambio introduce errores o fallos.
+> **Como** Supervisor del sistema,
+> **necesito** crear snapshots del código del sistema antes de realizar cambios,
+> **para** poder recuperar una versión estable si un cambio introduce errores o fallos.
 
 ---
 
 ## Descripción General
 
-El sistema de versionado permite registrar, consultar y restaurar versiones del código fuente del sistema Observaciones. Su propósito principal es la **recuperación ante fallos**: si un cambio introduce un error, el administrador técnico puede revertir el sistema a una versión estable anterior.
+El sistema de versionado permite crear **snapshots manuales** del código fuente del sistema (directorios `api/`, `models/`, `views/`, `config/`, `includes/`, `assets/` y `index.php`). Su propósito principal es la **recuperación ante fallos**: si un cambio introduce un error en producción, se puede restaurar una versión estable anterior mediante rollback.
 
-El versionado cubre **todos los elementos del sistema**: código fuente, archivos de configuración, scripts de base de datos y archivos de infraestructura/despliegue. El historial se conserva de forma **indefinida**, sin políticas de eliminación automática.
+Cada snapshot se almacena como copia física de archivos en `uploads/versiones/` y se registra en la base de datos con metadatos (tag, descripción, autor, manifiesto de archivos).
 
----
-
-## Flujos de Trabajo
-
-### FT-1: Registrar una Nueva Versión
-
-```
-┌─────────────┐     ┌──────────────────┐     ┌──────────────────┐     ┌─────────────────┐
-│ 1. El admin │     │ 2. El sistema    │     │ 3. El admin      │     │ 4. El sistema    │
-│ modifica    │────>│ detecta los      │────>│ ingresa una      │────>│ crea un snapshot │
-│ archivos    │     │ archivos         │     │ descripción      │     │ con metadatos    │
-│ del sistema │     │ modificados      │     │ obligatoria      │     │ y lo almacena    │
-└─────────────┘     └──────────────────┘     └──────────────────┘     └─────────────────┘
-                                                                         │
-                                                                         ▼
-                                                              ┌──────────────────┐
-                                                              │ 5. El sistema    │
-                                                              │ confirma éxito   │
-                                                              │ y muestra el     │
-                                                              │ ID de versión    │
-                                                              └──────────────────┘
-```
-
-**Pasos detallados:**
-
-1. El administrador técnico modifica archivos del sistema (código, configuración, BD, infraestructura).
-2. El sistema escanea y detecta los archivos modificados respecto a la última versión registrada.
-3. El sistema solicita una descripción obligatoria del cambio.
-4. El sistema crea un snapshot (copia) de todos los archivos versionados junto con metadatos: autor, fecha/hora, descripción, lista de archivos modificados.
-5. El sistema confirma el registro exitoso y muestra el identificador de la nueva versión.
+El versionado **no detecta cambios automáticamente**. El Supervisor decide cuándo crear un snapshot (típicamente antes de desplegar modificaciones).
 
 ---
 
-### FT-2: Consultar Historial de Versiones
+## Funciones del Módulo
+
+### VER-001: Crear Snapshot (Versión)
+
+**Descripción**: Crea una copia de seguridad de los archivos del sistema.
+
+**Endpoint**: `POST /api/versioning.php?action=create`
+
+**Reglas de Negocio**:
+- **Alcance**: Copia los directorios `api/`, `models/`, `views/`, `config/`, `includes/`, `assets/` y el archivo `index.php`.
+- **Exclusiones**: No copia `vendor/`, `uploads/`, `.git/`, specs, ni archivos de configuración con credenciales.
+- **Tag automático**: Formato `v001`, `v002`, `v003`... auto-incremental.
+- **Metadatos**: Se registra tag, descripción (obligatoria), autor, fecha y manifiesto de archivos (JSON con hash MD5 de cada archivo).
+- **Ubicación**: Archivos en `uploads/versiones/vXXX/` replicando la estructura del proyecto.
 
 ```
-┌─────────────┐     ┌──────────────────┐     ┌──────────────────┐
-│ 1. El admin │     │ 2. El sistema    │     │ 3. El sistema    │
-│ accede al   │────>│ consulta el      │────>│ muestra la lista │
-│ historial   │     │ historial        │     │ ordenada por     │
-│ de versiones│     │ completo         │     │ fecha descendente│
-└─────────────┘     └──────────────────┘     └──────────────────┘
+Flujo:
+1. Supervisor solicita crear versión con descripción
+2. Sistema determina el próximo tag (v001, v002, ...)
+3. Sistema crea directorio uploads/versiones/vXXX/
+4. Sistema copia recursivamente los directorios versionados
+5. Sistema genera manifiesto JSON con ruta relativa + hash MD5
+6. Sistema inserta registro en tabla versiones_sistema
+7. Sistema retorna ID y tag de la nueva versión
 ```
-
-**Cada entrada del historial muestra:**
-
-| Campo | Descripción |
-|-------|-------------|
-| ID de versión | Identificador único de la versión |
-| Autor | Usuario que registró el cambio |
-| Fecha y hora | Momento exacto del registro |
-| Descripción | Texto explicativo del cambio |
-| Archivos modificados | Lista de archivos incluidos en la versión |
 
 ---
 
-### FT-3: Comparar Dos Versiones
+### VER-002: Listar Versiones
 
-```
-┌─────────────┐     ┌──────────────────┐     ┌──────────────────┐
-│ 1. El admin │     │ 2. El sistema    │     │ 3. El sistema    │
-│ selecciona  │     │ carga ambas      │────>│ muestra las      │
-│ dos versiones│────>│ versiones        │     │ diferencias      │
-│ a comparar  │     │                  │     │ (agregados,      │
-└─────────────┘     └──────────────────┘     │ eliminados,      │
-                                             │ modificados)     │
-                                             └──────────────────┘
-```
+**Descripción**: Muestra el historial completo de snapshots creados.
 
-**Las diferencias se clasifican en:**
+**Endpoint**: `GET /api/versioning.php?action=list`
 
-- **Agregados**: archivos que existen en la versión más nueva pero no en la anterior.
-- **Eliminados**: archivos que existían en la versión anterior pero no en la más nueva.
-- **Modificados**: archivos que existen en ambas versiones pero con contenido diferente.
+**Reglas de Negocio**:
+- **Orden**: ID descendente (más recientes primero).
+- **Datos visibles**: ID, Tag, Descripción, Autor (nombre), Fecha de creación.
+- **Autor**: Se muestra el nombre completo del Supervisor que creó la versión.
+- **Acceso**: Solo Supervisores.
 
 ---
 
-### FT-4: Revertir a una Versión Anterior (Rollback)
+### VER-003: Ver Detalle de Versión
+
+**Descripción**: Muestra los metadatos completos y el manifiesto de archivos de una versión.
+
+**Endpoint**: `GET /api/versioning.php?action=detail&id={id}`
+
+**Reglas de Negocio**:
+- **Contenido**: Tag, descripción, autor, fecha, y lista de archivos con sus hashes MD5.
+- **Manifiesto**: El campo `archivos_json` se decodifica para mostrar la lista de archivos incluidos en el snapshot.
+
+---
+
+### VER-004: Rollback (Restaurar Versión)
+
+**Descripción**: Restaura los archivos del sistema al estado de un snapshot anterior.
+
+**Endpoint**: `POST /api/versioning.php?action=rollback&id={id}`
+
+**Reglas de Negocio**:
+- **Precondición**: El directorio del snapshot debe existir en el sistema de archivos.
+- **Proceso**: Copia cada archivo del snapshot a su ubicación original en el proyecto.
+- **Seguridad**: El rollback **no elimina la versión actual** — crea automáticamente una nueva versión con descripción `"Rollback desde versión {TAG}"`.
+- **Encadenable**: Se puede hacer rollback de un rollback (cada rollback crea su propio snapshot).
+- **Directorios**: Si un directorio destino no existe, se crea automáticamente.
 
 ```
-┌─────────────┐     ┌──────────────────┐     ┌──────────────────┐     ┌─────────────────┐
-│ 1. El admin │     │ 2. El sistema    │     │ 3. El admin      │     │ 4. El sistema    │
-│ selecciona  │     │ muestra los      │────>│ confirma la      │────>│ restaura los     │
-│ la versión  │────>│ archivos que     │     │ acción           │     │ archivos de la   │
-│ destino     │     │ serán revertidos │     │                  │     │ versión seleccion│
-└─────────────┘     └──────────────────┘     └──────────────────┘     └─────────────────┘
-                                                                         │
-                                                                         ▼
-                                                              ┌──────────────────┐
-                                                              │ 5. El sistema    │
-                                                              │ crea una nueva   │
-                                                              │ versión "rollback│
-                                                              │ desde vX" y      │
-                                                              │ confirma éxito   │
-                                                              └──────────────────┘
+Flujo:
+1. Supervisor selecciona versión a restaurar
+2. Sistema verifica que el snapshot existe en disco
+3. Sistema copia cada archivo del snapshot → ubicación original
+4. Sistema crea nueva versión "Rollback desde vXXX"
+5. Sistema retorna ID de la nueva versión de rollback
 ```
 
-**Reglas de rollback:**
+---
 
-- El sistema **no elimina** la versión actual; crea una nueva versión que refleja el estado restaurado.
-- La descripción de la versión de rollback se genera automáticamente: `"Rollback desde versión [ID]"`.
-- El rollback es una operación irreversible en sí misma (se puede hacer otro rollback si es necesario).
-- Se requiere confirmación explícita del administrador antes de ejecutar el rollback.
+## Arquitectura Técnica
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    Sistema de Versionado                        │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  uploads/versiones/                                             │
+│  ├── v001/                                                      │
+│  │   ├── api/         (copia de api/)                           │
+│  │   ├── models/      (copia de models/)                        │
+│  │   ├── views/       (copia de views/)                         │
+│  │   ├── config/      (copia de config/)                        │
+│  │   ├── includes/    (copia de includes/)                      │
+│  │   ├── assets/      (copia de assets/)                        │
+│  │   └── index.php    (copia de index.php)                      │
+│  ├── v002/                                                      │
+│  │   └── ...                                                    │
+│  └── v003/                                                      │
+│      └── ...                                                    │
+│                                                                 │
+│  BD: versiones_sistema                                          │
+│  ┌──────┬─────────┬──────────────────────┬────────────────────┐ │
+│  │  id  │ tag     │ descripcion          │ snapshot_path      │ │
+│  ├──────┼─────────┼──────────────────────┼────────────────────┤ │
+│  │  1   │ v001    │ Versión inicial      │ v001/              │ │
+│  │  2   │ v002    │ Fix consulta REM     │ v002/              │ │
+│  │  3   │ v003    │ Rollback desde v001  │ v003/              │ │
+│  └──────┴─────────┴──────────────────────┴────────────────────┘ │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Archivos versionados vs excluidos
+
+| Incluidos en snapshot | Excluidos del snapshot |
+|-----------------------|------------------------|
+| `api/` (todos los .php) | `vendor/` (dependencias Composer) |
+| `models/` (todos los .php) | `uploads/` (archivos de usuario) |
+| `views/` (todos los .php) | `.git/` (repositorio) |
+| `config/` (todos los .php y .sql) | `specs/` (documentación) |
+| `includes/` (todos los .php) | `openspec/` |
+| `assets/` (css, js, imágenes) | `.agents/` |
+| `index.php` | Archivos sueltos de testing |
 
 ---
 
 ## Gestión de Sesiones y Cuentas
 
-### Permisos
+### Matriz de Permisos
 
-| Rol | Registrar versión | Consultar historial | Comparar versiones | Revertir versión |
-|-----|:----------------:|:-------------------:|:------------------:|:----------------:|
-| Administrador técnico | ✅ | ✅ | ✅ | ✅ |
-| Desarrollador | ✅ | ✅ | ✅ | ❌ |
-| Usuario final | ❌ | ❌ | ❌ | ❌ |
-
-### Autenticación
-
-- Solo usuarios autenticados con rol de **Administrador técnico** o **Desarrollador** pueden acceder al módulo de versionado.
-- Cada acción de versionado registra el usuario autenticado como autor del cambio.
+| Función | Registrador | Supervisor |
+|---------|:-----------:|:----------:|
+| Listar versiones | ❌ | ✅ |
+| Ver detalle | ❌ | ✅ |
+| Crear snapshot | ❌ | ✅ |
+| Ejecutar rollback | ❌ | ✅ |
 
 ---
 
@@ -143,127 +162,76 @@ El versionado cubre **todos los elementos del sistema**: código fuente, archivo
 
 | ID | Contexto | Mensaje |
 |----|----------|---------|
-| MSG-001 | Versión registrada | `Versión [ID] registrada exitosamente con [N] archivo(s).` |
-| MSG-002 | Historial cargado | `Se encontraron [N] versiones registradas.` |
-| MSG-003 | Comparación completada | `Comparación completada: [X] agregados, [Y] eliminados, [Z] modificados.` |
-| MSG-004 | Rollback ejecutado | `Rollback ejecutado exitosamente. Nueva versión [ID] creada desde versión [ID_origen].` |
+| MSG-VER-001 | Snapshot creado | `Versión creada exitosamente` (HTTP 201) |
+| MSG-VER-002 | Rollback ejecutado | `Rollback ejecutado exitosamente` |
 
 ### Mensajes de Error
 
 | ID | Contexto | Mensaje |
 |----|----------|---------|
-| MSG-101 | Sin descripción | `Error: Debe ingresar una descripción del cambio.` |
-| MSG-102 | Sin archivos modificados | `Error: No se detectaron archivos modificados desde la última versión.` |
-| MSG-103 | Rollback sin confirmación | `Error: El rollback requiere confirmación explícita.` |
-| MSG-104 | Versión no encontrada | `Error: La versión solicitada no existe en el historial.` |
-| MSG-105 | Error de almacenamiento | `Error: No se pudo almacenar la versión. Intente nuevamente.` |
-| MSG-106 | Permiso insuficiente | `Error: No tiene permisos para ejecutar esta acción.` |
-
-### Mensajes de Confirmación
-
-| ID | Contexto | Mensaje |
-|----|----------|---------|
-| MSG-201 | Confirmar rollback | `¿Está seguro de revertir a la versión [ID]? Esta acción restaurará [N] archivo(s) a su estado anterior y creará una nueva versión de registro.` |
-| MSG-202 | Confirmar descarte | `¿Desea descartar los cambios no versionados? Esta acción no se puede deshacer.` |
+| MSG-VER-101 | Sin descripción | `La descripción es requerida` (HTTP 400) |
+| MSG-VER-102 | Versión no encontrada | `Versión no encontrada` (HTTP 404) |
+| MSG-VER-103 | Snapshot no existe en disco | `El snapshot de la versión no existe en el sistema de archivos` |
+| MSG-VER-104 | Permiso denegado | `Acceso denegado` (HTTP 403) |
+| MSG-VER-105 | No autenticado | `No autenticado` (HTTP 401) |
 
 ---
 
 ## Escenarios BDD (Gherkin)
 
-### Escenario 1: Registrar una versión exitosamente
-
+### Escenario: Crear snapshot antes de un cambio
 ```gherkin
-Dado que soy un administrador técnico autenticado
-Y he modificado archivos del sistema desde la última versión
-Cuando ingreso una descripción del cambio
-Y solicito registrar una nueva versión
-Entonces el sistema crea un snapshot de todos los archivos modificados
-Y el sistema asigna un ID único a la versión
-Y el sistema registra mi usuario como autor
-Y el sistema registra la fecha y hora actual
-Y el sistema muestra un mensaje de éxito con el ID de la versión
+Dado que soy un Supervisor autenticado
+Y el sistema está funcionando correctamente en su versión actual
+Cuando solicito crear una nueva versión con descripción "Antes de modificar reportes"
+Entonces el sistema crea un snapshot en uploads/versiones/vXXX/
+Y copia todos los archivos de api/, models/, views/, config/, includes/, assets/ e index.php
+Y asigna un tag auto-incremental (ej. v005)
+Y registra la versión en la tabla versiones_sistema
+Y muestra "Versión creada exitosamente"
 ```
 
-### Escenario 2: Intentar registrar versión sin descripción
-
+### Escenario: Rollback a versión anterior
 ```gherkin
-Dado que soy un administrador técnico autenticado
-Y he modificado archivos del sistema desde la última versión
-Cuando intento registrar una nueva versión sin ingresar una descripción
-Entonces el sistema muestra un error indicando que la descripción es obligatoria
-Y no se registra ninguna versión
+Dado que soy un Supervisor autenticado
+Y existe la versión v003 que funcionaba correctamente
+Y la versión actual (v004) tiene un error
+Cuando ejecuto rollback a la versión v003
+Entonces el sistema restaura todos los archivos al estado de v003
+Y crea una nueva versión con descripción "Rollback desde versión v003"
+Y muestra "Rollback ejecutado exitosamente"
 ```
 
-### Escenario 3: Consultar el historial de versiones
-
+### Escenario: Intentar crear versión sin descripción
 ```gherkin
-Dado que soy un administrador técnico autenticado
-Y existen versiones previamente registradas en el sistema
-Cuando accedo al historial de versiones
-Entonces el sistema muestra todas las versiones ordenadas por fecha descendente
-Y cada entrada muestra: ID, autor, fecha, descripción y archivos modificados
+Dado que soy un Supervisor autenticado
+Cuando intento crear una versión sin proporcionar descripción
+Entonces el sistema responde con HTTP 400
+Y muestra "La descripción es requerida"
 ```
 
-### Escenario 4: Comparar dos versiones
-
+### Escenario: Registrador intenta acceder al versionado
 ```gherkin
-Dado que soy un administrador técnico autenticado
-Y existen al menos dos versiones registradas en el sistema
-Cuando selecciono dos versiones para comparar
-Entonces el sistema muestra las diferencias clasificadas en:
-  | Tipo        | Descripción                                      |
-  | Agregados   | Archivos nuevos en la versión más reciente       |
-  | Eliminados  | Archivos que ya no existen en la versión reciente|
-  | Modificados | Archivos con contenido diferente en ambas versiones|
+Dado que soy un Registrador autenticado
+Cuando intento acceder al endpoint de versionado
+Entonces el sistema responde con HTTP 403
+Y muestra "Acceso denegado"
 ```
 
-### Escenario 5: Revertir a una versión anterior con confirmación
-
+### Escenario: Intentar rollback a versión sin snapshot en disco
 ```gherkin
-Dado que soy un administrador técnico autenticado
-Y existen múltiples versiones registradas en el sistema
-Cuando selecciono una versión anterior para revertir
-Y confirmo explícitamente la acción de rollback
-Entonces el sistema restaura todos los archivos al estado de la versión seleccionada
-Y el sistema crea una nueva versión con descripción automática "Rollback desde versión [ID]"
-Y el sistema muestra un mensaje de éxito con el ID de la nueva versión
-```
-
-### Escenario 6: Intentar rollback sin confirmación
-
-```gherkin
-Dado que soy un administrador técnico autenticado
-Y selecciono una versión anterior para revertir
-Cuando intento ejecutar el rollback sin confirmar explícitamente
-Entonces el sistema muestra un error indicando que se requiere confirmación
-Y no se ejecuta el rollback
-```
-
-### Escenario 7: Desarrollador intenta revertir una versión
-
-```gherkin
-Dado que soy un desarrollador autenticado
-Y existen versiones registradas en el sistema
-Cuando intento ejecutar un rollback a una versión anterior
-Entonces el sistema muestra un error de permisos insuficientes
-Y no se ejecuta el rollback
-```
-
-### Escenario 8: Intentar registrar versión sin archivos modificados
-
-```gherkin
-Dado que soy un administrador técnico autenticado
-Y no se han modificado archivos desde la última versión registrada
-Cuando intento registrar una nueva versión con una descripción
-Entonces el sistema muestra un error indicando que no hay archivos modificados
-Y no se registra ninguna versión
+Dado que soy un Supervisor autenticado
+Y la versión v002 fue eliminada manualmente del disco
+Cuando intento ejecutar rollback a v002
+Entonces el sistema lanza una excepción
+Y muestra "El snapshot de la versión no existe en el sistema de archivos"
 ```
 
 ---
 
 ## Mockup ASCII
 
-### Pantalla Principal: Historial de Versiones
+### Historial de Versiones
 
 ```
 +==============================================================================+
@@ -271,109 +239,62 @@ Y no se registra ninguna versión
 +==============================================================================+
 |  [ + Nueva Versión ]                                                         |
 +==============================================================================+
-|  Historial de Versiones                                                      |
-+------+---------------------+----------+-------------------+--------+---------+
-|  ID  |  Fecha/Hora         | Autor    | Descripción       | Arch.  | Acciones|
-+------+---------------------+----------+-------------------+--------+---------+
-| v015 | 2026-05-13 14:32:01 | admin    | Fix consulta REM  | 3      | [Ver]   |
-| v014 | 2026-05-12 09:15:44 | admin    | Actualizar config | 1      | [Ver]   |
-| v013 | 2026-05-10 16:48:22 | dev_user | Nuevo reporte     | 5      | [Ver]   |
-| v012 | 2026-05-09 11:20:00 | admin    | Rollback desde    | 4      | [Ver]   |
-|      |                     |          | v009              |        |         |
-| v011 | 2026-05-08 08:05:33 | admin    | Migración BD      | 2      | [Ver]   |
-| ...  | ...                 | ...      | ...               | ...    | ...     |
-+------+---------------------+----------+-------------------+--------+---------+
-|  Se muestran 5 de 15 versiones                                              |
-|  [ << Anterior ]  [ 1 ] [ 2 ] [ 3 ]  [ Siguiente >> ]                       |
+|  Historial de Snapshots                                                      |
++------+---------------------+-------------------+-----------------------------+
+|  Tag | Fecha               | Autor             | Descripción                 |
++------+---------------------+-------------------+-----------------------------+
+| v005 | 2026-05-25 14:32:01 | Cecilia           | Rollback desde versión v003 |
+| v004 | 2026-05-24 09:15:44 | Cecilia           | Nuevo módulo de reportes    |
+| v003 | 2026-05-20 16:48:22 | Cecilia           | Corrección logout           |
+| v002 | 2026-05-15 11:20:00 | Cecilia           | Versión base estable        |
+| v001 | 2026-05-10 08:05:33 | Cecilia           | Instalación inicial         |
++------+---------------------+-------------------+-----------------------------+
+|                                                                              |
 +==============================================================================+
 ```
 
-### Pantalla: Nueva Versión
+### Crear Nueva Versión
 
 ```
 +==============================================================================+
-|  SISTEMA OBSERVACIONES - REGISTRAR NUEVA VERSIÓN                             |
+|  NUEVA VERSIÓN (SNAPSHOT)                                                    |
 +==============================================================================+
 |                                                                              |
-|  Archivos modificados detectados:                                            |
-|  +------------------------------------------------------------------------+  |
-|  | [✓] api/controllers/ObservacionController.php                          |  |
-|  | [✓] models/ObservacionModel.php                                        |  |
-|  | [✓] config/database.php                                                |  |
-|  +------------------------------------------------------------------------+  |
+|  Se creará una copia de seguridad de los siguientes directorios:             |
+|    • api/                                                                    |
+|    • models/                                                                 |
+|    • views/                                                                  |
+|    • config/                                                                 |
+|    • includes/                                                               |
+|    • assets/                                                                 |
+|    • index.php                                                               |
 |                                                                              |
 |  Descripción del cambio: *                                                   |
 |  +------------------------------------------------------------------------+  |
-|  | Corrección en la consulta de observaciones para REM serie anexo        |  |
-|  |                                                                        |  |
 |  |                                                                        |  |
 |  +------------------------------------------------------------------------+  |
 |                                                                              |
-|                          [ Cancelar ]    [ Registrar Versión ]               |
+|                          [ Cancelar ]    [ Crear Snapshot ]                 |
 |                                                                              |
 +==============================================================================+
 ```
 
-### Pantalla: Comparar Versiones
+### Confirmar Rollback
 
 ```
 +==============================================================================+
-|  SISTEMA OBSERVACIONES - COMPARAR VERSIONES                                  |
+|  CONFIRMAR ROLLBACK                                                          |
 +==============================================================================+
 |                                                                              |
-|  Versión origen: [ v012 ▼ ]    Versión destino: [ v015 ▼ ]    [ Comparar ]  |
+|  ⚠ ADVERTENCIA: Se restaurarán los archivos del sistema al estado           |
+|  de la versión v003.                                                         |
 |                                                                              |
-+------------------------------------------------------------------------------+
-|  Resultado de la comparación:                                                |
+|  Descripción: Corrección logout                                              |
+|  Fecha:        2026-05-20 16:48:22                                           |
+|  Autor:        Cecilia                                                       |
 |                                                                              |
-|  ARCHIVOS AGREGADOS (+):                                                     |
-|    + api/controllers/NuevoController.php                                     |
-|                                                                              |
-|  ARCHIVOS ELIMINADOS (-):                                                    |
-|    - views/reporte_obsoleto.php                                              |
-|                                                                              |
-|  ARCHIVOS MODIFICADOS (~):                                                   |
-|    ~ api/controllers/ObservacionController.php                               |
-|      Línea 45: $query = "SELECT * FROM obs"  →  $query = "SELECT id, ...    |
-|      Línea 78: WHERE estado = 1              →  WHERE estado IN (1,2)       |
-|    ~ models/ObservacionModel.php                                             |
-|      Línea 12: private $tabla = "obs"        →  private $tabla = "observ... |
-|    ~ config/database.php                                                     |      Línea 5:  'timeout' => 30               →  'timeout' => 60               |
-|                                                                              |
-|  Resumen: 1 agregado(s), 1 eliminado(s), 3 modificado(s)                    |
-|                                                                              |
-|                          [ ← Volver al Historial ]                          |
-|                                                                              |
-+==============================================================================+
-```
-
-### Pantalla: Confirmar Rollback
-
-```
-+==============================================================================+
-|  SISTEMA OBSERVACIONES - CONFIRMAR ROLLBACK                                  |
-+==============================================================================+
-|                                                                              |
-|  ⚠ ADVERTENCIA: Está por revertir el sistema a una versión anterior.         |
-|                                                                              |
-|  Versión destino: v012                                                       |
-|  Fecha original:  2026-05-09 11:20:00                                        |
-|  Autor original:  admin                                                      |
-|  Descripción:     Migración BD                                               |
-|                                                                              |
-|  Archivos que serán restaurados (4):                                         |
-|    • api/controllers/ObservacionController.php                               |
-|    • models/ObservacionModel.php                                             |
-|    • config/database.php                                                     |
-|    • includes/functions.php                                                  |
-|                                                                              |
-|  Esta acción NO elimina las versiones actuales. Se creará una nueva          |
-|  versión de registro con descripción automática:                             |
-|    "Rollback desde versión v012"                                             |
-|                                                                              |
-|  +------------------------------------------------------------------------+  |
-|  | [✓] Confirmo que deseo ejecutar el rollback                             |  |
-|  +------------------------------------------------------------------------+  |
+|  Se creará automáticamente una nueva versión:                                |
+|    "Rollback desde versión v003"                                             |
 |                                                                              |
 |                          [ Cancelar ]    [ Ejecutar Rollback ]               |
 |                                                                              |
@@ -386,13 +307,25 @@ Y no se registra ninguna versión
 
 | # | Asunción | Estado Final |
 |---|----------|-------------|
-| 1 | Propósito principal | **Recuperación ante fallos** |
-| 2 | Usuarios del versionado | Desarrolladores/administradores técnicos |
-| 3 | Alcance de cambios | **Todo incluido** (código, config, BD, infraestructura) |
-| 4 | Visualización del historial | Interfaz con autor, fecha, descripción, archivos |
-| 5 | Capacidad de rollback | Revertir a versión anterior con confirmación |
-| 6 | Comparación de versiones | Ver diferencias entre dos versiones |
-| 7 | Aprobación de cambios | Sin flujo de aprobación, directo |
-| 8 | Descripción obligatoria | Cada cambio requiere descripción |
-| 9 | Granularidad | Commit lógico por conjunto de cambios |
-| 10 | Retención | **Indefinida**, sin eliminación automática |
+| 1 | Propósito principal | Recuperación ante fallos en producción |
+| 2 | Tipo de creación | **Manual** — el Supervisor decide cuándo crear snapshot |
+| 3 | Sin detección automática | El sistema NO detecta cambios; solo copia directorios fijos |
+| 4 | Sin comparación de versiones | No existe funcionalidad de diff entre versiones |
+| 5 | Alcance del snapshot | Directorios fijos: api, models, views, config, includes, assets, index.php |
+| 6 | Exclusiones | vendor, uploads, .git, specs, openspec |
+| 7 | Tags | Auto-incrementales: v001, v002, v003... |
+| 8 | Rollback seguro | Crea nueva versión en lugar de destruir la actual |
+| 9 | Permisos | Solo Supervisores |
+| 10 | Retención | Indefinida, hasta eliminación manual del directorio |
+| 11 | Rollback de rollback | Soportado (cada rollback crea su propio snapshot) |
+
+---
+
+## Limitaciones Conocidas
+
+1. **Sin detección de cambios**: El sistema copia todo el directorio sin verificar qué archivos cambiaron. Los snapshots pueden ser grandes.
+2. **Sin comparación**: No hay funcionalidad de diff entre versiones.
+3. **Solo archivos PHP/estáticos**: La base de datos no se versiona (solo código fuente).
+4. **Rollback no revierte BD**: Si un cambio incluyó una migración SQL, el rollback de archivos no la revierte.
+5. **Snapshots en disco local**: Si el servidor pierde el disco, se pierden los snapshots (no hay respaldo externo).
+6. **No compresión**: Los archivos se copian tal cual, sin comprimir.

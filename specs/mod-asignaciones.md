@@ -55,6 +55,10 @@ El sistema valida que no existan duplicados en la relación (Registrador + Estab
 
 **Descripción**: Vincula uno o varios establecimientos a un registrador.
 
+**Endpoints**:
+- `POST /api/assignments.php` con `action=asignar` (individual)
+- `POST /api/assignments.php` con `action=asignar_multiple` (múltiple)
+
 **Reglas de Negocio**:
 - **Selección**: Permite seleccionar múltiples establecimientos mediante checkboxes.
 - **Tipo de Asignación**:
@@ -343,3 +347,4 @@ Y no se crea la asignación
 | 8 | Asignación múltiple | ✅ Aceptada → Selección manual (checkboxes) |
 | 9 | Prioridad temporal | ✅ Nueva → Las reasignaciones temporales tienen prioridad sobre anuales al registrar |
 | 10 | Sección temporales | ✅ Nueva → Panel separado para ver y gestionar reasignaciones temporales activas |
+| 11 | Utilidades adicionales | ✅ Nuevas → `asignarMultiple()` para carga masiva, `getRegistradoresSinAsignaciones()` para alertas del dashboard, `removerTodas()` para limpieza, `getIdsAsignados()` para validación, `getTitularAnual()` para mostrar contexto en reasignaciones |

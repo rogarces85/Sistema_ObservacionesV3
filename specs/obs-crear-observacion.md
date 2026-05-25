@@ -56,7 +56,7 @@ El año de la observación se toma automáticamente del año activo en la sesió
      - `detalle_observacion`: Opcional para todos los tipos
      - `respuesta_establecimiento`: Opcional, se oculta para S/OBSERVACION
    - **Opción N/A para `usa_validador`**: Disponible para todos los tipos, se guarda como `'no'` en la base de datos
-3. El sistema verifica que el `establecimiento_id` seleccionado esté en la lista de establecimientos asignados al registrador para el año activo.
+3. El sistema verifica que el establecimiento esté asignado al registrador para el **mes y año** específicos mediante validación mensual (`tieneAsignacionParaMes()`). Esto significa que incluso con asignación anual, si existe una reasignación temporal de otro usuario para ese mes, se deniega el acceso.
 4. Si las validaciones pasan, el sistema inserta el registro en la base de datos con estado `PENDIENTE` y el año tomado de la sesión.
 5. El sistema crea automáticamente una entrada en `historial_estados` con comentario "Registro inicial".
 6. El sistema responde con éxito y el ID de la nueva observación.
@@ -92,7 +92,7 @@ El año de la observación se toma automáticamente del año activo en la sesió
 | ID | Contexto | Mensaje |
 |----|----------|---------|
 | MSG-003-101 | Campo obligatorio vacío | `Error: El campo [nombre_del_campo] es requerido.` |
-| MSG-003-102 | Establecimiento no asignado | `Error: El establecimiento seleccionado no está asignado a su usuario para el año activo.` |
+| MSG-003-102 | Establecimiento no asignado | `Error: El establecimiento no está asignado a su usuario para el mes seleccionado.` |
 | MSG-003-103 | Rol no autorizado | `Error: No tiene permisos para registrar observaciones.` |
 | MSG-003-104 | Error de base de datos | `Error: No se pudo registrar la observación. Intente nuevamente.` |
 | MSG-003-105 | CSRF inválido | `Error: Token de seguridad inválido. Recargue la página.` |

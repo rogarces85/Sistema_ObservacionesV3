@@ -50,6 +50,19 @@ La importación vincula los registros de la hoja de cálculo con los establecimi
 - Indica cuántas observaciones se importaron exitosamente.
 - Proporciona un resumen de las filas omitidas y sus razones (para que el usuario pueda corregir su archivo Excel si es necesario).
 
+### IMP-004: Generar Plantilla Excel
+
+**Descripción**: Descarga un archivo Excel preformateado con las columnas requeridas y ejemplos, para que el registrador lo use como base.
+
+**Endpoint**: `GET /api/import_template.php`
+
+**Reglas de Negocio**:
+- Genera un archivo `.xlsx` con encabezados: `codigo_establecimiento`, `establecimiento`, `mes`, `tipo`, `serie`, `rem`, `detalle_observacion`, `plazo_entrega`, `usa_validador`, `respuesta_establecimiento`.
+- Incluye una segunda hoja "Instrucciones" con valores válidos para cada campo.
+- Incluye 4 filas de ejemplo con datos reales.
+- La columna de código de establecimiento se resalta en verde (prioritaria).
+- Solo accesible para usuarios autenticados (Registrador).
+
 ---
 
 ## Gestión de Sesiones y Cuentas
@@ -222,3 +235,4 @@ Entonces el sistema importa la observación con usa_validador = "no"
 | 7 | Manejo de Errores | ✅ Aceptada → Omite filas erróneas, importa las válidas |
 | 8 | Año de importación | ✅ Aceptada → Seleccionable o año de sesión |
 | 9 | Opción N/A en Usa Validador | ✅ Nueva → Acepta "N/A" en Excel, se convierte a "NO" antes de guardar |
+| 10 | Plantilla descargable | ✅ Nueva → `import_template.php` genera Excel con encabezados, ejemplos e instrucciones |

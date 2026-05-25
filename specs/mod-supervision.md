@@ -63,9 +63,24 @@ Las acciones principales son **Aprobar** (validar la observación como correcta)
 
 **Descripción**: Visualización exhaustiva de una observación y su historial.
 
+**Endpoint**: `GET /api/supervision.php?action=get_detail&id={id}`
+
 **Reglas de Negocio**:
 - Muestra todos los campos, datos del establecimiento, datos del registrador y supervisor (si aplica).
 - Muestra la línea de tiempo del historial de cambios de estado.
+- Retorna tanto `data` (observación) como `historial` (array de cambios).
+
+### SUP-006: Cambio de Estado Genérico
+
+**Descripción**: Permite cambiar el estado de una observación a cualquier valor (no solo aprobar/rechazar).
+
+**Endpoint**: `POST /api/supervision.php?action=update_status`
+
+**Reglas de Negocio**:
+- **Campos requeridos**: `id`, `estado` (nuevo estado).
+- **Campos opcionales**: `clasificacion`, `detalle_error`, `comment`.
+- **Historial**: Se registra automáticamente el cambio.
+- **Uso**: Utilizado internamente por los botones de la interfaz de supervisión (aprobar usa `approve`, cancelar usa `cancel`, otros estados usan `update_status`).
 
 ---
 

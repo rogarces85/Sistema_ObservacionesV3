@@ -14,16 +14,17 @@
 
 | ID | Módulo | Descripción Breve | Archivo de Especificación |
 |----|--------|-------------------|---------------------------|
-| **VER** | Versionado | Control de versiones del código para recuperación ante fallos. | `specs/versiones.md` |
+| **VER** | Versionado | Snapshots manuales y rollback del código fuente. | `specs/versiones.md` |
 | **MOD-OBS** | Observaciones | CRUD completo de observaciones, historial y estadísticas. | `specs/obs-modulo.md`<br>`specs/obs-crear-observacion.md` |
 | **MOD-USR** | Usuarios | Gestión de cuentas, roles, contraseñas y auditoría. | `specs/mod-usuarios.md` |
 | **MOD-SUP** | Supervisión | Revisión, aprobación/cancelación y filtrado de observaciones. | `specs/mod-supervision.md` |
 | **MOD-ASN** | Asignaciones | Vinculación de establecimientos a registradores (anual/temporal). | `specs/mod-asignaciones.md` |
-| **MOD-IMP** | Importación | Carga masiva de observaciones desde Excel (Vista previa + Confirmación). | `specs/mod-importacion.md` |
-| **MOD-EXP** | Exportación | Generación asíncrona de reportes en Excel y PDF. | `specs/mod-exportacion.md` |
+| **MOD-IMP** | Importación | Carga masiva de observaciones desde Excel + plantilla descargable. | `specs/mod-importacion.md` |
+| **MOD-EXP** | Exportación | Generación síncrona de reportes en Excel, PDF y CSV (20+ dimensiones). | `specs/mod-exportacion.md` |
 | **MOD-LOC** | Establecimientos | Catálogo de establecimientos y comunas. | `specs/mod-establecimientos.md` |
 | **MOD-DEL** | Eliminadas | Papelera de reciclaje para observaciones (Restaurar/Eliminar permanente). | `specs/mod-eliminadas.md` |
 | **MOD-AUTH** | Autenticación | Login, Logout, Cambio de año y gestión de sesión. | `specs/mod-auth.md` |
+| ~~LOGIN~~ | ~~Login (obsoleto)~~ | ~~Especificación antigua reemplazada por MOD-AUTH~~ | ~~`specs/login.md`~~ → Ver `specs/mod-auth.md` |
 
 ---
 

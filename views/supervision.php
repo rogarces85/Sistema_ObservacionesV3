@@ -415,10 +415,24 @@ $comunas = $locationModel->getComunas();
                 <p class="text-sm text-slate-600">Tipo de Error</p>
                 <p>${escapeHtml(obs.tipo_error)}</p>
             </div>
+            <div>
+                <p class="text-sm text-slate-600">Serie REM</p>
+                <p>${obs.codigo_serie ? escapeHtml(obs.codigo_serie) : '-'}</p>
+            </div>
+            <div>
+                <p class="text-sm text-slate-600">Hoja REM</p>
+                <p>${obs.codigo_hoja ? escapeHtml(obs.codigo_hoja) : '-'}</p>
+            </div>
             <div class="col-span-2">
                 <p class="text-sm text-slate-600">Detalle de Observación</p>
                 <p class="whitespace-pre-wrap">${escapeHtml(obs.detalle_observacion)}</p>
             </div>
+            ${obs.respuesta_establecimiento ? `
+            <div class="col-span-2">
+                <p class="text-sm text-slate-600">Respuesta del Establecimiento</p>
+                <p class="whitespace-pre-wrap">${escapeHtml(obs.respuesta_establecimiento)}</p>
+            </div>
+            ` : ''}
             ${obs.clasificacion ? `
             <div class="col-span-2 p-3 bg-sky-50 rounded border border-sky-200">
                 <p class="text-sm text-sky-700 font-semibold">Clasificación de Respuesta</p>

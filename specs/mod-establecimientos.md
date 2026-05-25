@@ -190,3 +190,4 @@ Y las observaciones históricas de "Clínica Sur" siguen siendo visibles en repo
 | 5 | Gestión de Comunas | ✅ Aceptada → Solo lectura |
 | 6 | Nombre Corto | ✅ Modificada → **Opcional** |
 | 7 | Eliminación Lógica | ✅ Aceptada → Solo desactivación |
+| 8 | Métodos auxiliares | ✅ Nuevos → `searchEstablecimientos()` (búsqueda por nombre), `codigoEstablecimientoExiste()` (validación unicidad), `getComunaById()`, `getComunaByNombre()`, `getAllEstablecimientosConInactivos()` (solo Supervisor) |

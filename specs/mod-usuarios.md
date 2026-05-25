@@ -251,3 +251,5 @@ Y mi cuenta permanece activa
 | 7 | Datos del usuario | ✅ Aceptada |
 | 8 | Roles disponibles | ✅ Aceptada |
 | 9 | Auditoría | ✅ Modificada → **Historial completo de cambios** |
+| 10 | Generación de contraseña | ✅ Nueva → `generateRandomPassword()` genera contraseña aleatoria de 12 caracteres con mayúsculas, minúsculas, números y símbolos |
+| 11 | Validación de política | ✅ Nueva → `validatePasswordPolicy()` exige: mínimo 8 caracteres, al menos 1 mayúscula, al menos 1 número |

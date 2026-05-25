@@ -142,5 +142,6 @@ Y el sistema muestra "10 observación(es) eliminada(s) permanentemente"
 | 4 | Filtros | ✅ Aceptada → Mismos filtros que Supervisión |
 | 5 | Operaciones Masivas | ✅ Aceptada |
 | 6 | Retención | ✅ Aceptada → Indefinida hasta acción manual |
-| 7 | Estadísticas | ✅ Modificada → **Sin estadísticas** |
+| 7 | Estadísticas | ✅ Modificada → **Estadísticas disponibles**: total eliminadas, por estado original, por mes, por eliminador |
 | 8 | Seguridad | ✅ Aceptada |
+| 9 | Restauración con historial | ✅ Nueva → Al restaurar se registra entrada en `historial_estados` con comentario "Observación restaurada desde papelera" |
