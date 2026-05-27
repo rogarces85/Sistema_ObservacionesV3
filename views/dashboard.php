@@ -61,6 +61,9 @@ foreach ($stats['por_mes'] as $mes) {
 }
 global $MESES;
 $maxValue = !empty($mesesData) ? max(array_values($mesesData)) : 1;
+
+// Datos para Chart.js
+$statsJson = json_encode($stats);
 ?>
 
 <div class="space-y-6">
@@ -182,73 +185,23 @@ $maxValue = !empty($mesesData) ? max(array_values($mesesData)) : 1;
 
     <!-- Sección de Gráficos -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- Distribución por Estado (Gráfico de dona visual) -->
+        <!-- Distribución por Estado (Chart.js) -->
         <div class="card p-6">
             <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
                 <span>📈</span> Distribución por Estado
             </h3>
-            <div class="space-y-4">
-                <?php if (!empty($stats['por_estado'])): ?>
-                    <?php foreach ($stats['por_estado'] as $estado): ?>
-                        <?php
-                        $percentage = $stats['total'] > 0 ? ($estado['total'] / $stats['total']) * 100 : 0;
-                        $colors = [
-                            'pendiente' => ['bg' => '#fbbf24', 'light' => '#fef3c7'],
-                            'aprobado' => ['bg' => '#10b981', 'light' => '#d1fae5'],
-                            'rechazado' => ['bg' => '#ef4444', 'light' => '#fee2e2'],
-                            'error' => ['bg' => '#f97316', 'light' => '#ffedd5'],
-                            'justificado' => ['bg' => '#0ea5e9', 'light' => '#e0f2fe']
-                        ];
-                        $color = $colors[$estado['estado_actual']] ?? ['bg' => '#64748b', 'light' => '#f1f5f9'];
-                        ?>
-                        <div>
-                            <div class="flex justify-between items-center mb-2">
-                                <div class="flex items-center gap-2">
-                                    <div class="w-3 h-3 rounded-full" style="background: <?php echo $color['bg']; ?>;"></div>
-                                    <span
-                                        class="text-sm font-medium text-slate-700"><?php echo ucfirst($estado['estado_actual']); ?></span>
-                                </div>
-                                <span class="text-sm font-bold text-slate-800">
-                                    <?php echo $estado['total']; ?>
-                                    <span class="text-slate-400">(<?php echo number_format($percentage, 0); ?>%)</span>
-                                </span>
-                            </div>
-                            <div class="w-full h-2 rounded-full" style="background: <?php echo $color['light']; ?>;">
-                                <div class="h-2 rounded-full transition-all duration-500"
-                                    style="width: <?php echo $percentage; ?>%; background: <?php echo $color['bg']; ?>;"></div>
-                            </div>
-                        </div>
-                    <?php endforeach; ?>
-                <?php else: ?>
-                    <p class="text-center text-slate-400 py-8">No hay datos para mostrar</p>
-                <?php endif; ?>
+            <div class="relative" style="height: 240px;">
+                <canvas id="chartEstado"></canvas>
             </div>
         </div>
 
-        <!-- Top Tipos de Error -->
+        <!-- Top Tipos de Error (Chart.js) -->
         <div class="card p-6">
             <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
                 <span>🔍</span> Top Tipos de Error
             </h3>
-            <div class="space-y-3">
-                <?php if (!empty($stats['por_tipo_error'])): ?>
-                    <?php foreach (array_slice($stats['por_tipo_error'], 0, 5) as $index => $tipo): ?>
-                        <div class="flex items-center gap-3 p-3 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors">
-                            <div class="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-white text-sm"
-                                style="background: <?php echo ['#0ea5e9', '#6366f1', '#8b5cf6', '#ec4899', '#f97316'][$index] ?? '#64748b'; ?>;">
-                                <?php echo $index + 1; ?>
-                            </div>
-                            <div class="flex-1 min-w-0">
-                                <p class="text-sm font-medium text-slate-700 truncate">
-                                    <?php echo htmlspecialchars($tipo['tipo_error']); ?>
-                                </p>
-                            </div>
-                            <div class="text-lg font-bold text-slate-800"><?php echo $tipo['total']; ?></div>
-                        </div>
-                    <?php endforeach; ?>
-                <?php else: ?>
-                    <p class="text-center text-slate-400 py-8">No hay errores registrados</p>
-                <?php endif; ?>
+            <div class="relative" style="height: 240px;">
+                <canvas id="chartTipoError"></canvas>
             </div>
         </div>
 
@@ -305,33 +258,13 @@ $maxValue = !empty($mesesData) ? max(array_values($mesesData)) : 1;
         </div>
     </div>
 
-    <!-- Gráfico de Observaciones por Mes -->
+    <!-- Gráfico de Observaciones por Mes (Chart.js) -->
     <div class="card p-6">
         <h3 class="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
             <span>📅</span> Observaciones por Mes - <?php echo $currentYear; ?>
         </h3>
-        <div class="flex items-end justify-between gap-2" style="height: 200px;">
-            <?php foreach ($MESES as $mes):
-                $value = $mesesData[$mes] ?? 0;
-                $height = $maxValue > 0 ? ($value / $maxValue) * 100 : 0;
-                $isEmpty = $value === 0;
-                ?>
-                <div class="flex-1 flex flex-col items-center gap-2">
-                    <div class="text-xs font-bold <?php echo $isEmpty ? 'text-slate-300' : 'text-slate-700'; ?>">
-                        <?php echo $value; ?>
-                    </div>
-                    <div class="w-full flex items-end justify-center" style="height: 140px;">
-                        <div class="w-full max-w-[40px] rounded-t-lg transition-all duration-300 hover:opacity-80"
-                            style="height: <?php echo max($height, 4); ?>%; 
-                                background: <?php echo $isEmpty ? '#e2e8f0' : 'linear-gradient(180deg, #0ea5e9 0%, #0284c7 100%)'; ?>;" title="<?php echo $mes; ?>: <?php echo $value; ?> observaciones">
-                        </div>
-                    </div>
-                    <div class="text-xs font-medium text-slate-500 transform -rotate-45 origin-center"
-                        style="white-space: nowrap;">
-                        <?php echo substr($mes, 0, 3); ?>
-                    </div>
-                </div>
-            <?php endforeach; ?>
+        <div class="relative" style="height: 280px;">
+            <canvas id="chartTendencia"></canvas>
         </div>
     </div>
 
@@ -394,3 +327,14 @@ $maxValue = !empty($mesesData) ? max(array_values($mesesData)) : 1;
         <?php endif; ?>
     </div>
 </div>
+
+<script>
+// Datos iniciales del servidor para Chart.js
+const __dashboardStats = <?php echo $statsJson; ?>;
+
+document.addEventListener('DOMContentLoaded', () => {
+    if (__dashboardStats) {
+        initializeCharts(__dashboardStats);
+    }
+});
+</script>

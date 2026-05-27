@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "chartjs-generator": {
+      "source": "vishalsachdev/claude-skills",
+      "sourceType": "github",
+      "skillPath": "chartjs-generator/SKILL.md",
+      "computedHash": "139317eb0fbbb4f382443f49ad08ec42293cab7fa63c5c95c732ae2fd9e19ae4"
+    }
+  }
+}
