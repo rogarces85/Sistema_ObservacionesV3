@@ -1,7 +1,7 @@
 <?php
 /**
  * Vista de Reportes de Errores REM
- * 5 gráficos temáticos con filtros tipo supervision.php
+ * 5 reportes modulares con navegación por pestañas (nav-tabs)
  */
 
 require_once 'models/Location.php';
@@ -76,67 +76,220 @@ $mesesList = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto',
         </div>
     </div>
 
-    <!-- Gráficos ①-④: Grid 2 columnas -->
-    <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <!-- ① Errores por Establecimiento -->
-        <div class="card p-4 border border-slate-200">
-            <h3 class="text-lg font-bold text-slate-800 mb-3">① Errores por Establecimiento</h3>
-            <div class="relative" id="chart1Container" style="height: 300px;">
-                <canvas id="chartErroresEst"></canvas>
-            </div>
-            <div class="mt-3 overflow-x-auto">
-                <table class="w-full text-sm"><thead><tr class="text-left text-slate-500 border-b"><th class="pb-1 font-medium">Establecimiento</th><th class="pb-1 font-medium text-right">Errores</th></tr></thead><tbody id="tableErroresEst"></tbody></table>
-            </div>
-        </div>
+    <!-- Nav Tabs -->
+    <div class="card overflow-hidden">
+        <nav class="report-tabs" role="tablist" aria-label="Reportes de errores">
+            <button class="report-tab active" role="tab" aria-selected="true" data-tab="tab-errores-est">
+                📊 Total Errores
+            </button>
+            <button class="report-tab" role="tab" aria-selected="false" data-tab="tab-plazos">
+                ⏰ Plazos Entrega
+            </button>
+            <button class="report-tab" role="tab" aria-selected="false" data-tab="tab-validador">
+                🔍 Uso Validador
+            </button>
+            <button class="report-tab" role="tab" aria-selected="false" data-tab="tab-serie">
+                📋 Errores por Serie
+            </button>
+            <button class="report-tab" role="tab" aria-selected="false" data-tab="tab-hoja">
+                📄 Errores por Hoja
+            </button>
+        </nav>
 
-        <!-- ② Fuera de Plazo por Establecimiento -->
-        <div class="card p-4 border border-slate-200">
-            <h3 class="text-lg font-bold text-slate-800 mb-3">② Fuera de Plazo por Establecimiento</h3>
-            <div class="relative" id="chart2Container" style="height: 300px;">
-                <canvas id="chartFueraPlazo"></canvas>
+        <!-- Tab Panels -->
+        <div class="tab-panels">
+            <!-- Tab 1: Total Errores -->
+            <div id="tab-errores-est" class="tab-panel active" role="tabpanel">
+                <div class="p-4">
+                    <div class="relative" id="chart1Container" style="height: 400px;">
+                        <canvas id="chartErroresEst"></canvas>
+                    </div>
+                    <div class="mt-3 overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead><tr class="text-left text-slate-500 border-b"><th class="pb-1 font-medium">Establecimiento</th><th class="pb-1 font-medium text-right">Errores</th></tr></thead>
+                            <tbody id="tableErroresEst"></tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
-            <div class="mt-3 overflow-x-auto">
-                <table class="w-full text-sm"><thead><tr class="text-left text-slate-500 border-b"><th class="pb-1 font-medium">Establecimiento</th><th class="pb-1 font-medium text-right">Fuera Plazo</th></tr></thead><tbody id="tableFueraPlazo"></tbody></table>
-            </div>
-        </div>
 
-        <!-- ③ No usa Validador por Establecimiento -->
-        <div class="card p-4 border border-slate-200">
-            <h3 class="text-lg font-bold text-slate-800 mb-3">③ No usa Validador por Establecimiento</h3>
-            <div class="relative" id="chart3Container" style="height: 300px;">
-                <canvas id="chartNoValidador"></canvas>
+            <!-- Tab 2: Plazos Entrega -->
+            <div id="tab-plazos" class="tab-panel" role="tabpanel" hidden>
+                <div class="p-4">
+                    <div class="relative" id="chart2Container" style="height: 400px;">
+                        <canvas id="chartFueraPlazo"></canvas>
+                    </div>
+                    <div class="mt-3 overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead><tr class="text-left text-slate-500 border-b"><th class="pb-1 font-medium">Establecimiento</th><th class="pb-1 font-medium text-right">Fuera Plazo</th></tr></thead>
+                            <tbody id="tableFueraPlazo"></tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
-            <div class="mt-3 overflow-x-auto">
-                <table class="w-full text-sm"><thead><tr class="text-left text-slate-500 border-b"><th class="pb-1 font-medium">Establecimiento</th><th class="pb-1 font-medium text-right">No usa validador</th></tr></thead><tbody id="tableNoValidador"></tbody></table>
-            </div>
-        </div>
 
-        <!-- ④ Errores por Serie REM -->
-        <div class="card p-4 border border-slate-200">
-            <h3 class="text-lg font-bold text-slate-800 mb-3">④ Errores por Serie REM</h3>
-            <div class="relative" id="chart4Container" style="height: 300px;">
-                <canvas id="chartErroresSerie"></canvas>
+            <!-- Tab 3: Uso Validador -->
+            <div id="tab-validador" class="tab-panel" role="tabpanel" hidden>
+                <div class="p-4">
+                    <div class="relative" id="chart3Container" style="height: 400px;">
+                        <canvas id="chartNoValidador"></canvas>
+                    </div>
+                    <div class="mt-3 overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead><tr class="text-left text-slate-500 border-b"><th class="pb-1 font-medium">Establecimiento</th><th class="pb-1 font-medium text-right">No usa validador</th></tr></thead>
+                            <tbody id="tableNoValidador"></tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
-            <div class="mt-3 overflow-x-auto">
-                <table class="w-full text-sm"><thead><tr class="text-left text-slate-500 border-b"><th class="pb-1 font-medium">Serie REM</th><th class="pb-1 font-medium text-right">Errores</th></tr></thead><tbody id="tableErroresSerie"></tbody></table>
-            </div>
-        </div>
-    </div>
 
-    <!-- ⑤ Errores por Hoja REM: Ancho completo -->
-    <div class="card p-4 border border-slate-200">
-        <h3 class="text-lg font-bold text-slate-800 mb-3">⑤ Errores por Hoja REM</h3>
-        <div class="relative" id="chart5Container" style="height: 400px;">
-            <canvas id="chartErroresHoja"></canvas>
-        </div>
-        <div class="mt-3 overflow-x-auto">
-            <table class="w-full text-sm"><thead><tr class="text-left text-slate-500 border-b"><th class="pb-1 font-medium">Hoja REM</th><th class="pb-1 font-medium text-right">Errores</th></tr></thead><tbody id="tableErroresHoja"></tbody></table>
+            <!-- Tab 4: Errores por Serie -->
+            <div id="tab-serie" class="tab-panel" role="tabpanel" hidden>
+                <div class="p-4">
+                    <div class="relative" id="chart4Container" style="height: 400px;">
+                        <canvas id="chartErroresSerie"></canvas>
+                    </div>
+                    <div class="mt-3 overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead><tr class="text-left text-slate-500 border-b"><th class="pb-1 font-medium">Serie REM</th><th class="pb-1 font-medium text-right">Errores</th></tr></thead>
+                            <tbody id="tableErroresSerie"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 5: Errores por Hoja -->
+            <div id="tab-hoja" class="tab-panel" role="tabpanel" hidden>
+                <div class="p-4">
+                    <div class="relative" id="chart5Container" style="height: 400px;">
+                        <canvas id="chartErroresHoja"></canvas>
+                    </div>
+                    <div class="mt-3 overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead><tr class="text-left text-slate-500 border-b"><th class="pb-1 font-medium">Hoja REM</th><th class="pb-1 font-medium text-right">Errores</th></tr></thead>
+                            <tbody id="tableErroresHoja"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
 
+<style>
+/* Estilos de Nav Tabs */
+.report-tabs {
+    display: flex;
+    border-bottom: 2px solid #e2e8f0;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    background: #f8fafc;
+}
+.report-tabs::-webkit-scrollbar {
+    display: none;
+}
+
+.report-tab {
+    flex: 1;
+    min-width: 140px;
+    padding: 1rem 1.25rem;
+    border: none;
+    background: transparent;
+    color: #64748b;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    text-align: center;
+}
+
+.report-tab:hover {
+    color: #334155;
+    background: #f1f5f9;
+}
+
+.report-tab.active {
+    color: #0ea5e9;
+    border-bottom-color: #0ea5e9;
+    background: #fff;
+}
+
+.report-tab:focus {
+    outline: 2px solid #0ea5e9;
+    outline-offset: -2px;
+}
+
+/* Tab Panels */
+.tab-panels {
+    background: #fff;
+}
+
+.tab-panel {
+    display: none;
+}
+
+.tab-panel.active {
+    display: block;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .report-tab {
+        min-width: 120px;
+        padding: 0.75rem 0.5rem;
+        font-size: 0.8rem;
+    }
+}
+</style>
+
 <script>
 let errorCharts = {};
+let tabDataLoaded = {};
+let cachedData = null;
+
+const TAB_CONFIG = {
+    'tab-errores-est': { canvas: 'chartErroresEst', container: 'chart1Container', table: 'tableErroresEst', orientation: 'horizontal', color: '#dc2626', label: 'Errores', key: 'errores_establecimiento' },
+    'tab-plazos': { canvas: 'chartFueraPlazo', container: 'chart2Container', table: 'tableFueraPlazo', orientation: 'vertical', color: '#f59e0b', label: 'Fuera Plazo', key: 'fuera_plazo_establecimiento' },
+    'tab-validador': { canvas: 'chartNoValidador', container: 'chart3Container', table: 'tableNoValidador', orientation: 'vertical', color: '#6366f1', label: 'No usa validador', key: 'no_validador_establecimiento' },
+    'tab-serie': { canvas: 'chartErroresSerie', container: 'chart4Container', table: 'tableErroresSerie', orientation: 'horizontal', color: '#0ea5e9', label: 'Errores', key: 'errores_serie' },
+    'tab-hoja': { canvas: 'chartErroresHoja', container: 'chart5Container', table: 'tableErroresHoja', orientation: 'vertical', color: '#10b981', label: 'Errores', key: 'errores_hoja' }
+};
+
+// ============================================
+// Tab Switching
+// ============================================
+
+function switchTab(tabId) {
+    // Update tab buttons
+    document.querySelectorAll('.report-tab').forEach(tab => {
+        const isActive = tab.dataset.tab === tabId;
+        tab.classList.toggle('active', isActive);
+        tab.setAttribute('aria-selected', isActive);
+    });
+
+    // Update tab panels
+    document.querySelectorAll('.tab-panel').forEach(panel => {
+        const isActive = panel.id === tabId;
+        panel.classList.toggle('active', isActive);
+        panel.hidden = !isActive;
+    });
+
+    // Update URL hash
+    location.hash = tabId;
+
+    // Lazy load: load data if not loaded yet
+    if (!tabDataLoaded[tabId] && cachedData) {
+        renderTabChart(tabId, cachedData);
+        tabDataLoaded[tabId] = true;
+    }
+}
+
+// ============================================
+// Data Loading
+// ============================================
 
 async function loadEstablecimientos() {
     const comunaId = document.getElementById('filterComuna').value;
@@ -179,42 +332,41 @@ async function loadErrorReports() {
         const json = await resp.json();
         if (!json.success) { console.error(json.message); return; }
 
-        const d = json.data;
+        cachedData = json.data;
+        tabDataLoaded = {}; // Reset: all tabs need reload
 
-        renderChart('chartErroresEst', 'chart1Container', 'tableErroresEst', 'bar', 'horizontal',
-            (d.errores_establecimiento || []).map(r => r.nombre_corto || r.nombre),
-            (d.errores_establecimiento || []).map(r => parseInt(r.total)),
-            '#dc2626', 'Errores');
-
-        renderChart('chartFueraPlazo', 'chart2Container', 'tableFueraPlazo', 'bar', 'vertical',
-            (d.fuera_plazo_establecimiento || []).map(r => r.nombre_corto || r.nombre),
-            (d.fuera_plazo_establecimiento || []).map(r => parseInt(r.total)),
-            '#f59e0b', 'Fuera Plazo');
-
-        renderChart('chartNoValidador', 'chart3Container', 'tableNoValidador', 'bar', 'vertical',
-            (d.no_validador_establecimiento || []).map(r => r.nombre_corto || r.nombre),
-            (d.no_validador_establecimiento || []).map(r => parseInt(r.total)),
-            '#6366f1', 'No usa validador');
-
-        renderChart('chartErroresSerie', 'chart4Container', 'tableErroresSerie', 'bar', 'horizontal',
-            (d.errores_serie || []).map(r => r.codigo_serie),
-            (d.errores_serie || []).map(r => parseInt(r.total)),
-            '#0ea5e9', 'Errores');
-
-        renderChart('chartErroresHoja', 'chart5Container', 'tableErroresHoja', 'bar', 'vertical',
-            (d.errores_hoja || []).map(r => r.codigo_hoja),
-            (d.errores_hoja || []).map(r => parseInt(r.total)),
-            '#10b981', 'Errores');
+        // Render active tab immediately
+        const activeTab = document.querySelector('.tab-panel.active').id;
+        renderTabChart(activeTab, cachedData);
+        tabDataLoaded[activeTab] = true;
 
     } catch (e) {
         console.error('Error cargando reportes:', e);
     }
 }
 
-function renderChart(canvasId, containerId, tableId, type, orientation, labels, values, color, colLabel) {
-    Object.values(errorCharts).forEach(c => c.destroy());
-    errorCharts = {};
+// ============================================
+// Chart Rendering per Tab
+// ============================================
 
+function renderTabChart(tabId, data) {
+    const config = TAB_CONFIG[tabId];
+    if (!config) return;
+
+    // Destroy existing chart for this tab
+    if (errorCharts[config.canvas]) {
+        errorCharts[config.canvas].destroy();
+        delete errorCharts[config.canvas];
+    }
+
+    const resultData = data[config.key] || [];
+    const labels = resultData.map(r => r.nombre_corto || r.nombre || r.codigo_serie || r.codigo_hoja);
+    const values = resultData.map(r => parseInt(r.total));
+
+    renderChart(config.canvas, config.container, config.table, config.orientation, labels, values, config.color, config.label);
+}
+
+function renderChart(canvasId, containerId, tableId, orientation, labels, values, color, colLabel) {
     const tableBody = document.getElementById(tableId);
     const container = document.getElementById(containerId);
 
@@ -224,17 +376,20 @@ function renderChart(canvasId, containerId, tableId, type, orientation, labels, 
         return;
     }
 
-    // Restaurar canvas si fue reemplazado por mensaje de sin datos
+    // Restaurar canvas si fue reemplazado
     if (container && !document.getElementById(canvasId)) {
         container.innerHTML = `<canvas id="${canvasId}"></canvas>`;
     }
 
-    // Altura dinámica para más de 10 items
+    // Altura dinámica
     if (labels.length > 10) {
         const extraHeight = (labels.length - 10) * 22;
-        container.style.height = (orientation === 'horizontal' ? 300 : 400) + extraHeight + 'px';
+        container.style.height = (orientation === 'horizontal' ? 400 : 500) + extraHeight + 'px';
+    } else {
+        container.style.height = '400px';
     }
 
+    // Create chart
     if (orientation === 'horizontal') {
         errorCharts[canvasId] = createBarHorizontal(canvasId, labels, values, color);
     } else {
@@ -255,13 +410,28 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-// Event listeners
+// ============================================
+// Event Listeners
+// ============================================
+
 document.addEventListener('DOMContentLoaded', () => {
+    // Tab clicks
+    document.querySelectorAll('.report-tab').forEach(tab => {
+        tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+    });
+
+    // Filters
     document.getElementById('filterComuna').addEventListener('change', loadEstablecimientos);
     document.getElementById('btnApplyFilters').addEventListener('click', loadErrorReports);
     document.getElementById('btnClearFilters').addEventListener('click', clearFilters);
 
-    // Carga inicial
+    // Restore tab from hash
+    const hashTab = location.hash.replace('#', '');
+    if (hashTab && TAB_CONFIG[hashTab]) {
+        switchTab(hashTab);
+    }
+
+    // Initial load
     loadErrorReports();
 });
 
