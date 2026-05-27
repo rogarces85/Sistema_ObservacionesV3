@@ -223,33 +223,11 @@ class Observation
 
     /**
      * Obtener estadísticas para dashboard
-     * @param int|array $years Año o array de años
-     * @param int|null $userId
-     * @param string|null $userRole
-     * @param array $meses Array de nombres de meses para filtrar (opcional)
-     * @return array
      */
-    public function getStats($years, $userId = null, $userRole = null, $meses = [])
+    public function getStats($year, $userId = null, $userRole = null)
     {
-        // Normalizar a array
-        if (!is_array($years)) {
-            $years = $years ? [$years] : [];
-        }
-
-        $where = "WHERE 1=1";
-        $params = [];
-
-        if (!empty($years)) {
-            $yearPlaceholders = implode(',', array_fill(0, count($years), '?'));
-            $where .= " AND o.anio IN ($yearPlaceholders)";
-            $params = array_merge($params, $years);
-        }
-
-        if (!empty($meses)) {
-            $mesPlaceholders = implode(',', array_fill(0, count($meses), '?'));
-            $where .= " AND o.mes IN ($mesPlaceholders)";
-            $params = array_merge($params, $meses);
-        }
+        $where = "WHERE o.anio = ?";
+        $params = [$year];
 
         if ($userRole === ROL_REGISTRADOR && $userId) {
             $where .= " AND o.usuario_registro_id = ?";
@@ -291,39 +269,6 @@ class Observation
             'por_estado' => $estadoStats,
             'por_mes' => $mesStats,
             'por_tipo_error' => $tipoErrorStats
-        ];
-    }
-
-    /**
-     * Obtener estadísticas estructuradas para el Dashboard comparativo
-     * Devuelve datos por estado, tipo de error y mes (agrupado por año)
-     * @param array $years Array de años (ej: [2024, 2025])
-     * @param array $meses Array de nombres de meses (opcional)
-     * @param int|null $userId
-     * @param string|null $userRole
-     * @return array
-     */
-    public function getDashboardStats($years, $meses = [], $userId = null, $userRole = null)
-    {
-        if (empty($years)) {
-            $years = [date('Y')];
-        }
-
-        // Stats generales (acumulado de todos los años seleccionados)
-        $generalStats = $this->getStats($years, $userId, $userRole, $meses);
-
-        // Datos por mes agrupados por año (para comparativo)
-        $porMesPorAnio = [];
-        foreach ($years as $year) {
-            $yearStats = $this->getStats([$year], $userId, $userRole, $meses);
-            $porMesPorAnio[$year] = $yearStats['por_mes'];
-        }
-
-        return [
-            'total' => $generalStats['total'],
-            'por_estado' => $generalStats['por_estado'],
-            'por_tipo_error' => $generalStats['por_tipo_error'],
-            'por_mes' => $porMesPorAnio
         ];
     }
 

@@ -207,69 +207,6 @@ function toggleSidebar() {
     }
 }
 
-// ============================================
-// Helpers para filtros de meses (Dashboard y Reportes)
-// ============================================
-
-const MESES_ORDEN = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-const TRIMESTRES = {
-    'Q1': ['Enero','Febrero','Marzo'],
-    'Q2': ['Abril','Mayo','Junio'],
-    'Q3': ['Julio','Agosto','Septiembre'],
-    'Q4': ['Octubre','Noviembre','Diciembre']
-};
-const SEMESTRES = {
-    'H1': ['Enero','Febrero','Marzo','Abril','Mayo','Junio'],
-    'H2': ['Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
-};
-
-/**
- * Seleccionar meses según trimestre
- * @param {string} q - Q1, Q2, Q3, Q4
- * @param {string} selector - Clase CSS de los checkboxes (ej: '.mes-filter')
- * @param {Function} [onChange] - Callback opcional después de cambiar
- */
-function selectQuarter(q, selector, onChange) {
-    const meses = TRIMESTRES[q] || [];
-    document.querySelectorAll(selector).forEach(cb => {
-        cb.checked = meses.includes(cb.value);
-    });
-    if (typeof onChange === 'function') onChange();
-}
-
-/**
- * Seleccionar meses según semestre
- * @param {string} h - H1, H2
- * @param {string} selector - Clase CSS de los checkboxes
- * @param {Function} [onChange] - Callback opcional después de cambiar
- */
-function selectSemester(h, selector, onChange) {
-    const meses = SEMESTRES[h] || [];
-    document.querySelectorAll(selector).forEach(cb => {
-        cb.checked = meses.includes(cb.value);
-    });
-    if (typeof onChange === 'function') onChange();
-}
-
-/**
- * Seleccionar todos los meses
- * @param {string} selector - Clase CSS de los checkboxes
- * @param {Function} [onChange] - Callback opcional después de cambiar
- */
-function selectAllMonths(selector, onChange) {
-    document.querySelectorAll(selector).forEach(cb => cb.checked = true);
-    if (typeof onChange === 'function') onChange();
-}
-
-/**
- * Obtener valores de checkboxes seleccionados
- * @param {string} selector - Clase CSS de los checkboxes
- * @returns {string[]}
- */
-function getSelectedValues(selector) {
-    return Array.from(document.querySelectorAll(selector + ':checked')).map(cb => cb.value);
-}
-
 // Inicializar tooltips y otros componentes al cargar
 document.addEventListener('DOMContentLoaded', function () {
     // Agregar event listeners globales aquí si es necesario

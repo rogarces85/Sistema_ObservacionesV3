@@ -115,17 +115,6 @@ try {
             ]);
             break;
 
-        // Dashboard stats (comparativo de años + filtros de meses)
-        case 'dashboard-stats':
-            $years = $_GET['years'] ?? [$year];
-            $meses = $_GET['meses'] ?? [];
-            if (!is_array($years)) $years = $years ? [$years] : [$year];
-            if (!is_array($meses)) $meses = $meses ? [$meses] : [];
-            $years = array_map('intval', $years);
-
-            jsonResponse(true, $obsModel->getDashboardStats($years, $meses, $userId, $userRole));
-            break;
-
         // Reportes de errores (nueva vista unificada)
         case 'error-reports':
             $meses = $_GET['meses'] ?? [];

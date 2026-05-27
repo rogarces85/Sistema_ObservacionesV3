@@ -40,15 +40,6 @@ $userRole = $_SESSION['rol'];
                         </label>
                     <?php endforeach; ?>
                 </div>
-                <div class="flex flex-wrap gap-1 mt-2">
-                    <button type="button" onclick="selectQuarter('Q1', '.mes-filter', loadErrorReports)" class="px-2 py-1 text-xs rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium">Q1</button>
-                    <button type="button" onclick="selectQuarter('Q2', '.mes-filter', loadErrorReports)" class="px-2 py-1 text-xs rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium">Q2</button>
-                    <button type="button" onclick="selectQuarter('Q3', '.mes-filter', loadErrorReports)" class="px-2 py-1 text-xs rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium">Q3</button>
-                    <button type="button" onclick="selectQuarter('Q4', '.mes-filter', loadErrorReports)" class="px-2 py-1 text-xs rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium">Q4</button>
-                    <button type="button" onclick="selectSemester('H1', '.mes-filter', loadErrorReports)" class="px-2 py-1 text-xs rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium">H1</button>
-                    <button type="button" onclick="selectSemester('H2', '.mes-filter', loadErrorReports)" class="px-2 py-1 text-xs rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium">H2</button>
-                    <button type="button" onclick="selectAllMonths('.mes-filter', loadErrorReports)" class="px-2 py-1 text-xs rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium">Todos</button>
-                </div>
             </div>
             <div>
                 <label class="text-sm font-semibold text-slate-700 block mb-2">Comunas:</label>
@@ -118,6 +109,7 @@ $userRole = $_SESSION['rol'];
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
 let errorCharts = {};
 
