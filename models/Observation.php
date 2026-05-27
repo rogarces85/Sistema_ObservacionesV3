@@ -554,7 +554,7 @@ class Observation
         return $this->db->query($sql, $params);
     }
 
-    public function reporteErroresPorEstablecimiento($year, $userId = null, $userRole = null, $meses = [], $comunaIds = [])
+    public function reporteErroresPorEstablecimiento($year, $userId = null, $userRole = null, $meses = [], $comunaIds = [], $establecimientoId = null)
     {
         $sql = "SELECT e.id, e.nombre, e.nombre_corto, COUNT(*) as total 
                 FROM observaciones o 
@@ -574,6 +574,10 @@ class Observation
             $placeholders = implode(',', array_fill(0, count($comunaIds), '?'));
             $sql .= " AND e.comuna_id IN ($placeholders)";
             $params = array_merge($params, $comunaIds);
+        }
+        if ($establecimientoId) {
+            $sql .= " AND o.establecimiento_id = ?";
+            $params[] = $establecimientoId;
         }
         $sql .= " GROUP BY e.id, e.nombre, e.nombre_corto ORDER BY total DESC";
         return $this->db->query($sql, $params);
@@ -612,7 +616,7 @@ class Observation
         return $this->db->query($sql, $params);
     }
 
-    public function reporteFueraPlazoPorEstablecimiento($year, $userId = null, $userRole = null, $meses = [], $comunaIds = [])
+    public function reporteFueraPlazoPorEstablecimiento($year, $userId = null, $userRole = null, $meses = [], $comunaIds = [], $establecimientoId = null)
     {
         $sql = "SELECT e.id, e.nombre, e.nombre_corto, COUNT(*) as total 
                 FROM observaciones o 
@@ -632,6 +636,10 @@ class Observation
             $placeholders = implode(',', array_fill(0, count($comunaIds), '?'));
             $sql .= " AND e.comuna_id IN ($placeholders)";
             $params = array_merge($params, $comunaIds);
+        }
+        if ($establecimientoId) {
+            $sql .= " AND o.establecimiento_id = ?";
+            $params[] = $establecimientoId;
         }
         $sql .= " GROUP BY e.id, e.nombre, e.nombre_corto ORDER BY total DESC";
         return $this->db->query($sql, $params);
@@ -852,7 +860,7 @@ class Observation
     /**
      * Reporte: No usa validador por establecimiento
      */
-    public function reporteNoValidadorPorEstablecimiento($year, $userId = null, $userRole = null, $meses = [], $comunaIds = [])
+    public function reporteNoValidadorPorEstablecimiento($year, $userId = null, $userRole = null, $meses = [], $comunaIds = [], $establecimientoId = null)
     {
         $sql = "SELECT e.id, e.nombre, e.nombre_corto, COUNT(*) as total 
                 FROM observaciones o 
@@ -873,6 +881,10 @@ class Observation
             $sql .= " AND e.comuna_id IN ($placeholders)";
             $params = array_merge($params, $comunaIds);
         }
+        if ($establecimientoId) {
+            $sql .= " AND o.establecimiento_id = ?";
+            $params[] = $establecimientoId;
+        }
         $sql .= " GROUP BY e.id, e.nombre, e.nombre_corto ORDER BY total DESC";
         return $this->db->query($sql, $params);
     }
@@ -880,7 +892,7 @@ class Observation
     /**
      * Reporte: Errores por Serie REM (solo tipo_error = 'ERROR')
      */
-    public function reporteErroresPorSerie($year, $userId = null, $userRole = null, $meses = [], $comunaIds = [])
+    public function reporteErroresPorSerie($year, $userId = null, $userRole = null, $meses = [], $comunaIds = [], $establecimientoId = null)
     {
         $sql = "SELECT o.codigo_serie, COUNT(*) as total 
                 FROM observaciones o 
@@ -901,6 +913,10 @@ class Observation
             $sql .= " AND e.comuna_id IN ($placeholders)";
             $params = array_merge($params, $comunaIds);
         }
+        if ($establecimientoId) {
+            $sql .= " AND o.establecimiento_id = ?";
+            $params[] = $establecimientoId;
+        }
         $sql .= " GROUP BY o.codigo_serie ORDER BY total DESC";
         return $this->db->query($sql, $params);
     }
@@ -908,7 +924,7 @@ class Observation
     /**
      * Reporte: Errores por Hoja REM (solo tipo_error = 'ERROR')
      */
-    public function reporteErroresPorHoja($year, $userId = null, $userRole = null, $meses = [], $comunaIds = [])
+    public function reporteErroresPorHoja($year, $userId = null, $userRole = null, $meses = [], $comunaIds = [], $establecimientoId = null)
     {
         $sql = "SELECT o.codigo_hoja, COUNT(*) as total 
                 FROM observaciones o 
@@ -928,6 +944,10 @@ class Observation
             $placeholders = implode(',', array_fill(0, count($comunaIds), '?'));
             $sql .= " AND e.comuna_id IN ($placeholders)";
             $params = array_merge($params, $comunaIds);
+        }
+        if ($establecimientoId) {
+            $sql .= " AND o.establecimiento_id = ?";
+            $params[] = $establecimientoId;
         }
         $sql .= " GROUP BY o.codigo_hoja ORDER BY total DESC";
         return $this->db->query($sql, $params);

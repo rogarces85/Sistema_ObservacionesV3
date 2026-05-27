@@ -1,11 +1,19 @@
 <?php
 /**
  * Vista de Reportes de Errores REM
- * 5 gráficos temáticos con filtros multi-select (año, meses, comunas)
+ * 5 gráficos temáticos con filtros tipo supervision.php
  */
+
+require_once 'models/Location.php';
 
 $currentYear = $_SESSION['year'] ?? date('Y');
 $userRole = $_SESSION['rol'];
+
+// Obtener comunas para filtro
+$locationModel = new Location();
+$comunas = $locationModel->getComunas();
+
+$mesesList = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 ?>
 
 <div class="space-y-6">
@@ -15,37 +23,55 @@ $userRole = $_SESSION['rol'];
             <h2 class="text-2xl font-bold text-slate-800">Reportes de Errores REM</h2>
             <p class="text-slate-600">Análisis de errores por establecimiento, plazo, validador, serie y hoja</p>
         </div>
-        <div class="flex gap-3 items-center">
-            <label class="text-sm font-semibold text-slate-700">Año:</label>
-            <select id="reportYear" class="form-select w-28" onchange="loadErrorReports()">
-                <?php for ($y = date('Y') + 1; $y >= 2020; $y--): ?>
-                    <option value="<?php echo $y; ?>" <?php echo $y == $currentYear ? 'selected' : ''; ?>><?php echo $y; ?></option>
-                <?php endfor; ?>
-            </select>
-        </div>
     </div>
 
-    <!-- Filtros -->
-    <div class="card p-4">
-        <div class="flex flex-wrap gap-6 items-start">
+    <!-- Filtros estilo supervision.php -->
+    <div class="card p-6">
+        <h3 class="text-lg font-bold text-slate-800 mb-4">🔍 Filtros</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
-                <label class="text-sm font-semibold text-slate-700 block mb-2">Meses:</label>
-                <div class="flex flex-wrap gap-2" id="mesesCheckboxes">
-                    <?php
-                    $mesesList = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-                    foreach ($mesesList as $m): ?>
-                        <label class="inline-flex items-center text-sm cursor-pointer">
-                            <input type="checkbox" value="<?php echo $m; ?>" class="mes-filter rounded border-slate-300" checked onchange="loadErrorReports()">
-                            <span class="ml-1"><?php echo substr($m, 0, 3); ?></span>
-                        </label>
-                    <?php endforeach; ?>
-                </div>
+                <label class="form-label">Año</label>
+                <select id="filterYear" class="form-select">
+                    <?php for ($y = date('Y') + 1; $y >= 2020; $y--): ?>
+                        <option value="<?php echo $y; ?>" <?php echo $y == $currentYear ? 'selected' : ''; ?>><?php echo $y; ?></option>
+                    <?php endfor; ?>
+                </select>
             </div>
+
             <div>
-                <label class="text-sm font-semibold text-slate-700 block mb-2">Comunas:</label>
-                <div class="flex flex-wrap gap-2" id="comunasCheckboxes">
-                    <span class="text-sm text-slate-400">Cargando...</span>
-                </div>
+                <label class="form-label">Mes</label>
+                <select id="filterMes" class="form-select">
+                    <option value="">Todos</option>
+                    <?php foreach ($mesesList as $m): ?>
+                        <option value="<?php echo $m; ?>"><?php echo $m; ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+
+            <div>
+                <label class="form-label">Comuna</label>
+                <select id="filterComuna" class="form-select">
+                    <option value="">Todas</option>
+                    <?php foreach ($comunas as $comuna): ?>
+                        <option value="<?php echo $comuna['id']; ?>"><?php echo htmlspecialchars($comuna['nombre']); ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+
+            <div>
+                <label class="form-label">Establecimiento</label>
+                <select id="filterEstablecimiento" class="form-select" disabled>
+                    <option value="">Todos</option>
+                </select>
+            </div>
+
+            <div class="lg:col-span-4 flex items-end gap-3">
+                <button id="btnApplyFilters" class="btn btn-primary">
+                    Aplicar Filtros
+                </button>
+                <button id="btnClearFilters" class="btn btn-secondary">
+                    Limpiar
+                </button>
             </div>
         </div>
     </div>
@@ -112,41 +138,41 @@ $userRole = $_SESSION['rol'];
 <script>
 let errorCharts = {};
 
-function getSelectedMeses() {
-    return Array.from(document.querySelectorAll('.mes-filter:checked')).map(cb => cb.value);
-}
+async function loadEstablecimientos() {
+    const comunaId = document.getElementById('filterComuna').value;
+    const select = document.getElementById('filterEstablecimiento');
 
-function getSelectedComunas() {
-    return Array.from(document.querySelectorAll('.comuna-filter:checked')).map(cb => cb.value);
-}
+    select.innerHTML = '<option value="">Todos</option>';
+    select.disabled = !comunaId;
 
-async function loadComunas() {
-    try {
-        const year = document.getElementById('reportYear').value;
-        const resp = await fetch(`api/reports.php?report=filtros&year=${year}`);
-        const data = await resp.json();
-        if (data.success && data.data.comunas) {
-            const container = document.getElementById('comunasCheckboxes');
-            container.innerHTML = data.data.comunas.map(c => `
-                <label class="inline-flex items-center text-sm cursor-pointer">
-                    <input type="checkbox" value="${c.id}" class="comuna-filter rounded border-slate-300" checked onchange="loadErrorReports()">
-                    <span class="ml-1">${escapeHtml(c.nombre)}</span>
-                </label>
-            `).join('');
+    if (comunaId) {
+        try {
+            const response = await fetch(`api/locations.php?action=get_establecimientos&comuna_id=${comunaId}`);
+            const data = await response.json();
+            if (data.success) {
+                data.data.forEach(est => {
+                    const option = document.createElement('option');
+                    option.value = est.id;
+                    option.textContent = est.nombre_corto || est.nombre;
+                    select.appendChild(option);
+                });
+            }
+        } catch (error) {
+            console.error('Error al cargar establecimientos:', error);
         }
-    } catch (e) {
-        console.error('Error cargando comunas:', e);
     }
 }
 
 async function loadErrorReports() {
-    const year = document.getElementById('reportYear').value;
-    const meses = getSelectedMeses();
-    const comunas = getSelectedComunas();
+    const year = document.getElementById('filterYear').value;
+    const mes = document.getElementById('filterMes').value;
+    const comunaId = document.getElementById('filterComuna').value;
+    const establecimientoId = document.getElementById('filterEstablecimiento').value;
 
     let url = `api/reports.php?report=error-reports&year=${year}`;
-    meses.forEach(m => url += `&meses[]=${encodeURIComponent(m)}`);
-    comunas.forEach(c => url += `&comuna_ids[]=${c}`);
+    if (mes) url += `&meses[]=${encodeURIComponent(mes)}`;
+    if (comunaId) url += `&comuna_ids[]=${comunaId}`;
+    if (establecimientoId) url += `&establecimiento_id=${establecimientoId}`;
 
     try {
         const resp = await fetch(url);
@@ -198,6 +224,11 @@ function renderChart(canvasId, containerId, tableId, type, orientation, labels, 
         return;
     }
 
+    // Restaurar canvas si fue reemplazado por mensaje de sin datos
+    if (container && !document.getElementById(canvasId)) {
+        container.innerHTML = `<canvas id="${canvasId}"></canvas>`;
+    }
+
     // Altura dinámica para más de 10 items
     if (labels.length > 10) {
         const extraHeight = (labels.length - 10) * 22;
@@ -224,8 +255,22 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
+// Event listeners
 document.addEventListener('DOMContentLoaded', () => {
-    loadComunas();
+    document.getElementById('filterComuna').addEventListener('change', loadEstablecimientos);
+    document.getElementById('btnApplyFilters').addEventListener('click', loadErrorReports);
+    document.getElementById('btnClearFilters').addEventListener('click', clearFilters);
+
+    // Carga inicial
     loadErrorReports();
 });
+
+function clearFilters() {
+    document.getElementById('filterYear').value = '<?php echo $currentYear; ?>';
+    document.getElementById('filterMes').value = '';
+    document.getElementById('filterComuna').value = '';
+    document.getElementById('filterEstablecimiento').innerHTML = '<option value="">Todos</option>';
+    document.getElementById('filterEstablecimiento').disabled = true;
+    loadErrorReports();
+}
 </script>

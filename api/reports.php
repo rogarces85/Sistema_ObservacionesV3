@@ -119,16 +119,17 @@ try {
         case 'error-reports':
             $meses = $_GET['meses'] ?? [];
             $comunaIds = $_GET['comuna_ids'] ?? [];
+            $establecimientoId = !empty($_GET['establecimiento_id']) ? intval($_GET['establecimiento_id']) : null;
             if (!is_array($meses)) $meses = $meses ? [$meses] : [];
             if (!is_array($comunaIds)) $comunaIds = $comunaIds ? [$comunaIds] : [];
             $comunaIds = array_map('intval', $comunaIds);
 
             jsonResponse(true, [
-                'errores_establecimiento' => $obsModel->reporteErroresPorEstablecimiento($year, $userId, $userRole, $meses, $comunaIds),
-                'fuera_plazo_establecimiento' => $obsModel->reporteFueraPlazoPorEstablecimiento($year, $userId, $userRole, $meses, $comunaIds),
-                'no_validador_establecimiento' => $obsModel->reporteNoValidadorPorEstablecimiento($year, $userId, $userRole, $meses, $comunaIds),
-                'errores_serie' => $obsModel->reporteErroresPorSerie($year, $userId, $userRole, $meses, $comunaIds),
-                'errores_hoja' => $obsModel->reporteErroresPorHoja($year, $userId, $userRole, $meses, $comunaIds)
+                'errores_establecimiento' => $obsModel->reporteErroresPorEstablecimiento($year, $userId, $userRole, $meses, $comunaIds, $establecimientoId),
+                'fuera_plazo_establecimiento' => $obsModel->reporteFueraPlazoPorEstablecimiento($year, $userId, $userRole, $meses, $comunaIds, $establecimientoId),
+                'no_validador_establecimiento' => $obsModel->reporteNoValidadorPorEstablecimiento($year, $userId, $userRole, $meses, $comunaIds, $establecimientoId),
+                'errores_serie' => $obsModel->reporteErroresPorSerie($year, $userId, $userRole, $meses, $comunaIds, $establecimientoId),
+                'errores_hoja' => $obsModel->reporteErroresPorHoja($year, $userId, $userRole, $meses, $comunaIds, $establecimientoId)
             ]);
             break;
 
