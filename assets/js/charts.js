@@ -3,6 +3,11 @@
  * Visualización de datos estadísticos del sistema REM
  */
 
+// Registrar plugin datalabels si está disponible
+if (typeof ChartDataLabels !== 'undefined') {
+    Chart.register(ChartDataLabels);
+}
+
 // Configuración global de Chart.js
 Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
 Chart.defaults.color = '#64748b';
@@ -378,6 +383,215 @@ function createBarVertical(canvasId, labels, values, color) {
     });
 }
 
+/**
+ * Crear gráfico de barras horizontales para Dashboard - Distribución por Estado (D1)
+ * Con data labels visibles sobre las barras
+ */
+function createDashboardEstadoChart(canvasId, data) {
+    const ctx = document.getElementById(canvasId);
+    if (!ctx) return null;
+    if (!data || !data.length) return null;
+
+    const labels = data.map(item => item.estado_actual.charAt(0).toUpperCase() + item.estado_actual.slice(1));
+    const values = data.map(item => parseInt(item.total));
+    const colors = data.map(item => COLORS[item.estado_actual] || COLORS.secondary);
+
+    return new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Cantidad',
+                data: values,
+                backgroundColor: colors,
+                borderColor: colors.map(c => c + 'cc'),
+                borderWidth: 2,
+                borderRadius: 8,
+                barThickness: 36
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                datalabels: {
+                    anchor: 'end',
+                    align: 'end',
+                    color: '#334155',
+                    font: { weight: 'bold', size: 13 },
+                    formatter: value => value
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                    padding: 12,
+                    titleFont: { size: 14, weight: 'bold' },
+                    bodyFont: { size: 13 },
+                    cornerRadius: 8,
+                    callbacks: {
+                        label: context => ` ${context.parsed.x} observaciones`
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    grid: { display: true, drawBorder: false, color: 'rgba(226, 232, 240, 0.5)' },
+                    ticks: { stepSize: 1, font: { size: 11 } }
+                },
+                y: {
+                    grid: { display: false },
+                    ticks: { font: { size: 12, weight: '600' } }
+                }
+            }
+        }
+    });
+}
+
+/**
+ * Crear gráfico de barras horizontales para Dashboard - Top Tipos de Error (D2)
+ * Con data labels visibles, limitado a Top 10
+ */
+function createDashboardTiposChart(canvasId, data) {
+    const ctx = document.getElementById(canvasId);
+    if (!ctx) return null;
+    if (!data || !data.length) return null;
+
+    // Limitar a Top 10
+    const topData = data.slice(0, 10);
+    const labels = topData.map(item => item.tipo_error);
+    const values = topData.map(item => parseInt(item.total));
+    const palette = [
+        '#0ea5e9', '#6366f1', '#8b5cf6', '#ec4899', '#f97316',
+        '#14b8a6', '#06b6d4', '#84cc16', '#f59e0b', '#ef4444'
+    ];
+    const colors = topData.map((_, i) => palette[i % palette.length]);
+
+    return new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Cantidad',
+                data: values,
+                backgroundColor: colors.map(c => c + 'cc'),
+                borderColor: colors,
+                borderWidth: 1,
+                borderRadius: 6,
+                barThickness: 28
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                datalabels: {
+                    anchor: 'end',
+                    align: 'end',
+                    color: '#334155',
+                    font: { weight: 'bold', size: 12 },
+                    formatter: value => value
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                    padding: 10,
+                    cornerRadius: 8,
+                    callbacks: {
+                        label: context => ` ${context.parsed.x} observaciones`
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    grid: { display: true, drawBorder: false, color: 'rgba(226, 232, 240, 0.5)' },
+                    ticks: { stepSize: 1, font: { size: 11 } }
+                },
+                y: {
+                    grid: { display: false },
+                    ticks: { font: { size: 11, weight: '500' } }
+                }
+            }
+        }
+    });
+}
+
+/**
+ * Crear gráfico de barras agrupadas para Dashboard - Observaciones por Mes comparativo (D3)
+ * Sin data labels para no saturar. Soporta 1 o 2 años.
+ * @param {Object} dataPorAnio - Objeto con clave año y valor array de {mes, total}
+ */
+function createDashboardMesesChart(canvasId, dataPorAnio) {
+    const ctx = document.getElementById(canvasId);
+    if (!ctx) return null;
+
+    const mesesOrden = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    const anios = Object.keys(dataPorAnio).sort();
+    const colores = ['#0ea5e9', '#94a3b8']; // Año actual: azul, Año anterior: gris
+
+    const datasets = anios.map((anio, idx) => {
+        const mesData = dataPorAnio[anio] || [];
+        const mesMap = {};
+        mesData.forEach(m => { mesMap[m.mes] = parseInt(m.total); });
+        const values = mesesOrden.map(m => mesMap[m] || 0);
+
+        return {
+            label: anio,
+            data: values,
+            backgroundColor: colores[idx % colores.length] + 'cc',
+            borderColor: colores[idx % colores.length],
+            borderWidth: 1,
+            borderRadius: 4,
+            barPercentage: anios.length > 1 ? 0.7 : 0.5
+        };
+    });
+
+    return new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: mesesOrden.map(m => m.substring(0, 3)),
+            datasets: datasets
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: anios.length > 1,
+                    position: 'top',
+                    labels: { usePointStyle: true, padding: 20, font: { size: 12 } }
+                },
+                datalabels: { display: false },
+                tooltip: {
+                    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                    padding: 10,
+                    cornerRadius: 8,
+                    callbacks: {
+                        label: context => ` ${context.dataset.label}: ${context.parsed.y} observaciones`
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: { drawBorder: false, color: 'rgba(226, 232, 240, 0.5)' },
+                    ticks: { stepSize: 1, font: { size: 11 } }
+                },
+                x: {
+                    grid: { display: false },
+                    ticks: { font: { size: 11 } }
+                }
+            }
+        }
+    });
+}
+
+window.createDashboardEstadoChart = createDashboardEstadoChart;
+window.createDashboardTiposChart = createDashboardTiposChart;
+window.createDashboardMesesChart = createDashboardMesesChart;
 window.createBarHorizontal = createBarHorizontal;
 window.createBarVertical = createBarVertical;
 window.initializeCharts = initializeCharts;
