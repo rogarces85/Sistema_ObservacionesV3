@@ -1,7 +1,9 @@
 /**
  * Estilos del Sistema de Observaciones REM
- * Diseño basado en Hospital Dashboard
- * Nomenclatura: BEM (Block__Element--Modifier)
+ * DISCLAIMER: Archivo legacy en proceso de migración a Tabler.
+ * Las vistas nuevas usan clases de Tabler/Bootstrap 5.
+ * Se conservan estilos legacy para compatibilidad con contenido
+ * generado dinámicamente por JavaScript.
  */
 
 /* =========================================

@@ -49,29 +49,7 @@ function getCsrfToken() {
     return metaTag ? metaTag.getAttribute('content') : null;
 }
 
-// Modal management
-function openModal(modalId) {
-    const modal = document.getElementById(modalId);
-    if (modal) {
-        modal.classList.remove('hidden');
-        modal.classList.add('fade-in');
-    }
-}
-
-function closeModal(modalId) {
-    const modal = document.getElementById(modalId);
-    if (modal) {
-        modal.classList.add('hidden');
-    }
-}
-
-// Cerrar modal al hacer click fuera del contenido
-document.addEventListener('click', function (e) {
-    if (e.target.classList.contains('modal-overlay')) {
-        e.target.classList.add('hidden');
-    }
-});
-
+// Modales gestionados por Bootstrap 5 (data-bs-toggle, data-bs-target)
 // Loading state
 function showLoading(containerId = 'loading-overlay') {
     const overlay = document.getElementById(containerId);

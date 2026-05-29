@@ -5,7 +5,7 @@
  */
 
 if ($_SESSION['rol'] !== ROL_SUPERVISOR) {
-    echo '<div class="p-6 text-center"><h2 class="text-xl font-bold text-rose-600">Acceso Denegado</h2><p>Solo los supervisores pueden acceder a esta sección.</p></div>';
+    echo '<div class="page-wrapper"><div class="page-body"><div class="container-xl"><div class="empty"><div class="empty-header text-danger">403</div><p class="empty-title">Acceso Denegado</p><p class="empty-subtitle text-secondary">Solo los supervisores pueden acceder a esta sección.</p></div></div></div></div>';
     return;
 }
 
@@ -16,199 +16,183 @@ $anioSeleccionado = $_SESSION['year'] ?? date('Y');
 $registradores = $asignacionModel->getEstadisticasAsignaciones($anioSeleccionado);
 ?>
 
-<div class="space-y-6">
-    <!-- Header con selector de año -->
-    <div class="flex items-center justify-between">
-        <div>
-            <h2 class="text-2xl font-bold text-slate-800">Asignación de Establecimientos</h2>
-            <p class="text-slate-600">Gestione los establecimientos y referentes por año</p>
-        </div>
-        <div class="flex gap-3 items-center">
-            <label class="text-sm font-semibold text-slate-700">Año:</label>
-            <select id="selectorAnio" class="form-select w-28" onchange="cambiarAnio(this.value)">
-                <?php for ($y = date('Y') + 1; $y >= 2020; $y--): ?>
-                    <option value="<?php echo $y; ?>" <?php echo $y == $anioSeleccionado ? 'selected' : ''; ?>><?php echo $y; ?></option>
-                <?php endfor; ?>
-            </select>
-            <button onclick="copiarAnioAnterior()" class="btn btn-secondary text-sm" title="Copiar asignaciones del año anterior">
-                📋 Copiar Año Anterior
-            </button>
-        </div>
-    </div>
+<div class="page-wrapper">
+    <div class="page-body">
+        <div class="container-xl">
+            <div class="row row-cards">
 
-    <!-- Layout de dos columnas -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- Panel izquierdo: Lista de registradores -->
-        <div class="lg:col-span-1">
-            <div class="card overflow-hidden">
-                <div class="p-4 border-b border-slate-100">
-                    <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
-                        <span>👥</span> Registradores
-                    </h3>
-                    <p class="text-sm text-slate-500 mt-1">Seleccione un registrador</p>
+                <!-- Header -->
+                <div class="col-12">
+                    <div class="mb-3 d-flex align-items-center justify-content-between">
+                        <div>
+                            <h2 class="page-title">Asignación de Establecimientos</h2>
+                            <div class="text-secondary">Gestione los establecimientos y referentes por año</div>
+                        </div>
+                        <div class="btn-list">
+                            <label class="form-label d-inline me-2 mb-0">Año:</label>
+                            <select id="selectorAnio" class="form-select d-inline w-auto" onchange="cambiarAnio(this.value)">
+                                <?php for ($y = date('Y') + 1; $y >= 2020; $y--): ?>
+                                    <option value="<?php echo $y; ?>" <?php echo $y == $anioSeleccionado ? 'selected' : ''; ?>><?php echo $y; ?></option>
+                                <?php endfor; ?>
+                            </select>
+                            <button onclick="copiarAnioAnterior()" class="btn btn-outline-secondary" title="Copiar asignaciones del año anterior">
+                                Copiar Año Anterior
+                            </button>
+                        </div>
+                    </div>
                 </div>
-                <div class="overflow-y-auto" style="max-height: 600px;" id="listaRegistradores">
-                    <?php if (!empty($registradores)): ?>
-                        <?php foreach ($registradores as $reg): ?>
-                            <div class="p-4 border-b border-slate-50 hover:bg-slate-50 cursor-pointer transition-colors registrador-item"
-                                 onclick="seleccionarRegistrador(<?php echo $reg['id']; ?>, '<?php echo htmlspecialchars($reg['nombre_completo']); ?>')"
-                                 data-registrador-id="<?php echo $reg['id']; ?>">
-                                <div class="flex items-center justify-between">
-                                    <div class="flex-1 min-w-0">
-                                        <p class="font-semibold text-slate-800 truncate">
-                                            <?php echo htmlspecialchars($reg['nombre_completo']); ?>
-                                        </p>
-                                        <p class="text-xs text-slate-500">
-                                            <?php echo htmlspecialchars($reg['username']); ?>
-                                        </p>
+
+                <!-- Layout de dos columnas -->
+                <div class="col-12">
+                    <div class="row g-4">
+                        <!-- Panel izquierdo: Lista de registradores -->
+                        <div class="col-12 col-lg-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3 class="card-title">Registradores</h3>
+                                    <div class="card-subtitle">Seleccione un registrador</div>
+                                </div>
+                                <div class="list-group list-group-flush" style="max-height: 600px; overflow-y: auto;" id="listaRegistradores">
+                                    <?php if (!empty($registradores)): ?>
+                                        <?php foreach ($registradores as $reg): ?>
+                                            <div class="list-group-item list-group-item-action registrador-item"
+                                                 onclick="seleccionarRegistrador(<?php echo $reg['id']; ?>, '<?php echo htmlspecialchars($reg['nombre_completo']); ?>')"
+                                                 data-registrador-id="<?php echo $reg['id']; ?>">
+                                                <div class="row align-items-center">
+                                                    <div class="col">
+                                                        <div class="fw-semibold text-truncate"><?php echo htmlspecialchars($reg['nombre_completo']); ?></div>
+                                                        <div class="text-secondary text-sm"><?php echo htmlspecialchars($reg['username']); ?></div>
+                                                    </div>
+                                                    <div class="col-auto">
+                                                        <span class="badge bg-azure-lt px-2 py-1"><?php echo $reg['total_establecimientos']; ?></span>
+                                                        <div class="text-secondary text-xs mt-1">establecimientos</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    <?php else: ?>
+                                        <div class="empty p-6">
+                                            <p class="empty-title">No hay registradores activos</p>
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Panel derecho: Establecimientos asignados + Contactos -->
+                        <div class="col-12 col-lg-8">
+                            <div class="card">
+                                <div class="card-header">
+                                    <div>
+                                        <h3 class="card-title">Establecimientos y Contactos</h3>
+                                        <p class="card-subtitle" id="registradorSeleccionadoTexto">Seleccione un registrador</p>
                                     </div>
-                                    <div class="ml-3 text-right">
-                                        <span class="inline-flex items-center justify-center px-2 py-1 text-xs font-bold rounded-full bg-sky-100 text-sky-700 contador-est">
-                                            <?php echo $reg['total_establecimientos']; ?>
-                                        </span>
-                                        <p class="text-xs text-slate-400 mt-1">establecimientos</p>
+                                    <div id="accionesAsignacion" class="d-none">
+                                        <button onclick="abrirModalAsignar()" class="btn btn-primary">
+                                            Asignar / Reasignar
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="card-body" id="establecimientosContainer">
+                                    <div class="empty">
+                                        <div class="empty-header text-secondary">🏢</div>
+                                        <p class="empty-title">Seleccione un registrador</p>
+                                        <p class="empty-subtitle text-secondary">Para ver sus establecimientos y datos de contacto</p>
                                     </div>
                                 </div>
                             </div>
-                        <?php endforeach; ?>
-                    <?php else: ?>
-                        <div class="p-8 text-center">
-                            <div class="text-4xl mb-3"></div>
-                            <p class="text-slate-600 font-medium">No hay registradores activos</p>
                         </div>
-                    <?php endif; ?>
+                    </div>
                 </div>
-            </div>
-        </div>
 
-        <!-- Panel derecho: Establecimientos asignados + Contactos -->
-        <div class="lg:col-span-2">
-            <div class="card overflow-hidden">
-                <div class="p-4 border-b border-slate-100 flex justify-between items-center">
-                    <div>
-                        <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
-                            <span>🏥</span> Establecimientos y Contactos
-                        </h3>
-                        <p class="text-sm text-slate-500 mt-1" id="registradorSeleccionadoTexto">
-                            Seleccione un registrador
-                        </p>
-                    </div>
-                    <div id="accionesAsignacion" class="hidden gap-2">
-                        <button onclick="abrirModalAsignar()" class="btn btn-primary text-sm">
-                            ➕ Asignar / Reasignar
-                        </button>
+                <!-- Sección: Reasignaciones Temporales Activas -->
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Reasignaciones Temporales Activas</h3>
+                            <div class="card-subtitle">Establecimientos reasignados temporalmente para <?php echo $anioSeleccionado; ?></div>
+                        </div>
+                        <div class="card-body" id="reasignacionesTemporalesContainer">
+                            <div class="text-center py-8">
+                                <div class="spinner-border text-warning" role="status"><span class="visually-hidden">Cargando...</span></div>
+                                <p class="mt-2 text-secondary">Cargando reasignaciones...</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                
-                <div id="establecimientosContainer" class="p-6">
-                    <div class="text-center py-12">
-                        <div class="text-5xl mb-4">🏢</div>
-                        <p class="text-slate-600 font-medium">Seleccione un registrador</p>
-                        <p class="text-sm text-slate-400 mt-2">Para ver sus establecimientos y datos de contacto</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Sección: Reasignaciones Temporales Activas -->
-    <div class="card overflow-hidden">
-        <div class="p-4 border-b border-slate-100 flex justify-between items-center">
-            <div>
-                <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
-                    <span>⏱️</span> Reasignaciones Temporales Activas
-                </h3>
-                <p class="text-sm text-slate-500 mt-1">Establecimientos reasignados temporalmente para <?php echo $anioSeleccionado; ?></p>
-            </div>
-        </div>
-        <div id="reasignacionesTemporalesContainer" class="p-6">
-            <div class="text-center py-8">
-                <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500"></div>
-                <p class="mt-2 text-slate-500">Cargando reasignaciones...</p>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Modal para asignar establecimiento -->
-<div id="modalAsignar" class="modal-overlay hidden">
-    <div class="modal-content" style="max-width: 650px;">
-        <div class="modal-header">
-            <div>
-                <h3 class="text-xl font-bold text-slate-800">Asignar / Reasignar Establecimientos</h3>
-                <p class="text-sm text-slate-500" id="modalAsignarInfo"></p>
+<!-- Modal para asignar establecimiento (Bootstrap) -->
+<div id="modalAsignar" class="modal fade" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title">Asignar / Reasignar Establecimientos</h5>
+                    <div class="text-secondary" id="modalAsignarInfo"></div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <button onclick="cerrarModalAsignar()" class="btn-secondary px-3 py-2">✕</button>
-        </div>
-        <div class="modal-body">
-            <div class="space-y-4">
-                <!-- Tipo de Asignación -->
-                <div>
-                    <label class="block text-sm font-semibold text-slate-700 mb-2">Tipo de Asignación</label>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Tipo de Asignación</label>
                     <div class="space-y-2">
-                        <label class="flex items-center gap-3 p-3 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors">
-                            <input type="radio" name="tipoAsignacion" value="anual" checked onchange="toggleTipoAsignacion()">
-                            <div class="flex-1">
-                                <span class="text-sm font-semibold text-slate-800">📅 Anual</span>
-                                <p class="text-xs text-slate-500">Asignación base para todo el año</p>
-                            </div>
+                        <label class="form-selectgroup-item p-3 border rounded cursor-pointer">
+                            <input type="radio" name="tipoAsignacion" value="anual" class="form-check-input me-2" checked onchange="toggleTipoAsignacion()">
+                            Anual <span class="text-secondary">— Asignación base para todo el año</span>
                         </label>
-                        <label class="flex items-center gap-3 p-3 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors">
-                            <input type="radio" name="tipoAsignacion" value="temporal" onchange="toggleTipoAsignacion()">
-                            <div class="flex-1">
-                                <span class="text-sm font-semibold text-slate-800">⏱️ Temporal</span>
-                                <p class="text-xs text-slate-500">Reasignación por meses específicos (override)</p>
-                            </div>
+                        <label class="form-selectgroup-item p-3 border rounded cursor-pointer">
+                            <input type="radio" name="tipoAsignacion" value="temporal" class="form-check-input me-2" onchange="toggleTipoAsignacion()">
+                            Temporal <span class="text-secondary">— Reasignación por meses específicos</span>
                         </label>
                     </div>
                 </div>
-
-                <div>
-                    <label class="block text-sm font-semibold text-slate-700 mb-2">Buscar Establecimiento</label>
-                    <input type="text" id="buscarEstablecimiento" 
+                <div class="mb-3">
+                    <label class="form-label">Buscar Establecimiento</label>
+                    <input type="text" id="buscarEstablecimiento" class="form-control"
                            placeholder="Escriba para buscar por nombre o comuna..."
-                           oninput="filtrarEstablecimientos()"
-                           class="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500">
+                           oninput="filtrarEstablecimientos()">
                 </div>
-
-                <div>
-                    <label class="block text-sm font-semibold text-slate-700 mb-2">Establecimientos Disponibles</label>
-                    <div id="listaEstablecimientosDisponibles" class="border border-slate-200 rounded-lg max-h-64 overflow-y-auto">
-                    </div>
+                <div class="mb-3">
+                    <label class="form-label">Establecimientos Disponibles</label>
+                    <div id="listaEstablecimientosDisponibles" class="border rounded" style="max-height: 260px; overflow-y: auto;"></div>
                 </div>
-
-                <div id="periodoContainer">
-                    <label class="block text-sm font-semibold text-slate-700 mb-2">Periodo de validez</label>
+                <div id="periodoContainer" class="mb-3">
+                    <label class="form-label">Periodo de validez</label>
                     <div class="space-y-2">
-                        <label class="flex items-center gap-2 cursor-pointer">
-                            <input type="radio" name="periodoAsignacion" value="ALL" checked onchange="toggleMesesAsignacion()">
-                            <span class="text-sm text-slate-700">Todo el año <span class="text-slate-400" id="anioPeriodoLabel"></span></span>
+                        <label class="form-check">
+                            <input type="radio" name="periodoAsignacion" value="ALL" class="form-check-input" checked onchange="toggleMesesAsignacion()">
+                            <span class="form-check-label">Todo el año <span class="text-secondary" id="anioPeriodoLabel"></span></span>
                         </label>
-                        <label class="flex items-center gap-2 cursor-pointer">
-                            <input type="radio" name="periodoAsignacion" value="MESES" onchange="toggleMesesAsignacion()">
-                            <span class="text-sm text-slate-700">Meses específicos</span>
+                        <label class="form-check">
+                            <input type="radio" name="periodoAsignacion" value="MESES" class="form-check-input" onchange="toggleMesesAsignacion()">
+                            <span class="form-check-label">Meses específicos</span>
                         </label>
-                        <div id="mesesEspecificosContainer" class="hidden pl-6 pt-1">
-                            <div class="grid grid-cols-4 gap-2">
+                        <div id="mesesEspecificosContainer" class="d-none ms-4 mt-2">
+                            <div class="row g-2">
                                 <?php
                                 $nombresMeses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
                                 foreach ($nombresMeses as $i => $nombre):
                                     $numero = $i + 1;
                                 ?>
-                                <label class="flex items-center gap-1.5 text-sm text-slate-700 cursor-pointer hover:bg-slate-50 rounded px-1 py-0.5">
-                                    <input type="checkbox" class="mes-checkbox rounded" value="<?php echo $numero; ?>">
-                                    <?php echo $nombre; ?>
-                                </label>
+                                <div class="col-3">
+                                    <label class="form-check">
+                                        <input type="checkbox" class="form-check-input mes-checkbox" value="<?php echo $numero; ?>">
+                                        <span class="form-check-label"><?php echo $nombre; ?></span>
+                                    </label>
+                                </div>
                                 <?php endforeach; ?>
                             </div>
                         </div>
                     </div>
                 </div>
-
-                <div class="flex gap-3 pt-4">
-                    <button onclick="guardarAsignaciones()" class="btn btn-primary flex-1">Guardar Asignaciones</button>
-                    <button onclick="cerrarModalAsignar()" class="btn btn-secondary">Cancelar</button>
-                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal" onclick="cerrarModalAsignar()">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="guardarAsignaciones()">Guardar Asignaciones</button>
             </div>
         </div>
     </div>
@@ -219,8 +203,8 @@ $registradores = $asignacionModel->getEstadisticasAsignaciones($anioSeleccionado
     let anioActual = <?php echo $anioSeleccionado; ?>;
     let establecimientosDisponibles = [];
     let establecimientosAsignados = [];
+    const modalAsignar = new bootstrap.Modal(document.getElementById('modalAsignar'));
 
-    // Cargar reasignaciones temporales al iniciar
     document.addEventListener('DOMContentLoaded', function() {
         cargarReasignacionesTemporales();
     });
@@ -393,15 +377,15 @@ $registradores = $asignacionModel->getEstadisticasAsignaciones($anioSeleccionado
             const response = await fetchAPI(`assignments.php?action=referentes&establecimiento_id=${establecimientoId}`);
             
             if (response.success && response.data.length > 0) {
-                let html = '<table class="w-full text-xs"><thead><tr class="text-slate-500"><th class="text-left py-1 px-2">Cargo</th><th class="text-left py-1 px-2">Nombre</th><th class="text-left py-1 px-2">Teléfono</th><th class="text-left py-1 px-2">Email</th></tr></thead><tbody>';
+                let html = '<table class="table table-sm table-vcenter"><thead><tr><th>Cargo</th><th>Nombre</th><th>Teléfono</th><th>Email</th></tr></thead><tbody>';
                 
                 response.data.forEach(ref => {
                     html += `
-                        <tr class="border-t border-slate-50 hover:bg-slate-50">
-                            <td class="py-1.5 px-2 font-medium text-slate-700">${escapeHtml(ref.cargo)}</td>
-                            <td class="py-1.5 px-2 text-slate-800">${escapeHtml(ref.nombre)}</td>
-                            <td class="py-1.5 px-2 text-slate-600">${escapeHtml(ref.telefono) || '-'}</td>
-                            <td class="py-1.5 px-2 text-sky-600">${escapeHtml(ref.email) || '-'}</td>
+                        <tr>
+                            <td class="fw-semibold">${escapeHtml(ref.cargo)}</td>
+                            <td>${escapeHtml(ref.nombre)}</td>
+                            <td class="text-secondary">${escapeHtml(ref.telefono) || '-'}</td>
+                            <td class="text-primary">${escapeHtml(ref.email) || '-'}</td>
                         </tr>
                     `;
                 });
@@ -423,12 +407,12 @@ $registradores = $asignacionModel->getEstadisticasAsignaciones($anioSeleccionado
         }
 
         const selectedItem = document.querySelector(`[data-registrador-id="${registradorSeleccionadoId}"]`);
-        const nombre = selectedItem.querySelector('.font-semibold').textContent;
+        const nombre = selectedItem.querySelector('.fw-semibold').textContent;
         document.getElementById('modalAsignarInfo').textContent = `Para: ${nombre} — Año ${anioActual}`;
         document.getElementById('anioPeriodoLabel').textContent = anioActual;
 
         await cargarEstablecimientosDisponibles();
-        openModal('modalAsignar');
+        modalAsignar.show();
     }
 
     function toggleMesesAsignacion() {
@@ -698,22 +682,22 @@ $registradores = $asignacionModel->getEstadisticasAsignaciones($anioSeleccionado
             const response = await fetchAPI(`assignments.php?action=temporales&anio=${anioActual}`);
             
             if (response.success && response.data.length > 0) {
-                let html = `
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-sm">
-                            <thead>
-                                <tr class="bg-amber-50 text-amber-800">
-                                    <th class="text-left py-3 px-4 font-semibold">Establecimiento</th>
-                                    <th class="text-left py-3 px-4 font-semibold">Comuna</th>
-                                    <th class="text-left py-3 px-4 font-semibold">Titular Anual</th>
-                                    <th class="text-left py-3 px-4 font-semibold">Reasignado a</th>
-                                    <th class="text-left py-3 px-4 font-semibold">Meses</th>
-                                    <th class="text-left py-3 px-4 font-semibold">Fecha</th>
-                                    <th class="text-right py-3 px-4 font-semibold">Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                `;
+                    let html = `
+                        <div class="table-responsive">
+                            <table class="table table-vcenter card-table">
+                                <thead>
+                                    <tr>
+                                        <th>Establecimiento</th>
+                                        <th>Comuna</th>
+                                        <th>Titular Anual</th>
+                                        <th>Reasignado a</th>
+                                        <th>Meses</th>
+                                        <th>Fecha</th>
+                                        <th class="text-end">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                        `;
                 
                 response.data.forEach(temp => {
                     const titularNombre = temp.titular_anual ? escapeHtml(temp.titular_anual.nombre_completo) : '<span class="text-slate-400 italic">Sin titular anual</span>';
@@ -721,27 +705,22 @@ $registradores = $asignacionModel->getEstadisticasAsignaciones($anioSeleccionado
                     const fecha = new Date(temp.fecha_asignacion).toLocaleDateString('es-CL');
                     
                     html += `
-                        <tr class="border-b border-slate-100 hover:bg-slate-50">
-                            <td class="py-3 px-4">
-                                <div class="font-semibold text-slate-800">${escapeHtml(temp.establecimiento_nombre)}</div>
-                                <div class="text-xs text-slate-500">${escapeHtml(temp.codigo_establecimiento)}</div>
+                        <tr>
+                            <td>
+                                <div class="fw-semibold">${escapeHtml(temp.establecimiento_nombre)}</div>
+                                <div class="text-secondary text-sm">${escapeHtml(temp.codigo_establecimiento)}</div>
                             </td>
-                            <td class="py-3 px-4 text-slate-600">${escapeHtml(temp.comuna_nombre)}</td>
-                            <td class="py-3 px-4">${titularNombre}</td>
-                            <td class="py-3 px-4">
-                                <span class="font-semibold text-amber-700">${escapeHtml(temp.registrador_nombre)}</span>
+                            <td class="text-secondary">${escapeHtml(temp.comuna_nombre)}</td>
+                            <td>${titularNombre}</td>
+                            <td><span class="fw-semibold text-warning">${escapeHtml(temp.registrador_nombre)}</span></td>
+                            <td>
+                                <span class="badge bg-warning-lt">${mesesTexto}</span>
                             </td>
-                            <td class="py-3 px-4">
-                                <span class="inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full bg-amber-100 text-amber-800">
-                                    ️ ${mesesTexto}
-                                </span>
-                            </td>
-                            <td class="py-3 px-4 text-slate-500">${fecha}</td>
-                            <td class="py-3 px-4 text-right">
+                            <td class="text-secondary">${fecha}</td>
+                            <td class="text-end">
                                 <button onclick="removerReasignacionTemporal(${temp.id}, ${temp.establecimiento_id}, ${temp.registrador_id})"
-                                        class="btn-secondary px-3 py-1 text-xs bg-rose-50 hover:bg-rose-100 text-rose-600"
-                                        title="Remover reasignación temporal">
-                                    ✕ Remover
+                                        class="btn btn-sm btn-outline-danger">
+                                    Remover
                                 </button>
                             </td>
                         </tr>
@@ -802,11 +781,10 @@ $registradores = $asignacionModel->getEstadisticasAsignaciones($anioSeleccionado
     }
 
     function cerrarModalAsignar() {
-        closeModal('modalAsignar');
+        modalAsignar.hide();
         document.getElementById('buscarEstablecimiento').value = '';
         document.querySelector('input[name="periodoAsignacion"][value="ALL"]').checked = true;
         document.querySelectorAll('.mes-checkbox').forEach(cb => cb.checked = false);
-        // Resetear tipo de asignación a anual
         document.querySelector('input[name="tipoAsignacion"][value="anual"]').checked = true;
         toggleTipoAsignacion();
         toggleMesesAsignacion();

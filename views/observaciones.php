@@ -186,262 +186,257 @@ global $TIPOS_ERROR, $MESES;
     </div>
 </div>
 
-<!-- Modal Crear/Editar -->
-<div id="modalObservation" class="modal-overlay hidden">
-    <div class="modal-content">
-        <div class="modal-header">
-            <div>
-                <h3 id="modalTitle" class="text-xl font-bold text-slate-800">Nueva Observación</h3>
-                <p class="text-sm text-slate-500">Complete los datos de la observación</p>
-            </div>
-            <button onclick="closeModal('modalObservation')" class="btn-secondary px-3 py-2" type="button">✕</button>
-        </div>
-        <div class="modal-body">
-            <form id="formObservation" onsubmit="saveObservation(event)" class="space-y-4">
-                <input type="hidden" id="obsId" value="">
-
-                <!-- Información del Registrador (solo lectura) -->
-                <div class="bg-slate-100 p-3 rounded-lg mb-4">
-                    <label class="block text-sm font-semibold text-slate-700 mb-1">Registrado por:</label>
-                    <p class="text-lg font-bold text-primary-600">
-                        <?php echo htmlspecialchars($_SESSION['nombre_completo'] ?? 'Usuario'); ?>
-                    </p>
-                </div>
-
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-semibold text-slate-700 mb-2">Mes *</label>
-                        <select id="mes" name="mes" required>
-                            <option value="">Seleccione...</option>
-                            <?php foreach ($MESES as $mes): ?>
-                                <option value="<?php echo $mes; ?>">
-                                    <?php echo $mes; ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-semibold text-slate-700 mb-2">Establecimiento *</label>
-                        <select id="establecimiento_id" name="establecimiento_id" onchange="loadEstablecimientoCodigo()"
-                            required>
-                            <option value="">Seleccione...</option>
-                            <?php foreach ($establecimientos as $est): ?>
-                                <option value="<?php echo $est['id']; ?>"
-                                    data-codigo="<?php echo htmlspecialchars($est['codigo_establecimiento'] ?? $est['nombre_corto']); ?>">
-                                    <?php echo htmlspecialchars($est['nombre']); ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-semibold text-slate-700 mb-2">Código Establecimiento</label>
-                        <input type="text" id="codigo_establecimiento" name="codigo_establecimiento" readonly
-                            class="bg-slate-50" placeholder="Se cargará automáticamente">
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-semibold text-slate-700 mb-2">Tipo *</label>
-                        <select id="tipo_error" name="tipo_error" required onchange="handleTipoChange()">
-                            <option value="">Seleccione...</option>
-                            <?php foreach ($TIPOS_ERROR as $tipo): ?>
-                                <option value="<?php echo htmlspecialchars($tipo); ?>">
-                                    <?php echo htmlspecialchars($tipo); ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-semibold text-slate-700 mb-2">Serie</label>
-                        <select id="codigo_serie" name="codigo_serie" onchange="loadHojasREM()">
-                            <option value="">Seleccione...</option>
-                            <?php foreach ($SERIES_REM as $serie): ?>
-                                <option value="<?php echo htmlspecialchars($serie); ?>">
-                                    <?php echo htmlspecialchars($serie); ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-
-                    <div id="hojaRemContainer">
-                        <label class="block text-sm font-semibold text-slate-700 mb-2">REM (Hoja)</label>
-                        <select id="codigo_hoja" name="codigo_hoja" disabled>
-                            <option value="">Primero seleccione una Serie</option>
-                        </select>
-                    </div>
-                </div>
-
+<!-- Modal Crear/Editar (Bootstrap) -->
+<div id="modalObservation" class="modal fade" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
                 <div>
-                    <label class="block text-sm font-semibold text-slate-700 mb-2">Detalle de la Observación</label>
-                    <textarea id="detalle_observacion" name="detalle_observacion" rows="4"
-                        placeholder="Descripción de la observación..."></textarea>
+                    <h5 class="modal-title" id="modalTitle">Nueva Observación</h5>
+                    <div class="text-secondary">Complete los datos de la observación</div>
                 </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formObservation" onsubmit="saveObservation(event)">
+                <div class="modal-body">
+                    <input type="hidden" id="obsId" value="">
 
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-semibold text-slate-700 mb-2">Plazo de Entrega</label>
-                        <select id="plazo_entrega" name="plazo_entrega">
-                            <option value="">Seleccione...</option>
-                            <option value="dentro_plazo">Dentro de Plazo</option>
-                            <option value="fuera_plazo">Fuera de Plazo</option>
-                        </select>
+                    <div class="mb-3 p-3 bg-light rounded">
+                        <label class="form-label mb-0">Registrado por:</label>
+                        <p class="fs-5 fw-bold mb-0"><?php echo htmlspecialchars($_SESSION['nombre_completo'] ?? 'Usuario'); ?></p>
                     </div>
 
-                    <div>
-                        <label class="block text-sm font-semibold text-slate-700 mb-2">Usa Validador</label>
-                        <select id="usa_validador" name="usa_validador">
-                            <option value="">Seleccione...</option>
-                            <option value="si">Sí</option>
-                            <option value="no">No</option>
-                            <option value="n/a">N/A</option>
-                        </select>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label required">Mes</label>
+                            <select id="mes" name="mes" class="form-select" required>
+                                <option value="">Seleccione...</option>
+                                <?php foreach ($MESES as $mes): ?>
+                                    <option value="<?php echo $mes; ?>"><?php echo $mes; ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label required">Establecimiento</label>
+                            <select id="establecimiento_id" name="establecimiento_id" class="form-select"
+                                onchange="loadEstablecimientoCodigo()" required>
+                                <option value="">Seleccione...</option>
+                                <?php foreach ($establecimientos as $est): ?>
+                                    <option value="<?php echo $est['id']; ?>"
+                                        data-codigo="<?php echo htmlspecialchars($est['codigo_establecimiento'] ?? $est['nombre_corto']); ?>">
+                                        <?php echo htmlspecialchars($est['nombre']); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Código Establecimiento</label>
+                            <input type="text" id="codigo_establecimiento" name="codigo_establecimiento"
+                                class="form-control bg-light" readonly placeholder="Se cargará automáticamente">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label required">Tipo</label>
+                            <select id="tipo_error" name="tipo_error" class="form-select" required onchange="handleTipoChange()">
+                                <option value="">Seleccione...</option>
+                                <?php foreach ($TIPOS_ERROR as $tipo): ?>
+                                    <option value="<?php echo htmlspecialchars($tipo); ?>"><?php echo htmlspecialchars($tipo); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Serie</label>
+                            <select id="codigo_serie" name="codigo_serie" class="form-select" onchange="loadHojasREM()">
+                                <option value="">Seleccione...</option>
+                                <?php foreach ($SERIES_REM as $serie): ?>
+                                    <option value="<?php echo htmlspecialchars($serie); ?>"><?php echo htmlspecialchars($serie); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-md-6" id="hojaRemContainer">
+                            <label class="form-label">REM (Hoja)</label>
+                            <select id="codigo_hoja" name="codigo_hoja" class="form-select" disabled>
+                                <option value="">Primero seleccione una Serie</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Detalle de la Observación</label>
+                        <textarea id="detalle_observacion" name="detalle_observacion" class="form-control" rows="4"
+                            placeholder="Descripción de la observación..."></textarea>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Plazo de Entrega</label>
+                            <select id="plazo_entrega" name="plazo_entrega" class="form-select">
+                                <option value="">Seleccione...</option>
+                                <option value="dentro_plazo">Dentro de Plazo</option>
+                                <option value="fuera_plazo">Fuera de Plazo</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Usa Validador</label>
+                            <select id="usa_validador" name="usa_validador" class="form-select">
+                                <option value="">Seleccione...</option>
+                                <option value="si">Sí</option>
+                                <option value="no">No</option>
+                                <option value="n/a">N/A</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3" id="respuestaContainer">
+                        <label class="form-label">Respuesta del Establecimiento</label>
+                        <textarea id="respuesta_establecimiento" name="respuesta_establecimiento" class="form-control" rows="3"
+                            placeholder="Respuesta recibida del establecimiento..."></textarea>
                     </div>
                 </div>
-
-                <div id="respuestaContainer">
-                    <label class="block text-sm font-semibold text-slate-700 mb-2">Respuesta del Establecimiento</label>
-                    <textarea id="respuesta_establecimiento" name="respuesta_establecimiento" rows="3"
-                        placeholder="Respuesta recibida del establecimiento..."></textarea>
-                </div>
-
-                <div class="flex gap-3 pt-4">
-                    <button type="submit" class="btn btn-primary flex-1">Guardar</button>
-                    <button type="button" onclick="closeModal('modalObservation')"
-                        class="btn btn-secondary">Cancelar</button>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary ms-auto">Guardar</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
-<!-- Modal Importar -->
-<div id="modalImport" class="modal-overlay hidden">
-    <div class="modal-content" style="max-width: 700px;">
-        <div class="modal-header">
-            <div>
-                <h3 class="text-xl font-bold text-slate-800">Importar Observaciones</h3>
-                <p class="text-sm text-slate-500">Carga masiva de observaciones desde archivo Excel (XLSX)</p>
+<!-- Modal Importar (Bootstrap) -->
+<div id="modalImport" class="modal fade" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title">Importar Observaciones</h5>
+                    <div class="text-secondary">Carga masiva de observaciones desde archivo Excel (XLSX)</div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <button onclick="closeModal('modalImport')" class="btn-secondary px-3 py-2" type="button">✕</button>
-        </div>
-        <div class="modal-body">
-            <!-- Paso 1: Subir archivo -->
-            <div id="importStep1">
-                <div class="text-center p-6 border-2 border-dashed border-slate-300 rounded-xl mb-4">
-                    <div class="text-4xl mb-2">�</div>
-                    <p class="text-slate-600 mb-4">Seleccione un archivo Excel (.xlsx) o CSV con las observaciones</p>
-                    <input type="file" id="csvFile" accept=".xlsx,.xls,.csv" class="hidden" onchange="previewImport()">
-                    <button onclick="document.getElementById('csvFile').click()" class="btn btn-primary">
-                        📁 Seleccionar Archivo Excel
-                    </button>
-                </div>
-
-                <div class="flex items-center justify-between p-4 bg-slate-50 rounded-xl">
-                    <div>
-                        <p class="font-semibold text-slate-700">¿No tiene la plantilla?</p>
-                        <p class="text-sm text-slate-500">Descargue la plantilla Excel (.xlsx) con ejemplos</p>
+            <div class="modal-body">
+                <!-- Paso 1 -->
+                <div id="importStep1">
+                    <div class="text-center p-6 border-2 border-dashed rounded mb-4">
+                        <p class="text-secondary mb-4">Seleccione un archivo Excel (.xlsx) o CSV con las observaciones</p>
+                        <input type="file" id="csvFile" accept=".xlsx,.xls,.csv" class="d-none" onchange="previewImport()">
+                        <button onclick="document.getElementById('csvFile').click()" class="btn btn-primary">
+                            Seleccionar Archivo Excel
+                        </button>
                     </div>
-                    <a href="api/import_template.php" class="btn btn-secondary">
-                        📥 Descargar Plantilla Excel
-                    </a>
-                </div>
-            </div>
-
-            <!-- Paso 2: Preview -->
-            <div id="importStep2" class="hidden">
-                <div class="mb-4">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="font-semibold text-slate-700">Resumen de importación:</span>
-                        <button onclick="resetImport()" class="text-sm text-sky-600 hover:underline">←
-                            Volver</button>
-                    </div>
-                    <div id="importSummary" class="grid grid-cols-3 gap-4 text-center">
-                        <div class="p-3 bg-slate-100 rounded-xl">
-                            <div id="totalRows" class="text-2xl font-bold text-slate-800">0</div>
-                            <div class="text-xs text-slate-500">Total filas</div>
+                    <div class="d-flex align-items-center justify-content-between p-4 bg-light rounded">
+                        <div>
+                            <p class="fw-semibold">¿No tiene la plantilla?</p>
+                            <p class="text-secondary small">Descargue la plantilla Excel (.xlsx) con ejemplos</p>
                         </div>
-                        <div class="p-3 bg-emerald-100 rounded-xl">
-                            <div id="validRows" class="text-2xl font-bold text-emerald-600">0</div>
-                            <div class="text-xs text-emerald-600">Válidas</div>
-                        </div>
-                        <div class="p-3 bg-rose-100 rounded-xl">
-                            <div id="errorRows" class="text-2xl font-bold text-rose-600">0</div>
-                            <div class="text-xs text-rose-600">Con errores</div>
-                        </div>
+                        <a href="api/import_template.php" class="btn btn-outline-secondary">
+                            Descargar Plantilla Excel
+                        </a>
                     </div>
                 </div>
 
-                <!-- Errores -->
-                <div id="importErrors" class="hidden mb-4 max-h-32 overflow-y-auto">
-                    <p class="text-sm font-semibold text-rose-600 mb-2">Errores encontrados:</p>
-                    <ul id="errorList" class="text-xs text-rose-600 space-y-1"></ul>
-                </div>
+                <!-- Paso 2 -->
+                <div id="importStep2" class="d-none">
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="fw-semibold">Resumen de importación:</span>
+                            <button onclick="resetImport()" class="btn btn-link btn-sm text-primary p-0">← Volver</button>
+                        </div>
+                        <div class="row g-3 text-center" id="importSummary">
+                            <div class="col-4">
+                                <div class="p-3 bg-light rounded">
+                                    <div id="totalRows" class="h3 mb-0">0</div>
+                                    <div class="text-secondary small">Total filas</div>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="p-3 bg-lime-light rounded">
+                                    <div id="validRows" class="h3 mb-0 text-green">0</div>
+                                    <div class="text-green small">Válidas</div>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="p-3 bg-red-light rounded">
+                                    <div id="errorRows" class="h3 mb-0 text-danger">0</div>
+                                    <div class="text-danger small">Con errores</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
-                <!-- Preview de datos -->
-                <div id="importPreview" class="mb-4 max-h-48 overflow-y-auto">
-                    <p class="text-sm font-semibold text-slate-700 mb-2">Vista previa:</p>
-                    <table class="w-full text-xs">
-                        <thead>
-                            <tr class="bg-slate-100">
-                                <th class="p-2 text-left">Mes</th>
-                                <th class="p-2 text-left">Establecimiento</th>
-                                <th class="p-2 text-left">Tipo</th>
-                                <th class="p-2 text-left">Serie</th>
-                                <th class="p-2 text-left">REM</th>
-                                <th class="p-2 text-left">Plazo</th>
-                                <th class="p-2 text-left">Validador</th>
-                                <th class="p-2 text-left">Detalle</th>
-                            </tr>
-                        </thead>
-                        <tbody id="previewBody"></tbody>
-                    </table>
-                </div>
+                    <div id="importErrors" class="d-none mb-3" style="max-height: 8rem; overflow-y: auto;">
+                        <p class="small fw-semibold text-danger mb-1">Errores encontrados:</p>
+                        <ul id="errorList" class="small text-danger"></ul>
+                    </div>
 
-                <div class="flex gap-3">
-                    <button onclick="confirmImport()" class="btn btn-primary flex-1" id="confirmImportBtn">
-                        ✅ Confirmar Importación
-                    </button>
-                    <button onclick="closeModal('modalImport')" class="btn btn-secondary">Cancelar</button>
+                    <div id="importPreview" class="mb-3" style="max-height: 12rem; overflow-y: auto;">
+                        <p class="small fw-semibold mb-1">Vista previa:</p>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-vcenter">
+                                <thead>
+                                    <tr>
+                                        <th>Mes</th>
+                                        <th>Establecimiento</th>
+                                        <th>Tipo</th>
+                                        <th>Serie</th>
+                                        <th>REM</th>
+                                        <th>Plazo</th>
+                                        <th>Validador</th>
+                                        <th>Detalle</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="previewBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-3">
+                        <button onclick="confirmImport()" class="btn btn-primary flex-fill" id="confirmImportBtn">
+                            Confirmar Importación
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Modal Ver Detalles -->
-<div id="modalDetails" class="modal-overlay hidden">
-    <div class="modal-content" style="max-width: 700px;">
-        <div class="modal-header">
-            <div>
-                <h3 class="text-xl font-bold text-slate-800">📋 Detalle de Observación</h3>
-                <p class="text-sm text-slate-500">Resumen completo del registro</p>
-            </div>
-            <button onclick="closeModal('modalDetails')" class="btn-secondary px-3 py-2" type="button">✕</button>
-        </div>
-        <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
-            <!-- Header con estado -->
-            <div class="flex items-center justify-between mb-6 p-4 rounded-xl bg-slate-50">
+<!-- Modal Ver Detalles (Bootstrap) -->
+<div id="modalDetails" class="modal fade" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
                 <div>
-                    <h4 id="detailEstablecimiento" class="text-lg font-bold text-slate-800">-</h4>
-                    <p id="detailComuna" class="text-sm text-slate-500">-</p>
-                    <p id="detailCodigoEst" class="text-xs text-slate-400 mt-1">-</p>
+                    <h5 class="modal-title">Detalle de Observación</h5>
+                    <div class="text-secondary">Resumen completo del registro</div>
                 </div>
-                <span id="detailBadge" class="badge">-</span>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-
-            <!-- Grid de información -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <div class="p-4 rounded-xl bg-sky-50">
-                    <div class="text-xs text-sky-600 uppercase font-bold mb-1">📅 Mes / Año</div>
-                    <div id="detailMesAnio" class="font-semibold text-slate-800">-</div>
+            <div class="modal-body">
+                <!-- Header con estado -->
+                <div class="d-flex align-items-center justify-content-between mb-4 p-4 rounded bg-light">
+                    <div>
+                        <h4 class="h5 mb-1" id="detailEstablecimiento">-</h4>
+                        <p class="text-secondary mb-0" id="detailComuna">-</p>
+                        <p class="text-secondary small mb-0 mt-1" id="detailCodigoEst">-</p>
+                    </div>
+                    <span id="detailBadge" class="badge">-</span>
                 </div>
-                <div class="p-4 rounded-xl bg-violet-50">
+
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <div class="p-3 rounded bg-primary-light">
+                            <div class="small fw-bold text-primary mb-1">Mes / Año</div>
+                            <div class="fw-semibold" id="detailMesAnio">-</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="p-3 rounded bg-purple-light">
                     <div class="text-xs text-violet-600 uppercase font-bold mb-1">📄 Referencia</div>
                     <div id="detailReferencia" class="font-semibold text-slate-800">-</div>
                 </div>
@@ -509,6 +504,9 @@ global $TIPOS_ERROR, $MESES;
 <script>
     // Variables para importación
     let importPreviewData = null;
+    const modalObservation = new bootstrap.Modal(document.getElementById('modalObservation'));
+    const modalImport = new bootstrap.Modal(document.getElementById('modalImport'));
+    const modalDetails = new bootstrap.Modal(document.getElementById('modalDetails'));
 
     // Filtrar tabla
     function filterTable() {
@@ -631,13 +629,13 @@ global $TIPOS_ERROR, $MESES;
         // Mostrar todos los campos
         document.getElementById('hojaRemContainer').style.display = '';
         document.getElementById('respuestaContainer').style.display = '';
-        openModal('modalObservation');
+        modalObservation.show();
     }
 
     // Abrir modal de importación
     function openImportModal() {
         resetImport();
-        openModal('modalImport');
+        modalImport.show();
     }
 
     // Resetear estado de importación
@@ -769,7 +767,7 @@ global $TIPOS_ERROR, $MESES;
 
             if (data.success) {
                 showSuccess(`Se importaron ${data.imported} observaciones correctamente`);
-                closeModal('modalImport');
+                modalImport.hide();
                 setTimeout(() => location.reload(), 1500);
             } else {
                 showError(data.message || 'Error al importar');
@@ -818,7 +816,7 @@ global $TIPOS_ERROR, $MESES;
                 document.getElementById('respuesta_establecimiento').value = obs.respuesta_establecimiento || '';
 
                 document.getElementById('modalTitle').textContent = 'Editar Observación';
-                openModal('modalObservation');
+                modalObservation.show();
             }
 
             hideLoading();
@@ -877,7 +875,7 @@ global $TIPOS_ERROR, $MESES;
 
             if (response.success) {
                 showSuccess(obsId ? 'Observación actualizada correctamente' : 'Observación creada correctamente');
-                closeModal('modalObservation');
+                modalObservation.hide();
                 setTimeout(() => location.reload(), 1500);
             }
         } catch (error) {
@@ -903,7 +901,19 @@ global $TIPOS_ERROR, $MESES;
                 // Badge de estado
                 const badge = document.getElementById('detailBadge');
                 badge.textContent = obs.estado_actual ? obs.estado_actual.charAt(0).toUpperCase() + obs.estado_actual.slice(1) : '-';
-                badge.className = 'badge badge-' + (obs.estado_actual || 'pendiente');
+                badge.className = 'badge bg-' + ({
+    'pendiente': 'yellow',
+    'aprobado': 'green',
+    'rechazado': 'red',
+    'error': 'red',
+    'justificado': 'blue'
+}[obs.estado_actual] || 'secondary') + ' text-' + ({
+    'pendiente': 'yellow-fg',
+    'aprobado': 'green-fg',
+    'rechazado': 'red-fg',
+    'error': 'red-fg',
+    'justificado': 'blue-fg'
+}[obs.estado_actual] || 'secondary-fg') + ' fw-normal';
 
                 // Información principal
                 document.getElementById('detailMesAnio').textContent = (obs.mes || '-') + ' ' + (obs.anio || '');
@@ -967,7 +977,7 @@ global $TIPOS_ERROR, $MESES;
                 document.getElementById('detailId').textContent = 'ID: ' + obs.id;
 
                 // Abrir modal
-                openModal('modalDetails');
+                modalDetails.show();
             }
 
             hideLoading();

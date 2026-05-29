@@ -11,94 +11,88 @@ $userId = $_SESSION['user_id'];
 $userInfo = $userModel->getById($userId);
 ?>
 
-<div class="space-y-6">
-    <div>
-        <h2 class="text-2xl font-bold text-slate-800">Mi Perfil</h2>
-        <p class="text-slate-600">Gestiona tu información personal y contraseña</p>
-    </div>
-
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <!-- Información del Usuario -->
-        <div class="card p-6">
-            <h3 class="text-lg font-bold text-slate-800 mb-4">Información del Usuario</h3>
-
-            <div class="space-y-4">
-                <div>
-                    <label class="text-sm font-semibold text-slate-600">Usuario</label>
-                    <div class="mt-1 p-3 bg-slate-50 rounded-lg">
-                        <span class="font-mono text-slate-800">
-                            <?php echo htmlspecialchars($userInfo['username']); ?>
-                        </span>
+<div class="page-wrapper">
+    <div class="page-body">
+        <div class="container-xl">
+            <div class="row row-cards">
+                <div class="col-12">
+                    <div class="mb-3">
+                        <h2 class="page-title">Mi Perfil</h2>
+                        <div class="text-secondary">Gestiona tu información personal y contraseña</div>
                     </div>
                 </div>
 
-                <div>
-                    <label class="text-sm font-semibold text-slate-600">Nombre Completo</label>
-                    <div class="mt-1 p-3 bg-slate-50 rounded-lg">
-                        <span class="text-slate-800">
-                            <?php echo htmlspecialchars($userInfo['nombre_completo']); ?>
-                        </span>
+                <div class="col-lg-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Información del Usuario</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label class="form-label">Usuario</label>
+                                <div class="form-control-plaintext font-mono"><?php echo htmlspecialchars($userInfo['username']); ?></div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Nombre Completo</label>
+                                <div class="form-control-plaintext"><?php echo htmlspecialchars($userInfo['nombre_completo']); ?></div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Rol</label>
+                                <div>
+                                    <span class="badge <?php echo $userInfo['rol'] === ROL_SUPERVISOR ? 'bg-blue text-blue-fg' : 'bg-azure text-azure-fg'; ?>">
+                                        <?php echo ucfirst($userInfo['rol']); ?>
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="mb-0">
+                                <label class="form-label">Miembro desde</label>
+                                <div class="form-control-plaintext"><?php echo date('d/m/Y', strtotime($userInfo['fecha_creacion'])); ?></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <div>
-                    <label class="text-sm font-semibold text-slate-600">Rol</label>
-                    <div class="mt-1">
-                        <span
-                            class="badge <?php echo $userInfo['rol'] === ROL_SUPERVISOR ? 'badge-aprobado' : 'badge-pendiente'; ?>">
-                            <?php echo ucfirst($userInfo['rol']); ?>
-                        </span>
+                <div class="col-lg-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Cambiar Contraseña</h3>
+                        </div>
+                        <div class="card-body">
+                            <form id="formChangePassword" onsubmit="changePassword(event)">
+                                <div class="mb-3">
+                                    <label class="form-label required">Contraseña Actual</label>
+                                    <input type="password" id="currentPassword" name="current_password" class="form-control" required
+                                        placeholder="Ingrese su contraseña actual">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label required">Nueva Contraseña</label>
+                                    <input type="password" id="newPassword" name="new_password" class="form-control" required minlength="6"
+                                        placeholder="Mínimo 6 caracteres">
+                                    <div class="form-hint">Debe tener al menos 6 caracteres</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label required">Confirmar Nueva Contraseña</label>
+                                    <input type="password" id="confirmPassword" name="confirm_password" class="form-control" required minlength="6"
+                                        placeholder="Repita la nueva contraseña">
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100">Cambiar Contraseña</button>
+                            </form>
+                        </div>
                     </div>
                 </div>
 
-                <div>
-                    <label class="text-sm font-semibold text-slate-600">Miembro desde</label>
-                    <div class="mt-1 text-slate-800">
-                        <?php echo date('d/m/Y', strtotime($userInfo['fecha_creacion'])); ?>
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Actividad Reciente</h3>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-secondary text-center py-4 mb-0">No hay actividad reciente para mostrar</p>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-
-        <!-- Cambiar Contraseña -->
-        <div class="card p-6">
-            <h3 class="text-lg font-bold text-slate-800 mb-4">Cambiar Contraseña</h3>
-
-            <form id="formChangePassword" onsubmit="changePassword(event)" class="space-y-4">
-                <div>
-                    <label class="block text-sm font-semibold text-slate-700 mb-2">Contraseña Actual *</label>
-                    <input type="password" id="currentPassword" name="current_password" required class="w-full"
-                        placeholder="Ingrese su contraseña actual">
-                </div>
-
-                <div>
-                    <label class="block text-sm font-semibold text-slate-700 mb-2">Nueva Contraseña *</label>
-                    <input type="password" id="newPassword" name="new_password" required minlength="6" class="w-full"
-                        placeholder="Mínimo 6 caracteres">
-                    <p class="text-xs text-slate-500 mt-1">Debe tener al menos 6 caracteres</p>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-semibold text-slate-700 mb-2">Confirmar Nueva Contraseña *</label>
-                    <input type="password" id="confirmPassword" name="confirm_password" required minlength="6"
-                        class="w-full" placeholder="Repita la nueva contraseña">
-                </div>
-
-                <div class="pt-2">
-                    <button type="submit" class="btn btn-primary w-full">
-                        🔒 Cambiar Contraseña
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Actividad Reciente (placeholder) -->
-    <div class="card p-6">
-        <h3 class="text-lg font-bold text-slate-800 mb-4">Actividad Reciente</h3>
-        <p class="text-sm text-slate-500 text-center py-8">
-            No hay actividad reciente para mostrar
-        </p>
     </div>
 </div>
 

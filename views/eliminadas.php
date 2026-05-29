@@ -5,7 +5,7 @@
  */
 
 if ($_SESSION['rol'] !== ROL_SUPERVISOR) {
-    echo '<div class="p-6 text-center"><h2 class="text-xl font-bold text-rose-600">Acceso Denegado</h2><p>Solo los supervisores pueden acceder a esta sección.</p></div>';
+    echo '<div class="page-wrapper"><div class="page-body"><div class="container-xl"><div class="empty"><div class="empty-header text-danger">403</div><p class="empty-title">Acceso Denegado</p><p class="empty-subtitle text-secondary">Solo los supervisores pueden acceder a esta sección.</p></div></div></div></div>';
     return;
 }
 
@@ -20,169 +20,170 @@ $registradores = $userModel->getByRole(ROL_REGISTRADOR);
 $comunas = $locationModel->getComunas();
 ?>
 
-<div class="space-y-6">
-    <!-- Header -->
-    <div class="flex items-center justify-between">
-        <div>
-            <h2 class="text-2xl font-bold text-slate-800">Observaciones Eliminadas</h2>
-            <p class="text-slate-600">Papelera de reciclaje - Restaurar o eliminar permanentemente</p>
-        </div>
-        <div class="flex gap-3 items-center">
-            <span id="selectedCount" class="text-sm text-slate-500 hidden">
-                <span class="font-medium text-sky-600">0</span> seleccionadas
-            </span>
-            <button id="btnRestoreSelected" class="btn btn-primary" disabled>
-                ♻️ Restaurar
-            </button>
-            <button id="btnDeletePermanentSelected" class="btn btn-secondary" disabled style="background-color: #ef4444; color: white;">
-                🗑 Eliminar Permanentemente
-            </button>
-        </div>
-    </div>
+<div class="page-wrapper">
+    <div class="page-body">
+        <div class="container-xl">
+            <div class="row row-cards">
 
-    <!-- Estadísticas rápidas -->
-    <div id="statsContainer" class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <!-- Se llena dinámicamente -->
-    </div>
+                <!-- Header -->
+                <div class="col-12">
+                    <div class="mb-3 d-flex align-items-center justify-content-between">
+                        <div>
+                            <h2 class="page-title">Observaciones Eliminadas</h2>
+                            <div class="text-secondary">Papelera de reciclaje — Restaurar o eliminar permanentemente</div>
+                        </div>
+                        <div class="btn-list">
+                            <span id="selectedCount" class="text-secondary d-none">
+                                <span class="fw-medium text-primary">0</span> seleccionadas
+                            </span>
+                            <button id="btnRestoreSelected" class="btn btn-primary" disabled>
+                                Restaurar
+                            </button>
+                            <button id="btnDeletePermanentSelected" class="btn btn-danger" disabled>
+                                Eliminar Permanentemente
+                            </button>
+                        </div>
+                    </div>
+                </div>
 
-    <!-- Filtros -->
-    <div class="card p-6">
-        <h3 class="text-lg font-bold text-slate-800 mb-4">🔍 Filtros</h3>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div>
-                <label class="form-label">Mes</label>
-                <select id="filterMes" class="form-select">
-                    <option value="">Todos</option>
-                    <option value="Enero">Enero</option>
-                    <option value="Febrero">Febrero</option>
-                    <option value="Marzo">Marzo</option>
-                    <option value="Abril">Abril</option>
-                    <option value="Mayo">Mayo</option>
-                    <option value="Junio">Junio</option>
-                    <option value="Julio">Julio</option>
-                    <option value="Agosto">Agosto</option>
-                    <option value="Septiembre">Septiembre</option>
-                    <option value="Octubre">Octubre</option>
-                    <option value="Noviembre">Noviembre</option>
-                    <option value="Diciembre">Diciembre</option>
-                </select>
+                <!-- Estadísticas rápidas -->
+                <div class="col-12">
+                    <div id="statsContainer" class="row g-3"></div>
+                </div>
+
+                <!-- Filtros -->
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <h3 class="card-title mb-3">Filtros</h3>
+                            <div class="row g-3">
+                                <div class="col-lg">
+                                    <label class="form-label">Mes</label>
+                                    <select id="filterMes" class="form-select">
+                                        <option value="">Todos</option>
+                                        <option value="Enero">Enero</option>
+                                        <option value="Febrero">Febrero</option>
+                                        <option value="Marzo">Marzo</option>
+                                        <option value="Abril">Abril</option>
+                                        <option value="Mayo">Mayo</option>
+                                        <option value="Junio">Junio</option>
+                                        <option value="Julio">Julio</option>
+                                        <option value="Agosto">Agosto</option>
+                                        <option value="Septiembre">Septiembre</option>
+                                        <option value="Octubre">Octubre</option>
+                                        <option value="Noviembre">Noviembre</option>
+                                        <option value="Diciembre">Diciembre</option>
+                                    </select>
+                                </div>
+                                <div class="col-lg">
+                                    <label class="form-label">Comuna</label>
+                                    <select id="filterComuna" class="form-select">
+                                        <option value="">Todas</option>
+                                        <?php foreach ($comunas as $comuna): ?>
+                                            <option value="<?php echo htmlspecialchars($comuna['nombre']); ?>"><?php echo htmlspecialchars($comuna['nombre']); ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                                <div class="col-lg">
+                                    <label class="form-label">Establecimiento</label>
+                                    <select id="filterEstablecimiento" class="form-select" disabled>
+                                        <option value="">Todos</option>
+                                    </select>
+                                </div>
+                                <div class="col-lg">
+                                    <label class="form-label">Registrador</label>
+                                    <select id="filterRegistrador" class="form-select">
+                                        <option value="">Todos</option>
+                                        <?php foreach ($registradores as $reg): ?>
+                                            <option value="<?php echo $reg['id']; ?>"><?php echo htmlspecialchars($reg['nombre_completo']); ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                                <div class="col-lg">
+                                    <label class="form-label">Búsqueda</label>
+                                    <input type="text" id="filterBusqueda" class="form-control" placeholder="Buscar en detalles...">
+                                </div>
+                                <div class="col-12">
+                                    <div class="btn-list">
+                                        <button id="btnApplyFilters" class="btn btn-primary">Aplicar Filtros</button>
+                                        <button id="btnClearFilters" class="btn btn-outline-secondary">Limpiar</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tabla -->
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Observaciones Eliminadas <span id="obsCount" class="text-secondary"></span></h3>
+                            <div class="card-actions">
+                                <label class="form-check">
+                                    <input type="checkbox" class="form-check-input" id="selectAll">
+                                    <span class="form-check-label">Seleccionar Todas</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div id="loadingIndicator" class="card-body text-center py-8 text-secondary">
+                            <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Cargando...</span></div>
+                            <p class="mt-2">Cargando observaciones eliminadas...</p>
+                        </div>
+                        <div id="observationsTable" class="d-none table-responsive">
+                            <table class="table table-vcenter card-table">
+                                <thead>
+                                    <tr>
+                                        <th class="w-1"></th>
+                                        <th>ID Original</th>
+                                        <th>Fecha Eliminación</th>
+                                        <th>Establecimiento</th>
+                                        <th>Mes</th>
+                                        <th>Tipo Error</th>
+                                        <th>Estado Original</th>
+                                        <th>Registrador</th>
+                                        <th>Motivo</th>
+                                        <th class="text-end">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="observationsBody"></tbody>
+                            </table>
+                        </div>
+                        <div id="emptyState" class="d-none card-body text-center py-8 text-secondary">
+                            <p>No hay observaciones eliminadas.</p>
+                        </div>
+                    </div>
+                </div>
             </div>
-
-            <div>
-                <label class="form-label">Comuna</label>
-                <select id="filterComuna" class="form-select">
-                    <option value="">Todas</option>
-                    <?php foreach ($comunas as $comuna): ?>
-                        <option value="<?php echo htmlspecialchars($comuna['nombre']); ?>">
-                            <?php echo htmlspecialchars($comuna['nombre']); ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-
-            <div>
-                <label class="form-label">Establecimiento</label>
-                <select id="filterEstablecimiento" class="form-select" disabled>
-                    <option value="">Todos</option>
-                </select>
-            </div>
-
-            <div>
-                <label class="form-label">Registrador</label>
-                <select id="filterRegistrador" class="form-select">
-                    <option value="">Todos</option>
-                    <?php foreach ($registradores as $reg): ?>
-                        <option value="<?php echo $reg['id']; ?>">
-                            <?php echo htmlspecialchars($reg['nombre_completo']); ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-
-            <div>
-                <label class="form-label">Búsqueda</label>
-                <input type="text" id="filterBusqueda" class="form-input" placeholder="Buscar en detalles..." />
-            </div>
-
-            <div class="lg:col-span-3 flex items-end gap-3">
-                <button id="btnApplyFilters" class="btn btn-primary">
-                    Aplicar Filtros
-                </button>
-                <button id="btnClearFilters" class="btn btn-secondary">
-                    Limpiar
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Tabla de Observaciones Eliminadas -->
-    <div class="card p-6">
-        <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-bold text-slate-800">
-                Observaciones Eliminadas <span id="obsCount" class="text-slate-500"></span>
-            </h3>
-            <div class="flex items-center gap-2">
-                <input type="checkbox" id="selectAll" class="form-checkbox">
-                <label for="selectAll" class="text-sm text-slate-600">Seleccionar Todas</label>
-            </div>
-        </div>
-
-        <div id="loadingIndicator" class="text-center py-8 text-slate-500">
-            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-sky-500"></div>
-            <p class="mt-2">Cargando observaciones eliminadas...</p>
-        </div>
-
-        <div id="observationsTable" class="hidden overflow-x-auto">
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th class="w-12"></th>
-                        <th>ID Original</th>
-                        <th>Fecha Eliminación</th>
-                        <th>Establecimiento</th>
-                        <th>Mes</th>
-                        <th>Tipo Error</th>
-                        <th>Estado Original</th>
-                        <th>Registrador</th>
-                        <th>Motivo</th>
-                        <th class="text-right">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody id="observationsBody">
-                    <!-- Se llenará dinámicamente -->
-                </tbody>
-            </table>
-        </div>
-
-        <div id="emptyState" class="hidden text-center py-8 text-slate-500">
-            <p>📋 No hay observaciones eliminadas.</p>
         </div>
     </div>
 </div>
 
-<!-- Modal de Confirmación -->
-<div id="confirmModal" class="modal hidden">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3 class="text-xl font-bold" id="confirmTitle">Confirmar Acción</h3>
-            <button class="modal-close" onclick="closeConfirmModal()">&times;</button>
-        </div>
-        <div class="modal-body">
-            <p id="confirmMessage"></p>
-            <div class="mt-4">
-                <label class="form-label">Comentario (opcional)</label>
-                <textarea id="confirmComment" class="form-textarea" rows="3"></textarea>
+<!-- Modal de Confirmación (Bootstrap) -->
+<div id="confirmModal" class="modal fade" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="confirmTitle">Confirmar Acción</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <div class="mt-4" id="confirmCheckboxContainer" style="display: none;">
-                <label class="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" id="confirmIrreversible" class="form-checkbox">
-                    <span class="text-sm font-medium text-rose-600">Entiendo que esta acción no se puede deshacer</span>
-                </label>
+            <div class="modal-body">
+                <p id="confirmMessage"></p>
+                <div class="mb-3">
+                    <label class="form-label">Comentario (opcional)</label>
+                    <textarea id="confirmComment" class="form-control" rows="3"></textarea>
+                </div>
+                <div id="confirmCheckboxContainer" class="d-none">
+                    <label class="form-check">
+                        <input type="checkbox" id="confirmIrreversible" class="form-check-input">
+                        <span class="form-check-label text-danger">Entiendo que esta acción no se puede deshacer</span>
+                    </label>
+                </div>
             </div>
-        </div>
-        <div class="modal-footer">
-            <button class="btn btn-secondary" onclick="closeConfirmModal()">Cancelar</button>
-            <button class="btn btn-primary" id="confirmActionBtn">Confirmar</button>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="confirmActionBtn">Confirmar</button>
+            </div>
         </div>
     </div>
 </div>
@@ -190,6 +191,8 @@ $comunas = $locationModel->getComunas();
 <script>
     let currentObservations = [];
     let selectedIds = [];
+    const confirmModalEl = document.getElementById('confirmModal');
+    const confirmModal = new bootstrap.Modal(confirmModalEl);
 
     document.addEventListener('DOMContentLoaded', function () {
         loadObservations();
@@ -211,9 +214,9 @@ $comunas = $locationModel->getComunas();
         const observationsTable = document.getElementById('observationsTable');
         const emptyState = document.getElementById('emptyState');
 
-        loadingIndicator.classList.remove('hidden');
-        observationsTable.classList.add('hidden');
-        emptyState.classList.add('hidden');
+        loadingIndicator.classList.add('d-none');
+        observationsTable.classList.add('d-none');
+        emptyState.classList.add('d-none');
 
         const filters = {
             anio: <?php echo $currentYear; ?>,
@@ -234,9 +237,9 @@ $comunas = $locationModel->getComunas();
                 document.getElementById('obsCount').textContent = `(${currentObservations.length})`;
 
                 if (currentObservations.length > 0) {
-                    observationsTable.classList.remove('hidden');
+                    observationsTable.classList.remove('d-none');
                 } else {
-                    emptyState.classList.remove('hidden');
+                    emptyState.classList.remove('d-none');
                 }
             } else {
                 throw new Error(data.message);
@@ -245,7 +248,7 @@ $comunas = $locationModel->getComunas();
             console.error('Error al cargar observaciones eliminadas:', error);
             showError('Error al cargar: ' + error.message);
         } finally {
-            loadingIndicator.classList.add('hidden');
+            loadingIndicator.classList.add('d-none');
         }
     }
 
@@ -253,10 +256,7 @@ $comunas = $locationModel->getComunas();
         try {
             const response = await fetch(`api/deleted.php?action=stats&anio=<?php echo $currentYear; ?>`);
             const data = await response.json();
-
-            if (data.success) {
-                renderStats(data.data);
-            }
+            if (data.success) renderStats(data.data);
         } catch (error) {
             console.error('Error al cargar estadísticas:', error);
         }
@@ -265,47 +265,43 @@ $comunas = $locationModel->getComunas();
     function renderStats(stats) {
         const container = document.getElementById('statsContainer');
         const topEliminador = stats.por_eliminador && stats.por_eliminador.length > 0
-            ? stats.por_eliminador[0].nombre_completo
-            : 'N/A';
+            ? stats.por_eliminador[0].nombre_completo : 'N/A';
         const topEliminadorCount = stats.por_eliminador && stats.por_eliminador.length > 0
-            ? stats.por_eliminador[0].total
-            : 0;
-
+            ? stats.por_eliminador[0].total : 0;
         const estadoBreakdown = stats.por_estado && stats.por_estado.length > 0
-            ? stats.por_estado.map(e => `${e.estado_actual}: ${e.total}`).join(', ')
-            : 'Sin datos';
+            ? stats.por_estado.map(e => `${e.estado_actual}: ${e.total}`).join(', ') : 'Sin datos';
 
         container.innerHTML = `
-            <div class="card p-5" style="background: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%); border-color: #fecdd3;">
-                <div class="flex items-center gap-4">
-                    <div class="p-3 rounded-xl" style="background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);">
-                        <span class="text-2xl">🗑</span>
-                    </div>
-                    <div>
-                        <div class="text-3xl font-bold text-rose-700">${stats.total}</div>
-                        <div class="text-sm font-semibold text-rose-600">Total Eliminadas</div>
-                    </div>
-                </div>
-            </div>
-            <div class="card p-5" style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border-color: #bae6fd;">
-                <div class="flex items-center gap-4">
-                    <div class="p-3 rounded-xl" style="background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);">
-                        <span class="text-2xl">📊</span>
-                    </div>
-                    <div>
-                        <div class="text-sm font-bold text-sky-700">Por Estado</div>
-                        <div class="text-xs text-sky-600 mt-1">${estadoBreakdown}</div>
+            <div class="col-md-4">
+                <div class="card card-sm" style="background: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%);">
+                    <div class="card-body d-flex align-items-center gap-3">
+                        <div class="p-2 rounded bg-danger text-white fs-2">🗑</div>
+                        <div>
+                            <div class="h1 mb-0 text-danger">${stats.total}</div>
+                            <div class="text-danger small fw-semibold">Total Eliminadas</div>
+                        </div>
                     </div>
                 </div>
             </div>
-            <div class="card p-5" style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-color: #fbbf24;">
-                <div class="flex items-center gap-4">
-                    <div class="p-3 rounded-xl" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
-                        <span class="text-2xl">👤</span>
+            <div class="col-md-4">
+                <div class="card card-sm" style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);">
+                    <div class="card-body d-flex align-items-center gap-3">
+                        <div class="p-2 rounded bg-primary text-white fs-2">📊</div>
+                        <div>
+                            <div class="fw-bold text-primary">Por Estado</div>
+                            <div class="text-primary small">${estadoBreakdown}</div>
+                        </div>
                     </div>
-                    <div>
-                        <div class="text-sm font-bold text-amber-700">Mayor Eliminador</div>
-                        <div class="text-xs text-amber-600 mt-1">${escapeHtml(topEliminador)} (${topEliminadorCount})</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card card-sm" style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);">
+                    <div class="card-body d-flex align-items-center gap-3">
+                        <div class="p-2 rounded bg-warning text-white fs-2">👤</div>
+                        <div>
+                            <div class="fw-bold text-warning">Mayor Eliminador</div>
+                            <div class="text-warning small">${escapeHtml(topEliminador)} (${topEliminadorCount})</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -319,33 +315,31 @@ $comunas = $locationModel->getComunas();
         observations.forEach(obs => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
-            <td>
-                <input type="checkbox" class="form-checkbox obs-checkbox" value="${obs.id}">
-            </td>
-            <td>#${obs.observacion_id}</td>
-            <td>${formatDate(obs.fecha_eliminacion)}</td>
-            <td>
-                <div class="font-medium">${escapeHtml(obs.establecimiento_nombre_corto)}</div>
-                <div class="text-xs text-slate-500">${escapeHtml(obs.comuna)}</div>
-            </td>
-            <td>${escapeHtml(obs.mes)}</td>
-            <td><span class="text-xs">${escapeHtml(obs.tipo_error)}</span></td>
-            <td>${getEstadoBadge(obs.estado_actual)}</td>
-            <td class="text-sm">${escapeHtml(obs.nombre_registro)}</td>
-            <td class="text-xs max-w-xs truncate" title="${escapeHtml(obs.motivo_eliminacion)}">
-                ${escapeHtml(obs.motivo_eliminacion) || '-'}
-            </td>
-            <td class="text-right">
-                <div class="flex justify-end gap-2">
-                    <button class="btn-icon text-sky-600" onclick="restoreSingle(${obs.id})" title="Restaurar">
-                        ♻️
-                    </button>
-                    <button class="btn-icon text-rose-600" onclick="deletePermanentSingle(${obs.id})" title="Eliminar permanentemente">
-                        🗑
-                    </button>
-                </div>
-            </td>
-        `;
+                <td><input type="checkbox" class="form-check-input obs-checkbox" value="${obs.id}"></td>
+                <td>#${obs.observacion_id}</td>
+                <td>${formatDate(obs.fecha_eliminacion)}</td>
+                <td>
+                    <div class="fw-semibold">${escapeHtml(obs.establecimiento_nombre_corto)}</div>
+                    <div class="text-secondary text-sm">${escapeHtml(obs.comuna)}</div>
+                </td>
+                <td>${escapeHtml(obs.mes)}</td>
+                <td>${escapeHtml(obs.tipo_error)}</td>
+                <td>${getEstadoBadge(obs.estado_actual)}</td>
+                <td class="text-secondary">${escapeHtml(obs.nombre_registro)}</td>
+                <td class="text-secondary text-truncate" style="max-width: 150px;" title="${escapeHtml(obs.motivo_eliminacion)}">
+                    ${escapeHtml(obs.motivo_eliminacion) || '-'}
+                </td>
+                <td class="text-end">
+                    <div class="btn-list justify-content-end">
+                        <button class="btn btn-ghost-primary btn-icon" onclick="restoreSingle(${obs.id})" title="Restaurar" data-bs-toggle="tooltip">
+                            <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-history"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 8l0 4l2 2" /><path d="M3.05 11a9 9 0 1 1 .5 4m-.5 5v-5h5" /></svg>
+                        </button>
+                        <button class="btn btn-ghost-danger btn-icon" onclick="deletePermanentSingle(${obs.id})" title="Eliminar permanentemente" data-bs-toggle="tooltip">
+                            <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-trash"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 7l16 0" /><path d="M10 11l0 6" /><path d="M14 11l0 6" /><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12" /><path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3" /></svg>
+                        </button>
+                    </div>
+                </td>
+            `;
             tbody.appendChild(tr);
         });
 
@@ -359,24 +353,16 @@ $comunas = $locationModel->getComunas();
         const btnRestore = document.getElementById('btnRestoreSelected');
         const btnDelete = document.getElementById('btnDeletePermanentSelected');
         const countDisplay = document.getElementById('selectedCount');
-
         const hasSelection = selectedIds.length > 0;
         btnRestore.disabled = !hasSelection;
         btnDelete.disabled = !hasSelection;
-
-        if (hasSelection) {
-            countDisplay.classList.remove('hidden');
-            countDisplay.querySelector('.font-medium').textContent = selectedIds.length;
-        } else {
-            countDisplay.classList.add('hidden');
-        }
+        countDisplay.classList.toggle('d-none', !hasSelection);
+        if (hasSelection) countDisplay.querySelector('span').textContent = selectedIds.length;
     }
 
     function toggleSelectAll() {
         const selectAll = document.getElementById('selectAll').checked;
-        document.querySelectorAll('.obs-checkbox').forEach(cb => {
-            cb.checked = selectAll;
-        });
+        document.querySelectorAll('.obs-checkbox').forEach(cb => cb.checked = selectAll);
         updateSelectedIds();
     }
 
@@ -400,7 +386,6 @@ $comunas = $locationModel->getComunas();
         document.getElementById('confirmTitle').textContent = title;
         document.getElementById('confirmMessage').textContent = message;
         document.getElementById('confirmComment').value = '';
-        document.getElementById('confirmModal').classList.remove('hidden');
 
         const isPermanentDelete = action.includes('permanent_delete');
         const checkboxContainer = document.getElementById('confirmCheckboxContainer');
@@ -408,50 +393,40 @@ $comunas = $locationModel->getComunas();
         const confirmBtn = document.getElementById('confirmActionBtn');
 
         if (isPermanentDelete) {
-            checkboxContainer.style.display = 'block';
+            checkboxContainer.classList.remove('d-none');
             confirmCheckbox.checked = false;
             confirmBtn.disabled = true;
-            confirmBtn.style.opacity = '0.5';
-            confirmBtn.style.cursor = 'not-allowed';
         } else {
-            checkboxContainer.style.display = 'none';
+            checkboxContainer.classList.add('d-none');
             confirmBtn.disabled = false;
-            confirmBtn.style.opacity = '';
-            confirmBtn.style.cursor = '';
         }
 
-        confirmCheckbox.onchange = () => {
-            confirmBtn.disabled = !confirmCheckbox.checked;
-            confirmBtn.style.opacity = confirmCheckbox.checked ? '' : '0.5';
-            confirmBtn.style.cursor = confirmCheckbox.checked ? '' : 'not-allowed';
-        };
+        confirmCheckbox.onchange = () => { confirmBtn.disabled = !confirmCheckbox.checked; };
 
-        document.getElementById('confirmActionBtn').onclick = async () => {
+        confirmBtn.onclick = async () => {
             if (isPermanentDelete && !confirmCheckbox.checked) {
                 showError('Debe confirmar que entiende que esta acción es irreversible.');
                 return;
             }
+            confirmModal.hide();
             const comment = document.getElementById('confirmComment').value;
             await executeAction(action, ids, comment);
-            closeConfirmModal();
         };
+
+        confirmModal.show();
     }
 
     async function executeAction(action, ids, comment) {
         try {
             showLoading();
-
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
-            const payload = action.includes('multiple') ? 
-                { action, deleted_ids: ids, comment } : 
-                { action, deleted_id: ids[0], comment };
+            const payload = action.includes('multiple')
+                ? { action, deleted_ids: ids, comment }
+                : { action, deleted_id: ids[0], comment };
 
             const response = await fetch('api/deleted.php', {
                 method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': csrfToken
-                },
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
                 body: JSON.stringify(payload)
             });
 
@@ -473,16 +448,6 @@ $comunas = $locationModel->getComunas();
         }
     }
 
-    function closeConfirmModal() {
-        document.getElementById('confirmModal').classList.add('hidden');
-        document.getElementById('confirmCheckboxContainer').style.display = 'none';
-        document.getElementById('confirmIrreversible').checked = false;
-        const confirmBtn = document.getElementById('confirmActionBtn');
-        confirmBtn.disabled = false;
-        confirmBtn.style.opacity = '';
-        confirmBtn.style.cursor = '';
-    }
-
     function clearFilters() {
         document.getElementById('filterMes').value = '';
         document.getElementById('filterComuna').value = '';
@@ -495,15 +460,12 @@ $comunas = $locationModel->getComunas();
     async function loadEstablecimientos() {
         const comunaNombre = document.getElementById('filterComuna').value;
         const select = document.getElementById('filterEstablecimiento');
-
         select.innerHTML = '<option value="">Todos</option>';
         select.disabled = !comunaNombre;
-
         if (comunaNombre) {
             try {
                 const response = await fetch(`api/locations.php?action=establecimientos&comuna_nombre=${encodeURIComponent(comunaNombre)}`);
                 const data = await response.json();
-
                 if (data.success) {
                     data.data.forEach(est => {
                         const option = document.createElement('option');
@@ -512,9 +474,7 @@ $comunas = $locationModel->getComunas();
                         select.appendChild(option);
                     });
                 }
-            } catch (error) {
-                console.error('Error al cargar establecimientos:', error);
-            }
+            } catch (error) { console.error('Error al cargar establecimientos:', error); }
         }
     }
 
@@ -531,86 +491,12 @@ $comunas = $locationModel->getComunas();
 
     function getEstadoBadge(estado) {
         const badges = {
-            'pendiente': '<span class="badge badge-warning">Pendiente</span>',
-            'aprobado': '<span class="badge badge-success">Aprobado</span>',
-            'rechazado': '<span class="badge badge-danger">Rechazado</span>',
-            'error': '<span class="badge badge-danger">Error</span>',
-            'justificado': '<span class="badge badge-info">Justificado</span>'
+            'pendiente': '<span class="badge bg-yellow text-yellow-fg">Pendiente</span>',
+            'aprobado': '<span class="badge bg-green text-green-fg">Aprobado</span>',
+            'rechazado': '<span class="badge bg-red text-red-fg">Rechazado</span>',
+            'error': '<span class="badge bg-red text-red-fg">Error</span>',
+            'justificado': '<span class="badge bg-blue text-blue-fg">Justificado</span>'
         };
         return badges[estado] || `<span class="badge">${estado}</span>`;
     }
 </script>
-
-<style>
-    .modal {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.5);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 1000;
-    }
-
-    .modal.hidden {
-        display: none;
-    }
-
-    .modal-content {
-        background: white;
-        border-radius: 0.5rem;
-        max-width: 32rem;
-        width: 90%;
-        max-height: 90vh;
-        overflow-y: auto;
-    }
-
-    .modal-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 1.5rem;
-        border-bottom: 1px solid #e2e8f0;
-    }
-
-    .modal-body {
-        padding: 1.5rem;
-    }
-
-    .modal-footer {
-        display: flex;
-        justify-content: flex-end;
-        gap: 0.75rem;
-        padding: 1.5rem;
-        border-top: 1px solid #e2e8f0;
-    }
-
-    .modal-close {
-        font-size: 1.5rem;
-        font-weight: bold;
-        color: #64748b;
-        background: none;
-        border: none;
-        cursor: pointer;
-    }
-
-    .modal-close:hover {
-        color: #334155;
-    }
-
-    .btn-icon {
-        padding: 0.25rem 0.5rem;
-        border: none;
-        background: none;
-        cursor: pointer;
-        font-size: 1.25rem;
-        transition: transform 0.2s;
-    }
-
-    .btn-icon:hover {
-        transform: scale(1.2);
-    }
-</style>

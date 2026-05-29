@@ -115,7 +115,7 @@ $comunas = $locationModel->getComunas();
 
             <div>
                 <label class="form-label">Búsqueda</label>
-                <input type="text" id="filterBusqueda" class="form-input" placeholder="Buscar en detalles..." />
+                <input type="text" id="filterBusqueda" class="form-control" placeholder="Buscar en detalles..." />
             </div>
 
             <div class="lg:col-span-2 flex items-end gap-3">
@@ -226,7 +226,7 @@ $comunas = $locationModel->getComunas();
                 </div>
                 <div>
                     <label class="form-label">Detalle Error</label>
-                    <input type="text" id="approveDetalleError" class="form-input" placeholder="Descripción del error si aplica...">
+                    <input type="text" id="approveDetalleError" class="form-control" placeholder="Descripción del error si aplica...">
                 </div>
             </div>
         </div>
@@ -664,11 +664,11 @@ $comunas = $locationModel->getComunas();
 
     function getEstadoBadge(estado) {
         const badges = {
-            '<?php echo ESTADO_PENDIENTE; ?>': '<span class="badge badge-warning">Pendiente</span>',
-            '<?php echo ESTADO_APROBADO; ?>': '<span class="badge badge-success">Aprobado</span>',
-            '<?php echo ESTADO_RECHAZADO; ?>': '<span class="badge badge-danger">Rechazado</span>',
-            '<?php echo ESTADO_ERROR; ?>': '<span class="badge badge-danger">Error</span>',
-            '<?php echo ESTADO_JUSTIFICADO; ?>': '<span class="badge badge-info">Justificado</span>'
+            '<?php echo ESTADO_PENDIENTE; ?>': '<span class="badge bg-yellow text-yellow-fg">Pendiente</span>',
+            '<?php echo ESTADO_APROBADO; ?>': '<span class="badge bg-green text-green-fg">Aprobado</span>',
+            '<?php echo ESTADO_RECHAZADO; ?>': '<span class="badge bg-red text-red-fg">Rechazado</span>',
+            '<?php echo ESTADO_ERROR; ?>': '<span class="badge bg-red text-red-fg">Error</span>',
+            '<?php echo ESTADO_JUSTIFICADO; ?>': '<span class="badge bg-blue text-blue-fg">Justificado</span>'
         };
         return badges[estado] || `<span class="badge">${estado}</span>`;
     }
