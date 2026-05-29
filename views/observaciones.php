@@ -197,110 +197,137 @@ global $TIPOS_ERROR, $MESES;
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form id="formObservation" onsubmit="saveObservation(event)">
+            <form id="formObservation" novalidate>
                 <div class="modal-body">
                     <input type="hidden" id="obsId" value="">
 
-                    <div class="mb-3 p-3 bg-light rounded">
-                        <label class="form-label mb-0">Registrado por:</label>
-                        <p class="fs-5 fw-bold mb-0"><?php echo htmlspecialchars($_SESSION['nombre_completo'] ?? 'Usuario'); ?></p>
-                    </div>
-
-                    <div class="row g-3 mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label required">Mes</label>
-                            <select id="mes" name="mes" class="form-select" required>
-                                <option value="">Seleccione...</option>
-                                <?php foreach ($MESES as $mes): ?>
-                                    <option value="<?php echo $mes; ?>"><?php echo $mes; ?></option>
-                                <?php endforeach; ?>
-                            </select>
+                    <!-- Sección 1: Información General -->
+                    <div class="card card-borderless mb-3">
+                        <div class="card-header">
+                            <h6 class="card-title">Información General</h6>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label required">Establecimiento</label>
-                            <select id="establecimiento_id" name="establecimiento_id" class="form-select"
-                                onchange="loadEstablecimientoCodigo()" required>
-                                <option value="">Seleccione...</option>
-                                <?php foreach ($establecimientos as $est): ?>
-                                    <option value="<?php echo $est['id']; ?>"
-                                        data-codigo="<?php echo htmlspecialchars($est['codigo_establecimiento'] ?? $est['nombre_corto']); ?>">
-                                        <?php echo htmlspecialchars($est['nombre']); ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="row g-3 mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label">Código Establecimiento</label>
-                            <input type="text" id="codigo_establecimiento" name="codigo_establecimiento"
-                                class="form-control bg-light" readonly placeholder="Se cargará automáticamente">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label required">Tipo</label>
-                            <select id="tipo_error" name="tipo_error" class="form-select" required onchange="handleTipoChange()">
-                                <option value="">Seleccione...</option>
-                                <?php foreach ($TIPOS_ERROR as $tipo): ?>
-                                    <option value="<?php echo htmlspecialchars($tipo); ?>"><?php echo htmlspecialchars($tipo); ?></option>
-                                <?php endforeach; ?>
-                            </select>
+                        <div class="card-body">
+                            <div class="mb-3 p-3 bg-light rounded">
+                                <label class="form-label mb-0">Registrado por:</label>
+                                <p class="fs-5 fw-bold mb-0"><?php echo htmlspecialchars($_SESSION['nombre_completo'] ?? 'Usuario'); ?></p>
+                            </div>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label required">Mes</label>
+                                    <select id="mes" name="mes" class="form-select" required>
+                                        <option value="">Seleccione...</option>
+                                        <?php foreach ($MESES as $mes): ?>
+                                            <option value="<?php echo $mes; ?>"><?php echo $mes; ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <div class="invalid-feedback">Seleccione un mes.</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label required">Establecimiento</label>
+                                    <select id="establecimiento_id" name="establecimiento_id" class="form-select" required>
+                                        <option value="">Seleccione...</option>
+                                        <?php foreach ($establecimientos as $est): ?>
+                                            <option value="<?php echo $est['id']; ?>"
+                                                data-codigo="<?php echo htmlspecialchars($est['codigo_establecimiento'] ?? $est['nombre_corto']); ?>">
+                                                <?php echo htmlspecialchars($est['nombre']); ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <div class="invalid-feedback">Seleccione un establecimiento.</div>
+                                </div>
+                            </div>
+                            <div class="row g-3 mt-2">
+                                <div class="col-md-6">
+                                    <label class="form-label">Código Establecimiento</label>
+                                    <input type="text" id="codigo_establecimiento" name="codigo_establecimiento"
+                                        class="form-control bg-light" readonly placeholder="Se cargará automáticamente">
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="row g-3 mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label">Serie</label>
-                            <select id="codigo_serie" name="codigo_serie" class="form-select" onchange="loadHojasREM()">
-                                <option value="">Seleccione...</option>
-                                <?php foreach ($SERIES_REM as $serie): ?>
-                                    <option value="<?php echo htmlspecialchars($serie); ?>"><?php echo htmlspecialchars($serie); ?></option>
-                                <?php endforeach; ?>
-                            </select>
+                    <!-- Sección 2: Detalle de la Observación -->
+                    <div class="card card-borderless mb-3">
+                        <div class="card-header">
+                            <h6 class="card-title">Detalle de la Observación</h6>
                         </div>
-                        <div class="col-md-6" id="hojaRemContainer">
-                            <label class="form-label">REM (Hoja)</label>
-                            <select id="codigo_hoja" name="codigo_hoja" class="form-select" disabled>
-                                <option value="">Primero seleccione una Serie</option>
-                            </select>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label required">Tipo</label>
+                                    <select id="tipo_error" name="tipo_error" class="form-select" required>
+                                        <option value="">Seleccione...</option>
+                                        <?php foreach ($TIPOS_ERROR as $tipo): ?>
+                                            <option value="<?php echo htmlspecialchars($tipo); ?>"><?php echo htmlspecialchars($tipo); ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <div class="invalid-feedback">Seleccione un tipo de error.</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Serie</label>
+                                    <select id="codigo_serie" name="codigo_serie" class="form-select">
+                                        <option value="">Seleccione...</option>
+                                        <?php foreach ($SERIES_REM as $serie): ?>
+                                            <option value="<?php echo htmlspecialchars($serie); ?>"><?php echo htmlspecialchars($serie); ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="row g-3 mt-2">
+                                <div class="col-md-6" id="hojaRemContainer">
+                                    <label class="form-label">REM (Hoja)</label>
+                                    <select id="codigo_hoja" name="codigo_hoja" class="form-select" disabled>
+                                        <option value="">Primero seleccione una Serie</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="mb-0 mt-2">
+                                <label class="form-label">Detalle de la Observación</label>
+                                <textarea id="detalle_observacion" name="detalle_observacion" class="form-control" rows="4"
+                                    placeholder="Descripción de la observación..."></textarea>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="mb-3">
-                        <label class="form-label">Detalle de la Observación</label>
-                        <textarea id="detalle_observacion" name="detalle_observacion" class="form-control" rows="4"
-                            placeholder="Descripción de la observación..."></textarea>
-                    </div>
-
-                    <div class="row g-3 mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label">Plazo de Entrega</label>
-                            <select id="plazo_entrega" name="plazo_entrega" class="form-select">
-                                <option value="">Seleccione...</option>
-                                <option value="dentro_plazo">Dentro de Plazo</option>
-                                <option value="fuera_plazo">Fuera de Plazo</option>
-                            </select>
+                    <!-- Sección 3: Clasificación -->
+                    <div class="card card-borderless mb-0">
+                        <div class="card-header">
+                            <h6 class="card-title">Clasificación y Seguimiento</h6>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Usa Validador</label>
-                            <select id="usa_validador" name="usa_validador" class="form-select">
-                                <option value="">Seleccione...</option>
-                                <option value="si">Sí</option>
-                                <option value="no">No</option>
-                                <option value="n/a">N/A</option>
-                            </select>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Plazo de Entrega</label>
+                                    <select id="plazo_entrega" name="plazo_entrega" class="form-select">
+                                        <option value="">Seleccione...</option>
+                                        <option value="dentro_plazo">Dentro de Plazo</option>
+                                        <option value="fuera_plazo">Fuera de Plazo</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Usa Validador</label>
+                                    <select id="usa_validador" name="usa_validador" class="form-select">
+                                        <option value="">Seleccione...</option>
+                                        <option value="si">Sí</option>
+                                        <option value="no">No</option>
+                                        <option value="n/a">N/A</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="mb-0 mt-2" id="respuestaContainer">
+                                <label class="form-label">Respuesta del Establecimiento</label>
+                                <textarea id="respuesta_establecimiento" name="respuesta_establecimiento" class="form-control" rows="3"
+                                    placeholder="Respuesta recibida del establecimiento..."></textarea>
+                            </div>
                         </div>
-                    </div>
-
-                    <div class="mb-3" id="respuestaContainer">
-                        <label class="form-label">Respuesta del Establecimiento</label>
-                        <textarea id="respuesta_establecimiento" name="respuesta_establecimiento" class="form-control" rows="3"
-                            placeholder="Respuesta recibida del establecimiento..."></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary ms-auto">Guardar</button>
+                    <button type="submit" class="btn btn-primary ms-auto" id="btnSaveObservation">
+                        <span class="spinner-border spinner-border-sm me-2 d-none" id="btnSaveSpinner"></span>
+                        <span id="btnSaveText">Guardar</span>
+                    </button>
                 </div>
             </form>
         </div>
@@ -502,13 +529,299 @@ global $TIPOS_ERROR, $MESES;
 </div>
 
 <script>
-    // Variables para importación
+    // ============================================================
+    // ObservationForm — encapsulación del modal crear/editar
+    // ============================================================
+    class ObservationForm {
+        constructor() {
+            this.modal = new bootstrap.Modal(document.getElementById('modalObservation'));
+            this.init();
+        }
+
+        // ----------------------------------------------------------
+        // Inicialización: wire-up de eventos (Task 2.2)
+        // ----------------------------------------------------------
+        init() {
+            const form = document.getElementById('formObservation');
+
+            form.addEventListener('submit', (e) => this.save(e));
+
+            document.getElementById('tipo_error')
+                .addEventListener('change', () => this.onTipoChange());
+
+            document.getElementById('codigo_serie')
+                .addEventListener('change', () => this.loadHojasREM());
+
+            document.getElementById('establecimiento_id')
+                .addEventListener('change', () => this.loadEstablecimientoCodigo());
+
+            document.getElementById('modalObservation')
+                .addEventListener('hidden.bs.modal', () => this.clearValidationErrors());
+        }
+
+        // ----------------------------------------------------------
+        // Código establecimiento al cambiar dropdown (Task 2.5)
+        // ----------------------------------------------------------
+        loadEstablecimientoCodigo() {
+            const select = document.getElementById('establecimiento_id');
+            const selectedOption = select.options[select.selectedIndex];
+            const codigo = selectedOption.getAttribute('data-codigo');
+
+            document.getElementById('codigo_establecimiento').value = codigo || '';
+        }
+
+        // ----------------------------------------------------------
+        // Carga dinámica de hojas REM por serie (Task 2.4)
+        // ----------------------------------------------------------
+        loadHojasREM() {
+            const serieSelect = document.getElementById('codigo_serie');
+            const hojaSelect = document.getElementById('codigo_hoja');
+            const serieSeleccionada = serieSelect.value;
+            const tipoError = document.getElementById('tipo_error').value;
+
+            hojaSelect.innerHTML = '';
+
+            if (tipoError === 'S/OBSERVACION') {
+                document.getElementById('hojaRemContainer').style.display = 'none';
+                hojaSelect.value = '';
+                return;
+            }
+
+            document.getElementById('hojaRemContainer').style.display = '';
+
+            if (!serieSeleccionada) {
+                hojaSelect.innerHTML = '<option value="">Primero seleccione una Serie</option>';
+                hojaSelect.disabled = true;
+                return;
+            }
+
+            const hojas = hojasPorSerie[serieSeleccionada] || [];
+
+            if (hojas.length > 0) {
+                hojaSelect.innerHTML = '<option value="">Seleccione...</option>';
+                hojas.forEach(hoja => {
+                    const option = document.createElement('option');
+                    option.value = hoja.codigo;
+                    option.textContent = hoja.nombre;
+                    hojaSelect.appendChild(option);
+                });
+                hojaSelect.disabled = false;
+            } else {
+                hojaSelect.innerHTML = '<option value="">No hay hojas disponibles</option>';
+                hojaSelect.disabled = true;
+            }
+        }
+
+        // ----------------------------------------------------------
+        // Cambio de tipo: oculta/muestra campos (Task 2.3)
+        // ----------------------------------------------------------
+        onTipoChange() {
+            const tipoError = document.getElementById('tipo_error').value;
+            const hojaContainer = document.getElementById('hojaRemContainer');
+            const respuestaContainer = document.getElementById('respuestaContainer');
+
+            if (tipoError === 'S/OBSERVACION') {
+                hojaContainer.style.display = 'none';
+                document.getElementById('codigo_hoja').value = '';
+                respuestaContainer.style.display = 'none';
+                document.getElementById('respuesta_establecimiento').value = '';
+            } else {
+                hojaContainer.style.display = '';
+                respuestaContainer.style.display = '';
+                this.loadHojasREM();
+            }
+        }
+
+        // ----------------------------------------------------------
+        // Abrir modal para crear (Task 2.2)
+        // ----------------------------------------------------------
+        openCreate() {
+            document.getElementById('obsId').value = '';
+            document.getElementById('modalTitle').textContent = 'Nueva Observación';
+            document.getElementById('formObservation').reset();
+            document.getElementById('codigo_establecimiento').value = '';
+
+            const hojaSelect = document.getElementById('codigo_hoja');
+            hojaSelect.innerHTML = '<option value="">Primero seleccione una Serie</option>';
+            hojaSelect.disabled = true;
+
+            document.getElementById('hojaRemContainer').style.display = '';
+            document.getElementById('respuestaContainer').style.display = '';
+            this.clearValidationErrors();
+            this.modal.show();
+        }
+
+        // ----------------------------------------------------------
+        // Abrir modal para editar (Task 2.2)
+        // ----------------------------------------------------------
+        async edit(id) {
+            try {
+                showLoading();
+                const response = await fetchAPI(`observations.php?id=${id}`);
+
+                if (response.success) {
+                    const obs = response.data;
+                    document.getElementById('obsId').value = obs.id;
+                    document.getElementById('mes').value = obs.mes;
+                    document.getElementById('establecimiento_id').value = obs.establecimiento_id;
+
+                    this.loadEstablecimientoCodigo();
+
+                    document.getElementById('tipo_error').value = obs.tipo_error;
+                    this.onTipoChange();
+
+                    document.getElementById('codigo_serie').value = obs.codigo_serie;
+
+                    if (obs.tipo_error !== 'S/OBSERVACION') {
+                        this.loadHojasREM();
+                        document.getElementById('codigo_hoja').value = obs.codigo_hoja;
+                    }
+
+                    document.getElementById('detalle_observacion').value = obs.detalle_observacion;
+                    document.getElementById('plazo_entrega').value = obs.plazo_entrega;
+                    document.getElementById('usa_validador').value = obs.usa_validador || '';
+                    document.getElementById('respuesta_establecimiento').value = obs.respuesta_establecimiento || '';
+
+                    document.getElementById('modalTitle').textContent = 'Editar Observación';
+                    this.clearValidationErrors();
+                    this.modal.show();
+                }
+
+                hideLoading();
+            } catch (error) {
+                hideLoading();
+                showError('Error al cargar la observación: ' + error.message);
+            }
+        }
+
+        // ----------------------------------------------------------
+        // Guardar / Actualizar (Task 2.6)
+        // ----------------------------------------------------------
+        async save(event) {
+            event.preventDefault();
+            this.clearValidationErrors();
+
+            // --- Validación visual inline (Task 3.x) ---
+            const form = document.getElementById('formObservation');
+            const required = form.querySelectorAll('[required]');
+            let valid = true;
+
+            required.forEach(el => {
+                if (!el.value.trim()) {
+                    el.classList.add('is-invalid');
+                    valid = false;
+                }
+            });
+
+            if (!valid) return;
+
+            const obsId = document.getElementById('obsId').value;
+            const tipoError = document.getElementById('tipo_error').value;
+            let usaValidador = document.getElementById('usa_validador').value;
+
+            if (usaValidador === 'n/a') {
+                usaValidador = 'no';
+            }
+
+            const formData = {
+                mes: document.getElementById('mes').value,
+                establecimiento_id: parseInt(document.getElementById('establecimiento_id').value),
+                codigo_serie: document.getElementById('codigo_serie').value,
+                codigo_hoja: tipoError === 'S/OBSERVACION' ? '' : document.getElementById('codigo_hoja').value,
+                tipo_error: tipoError,
+                detalle_observacion: document.getElementById('detalle_observacion').value,
+                plazo_entrega: document.getElementById('plazo_entrega').value,
+                usa_validador: usaValidador,
+                respuesta_establecimiento: tipoError === 'S/OBSERVACION' ? '' : document.getElementById('respuesta_establecimiento').value
+            };
+
+            try {
+                this.setLoading(true);
+
+                let response;
+                if (obsId) {
+                    response = await fetchAPI(`observations.php?id=${obsId}`, {
+                        method: 'PUT',
+                        body: JSON.stringify(formData)
+                    });
+                } else {
+                    response = await fetchAPI('observations.php', {
+                        method: 'POST',
+                        body: JSON.stringify(formData)
+                    });
+                }
+
+                this.setLoading(false);
+
+                if (response.success) {
+                    showSuccess(obsId ? 'Observación actualizada correctamente' : 'Observación creada correctamente');
+                    this.modal.hide();
+                    setTimeout(() => location.reload(), 1500);
+                } else if (response.errors) {
+                    this.showValidationErrors(response.errors);
+                }
+            } catch (error) {
+                this.setLoading(false);
+                showError(error.message || 'Error al guardar la observación');
+            }
+        }
+
+        // ----------------------------------------------------------
+        // Mostrar errores de validación inline (Task 3.1)
+        // ----------------------------------------------------------
+        showValidationErrors(errors) {
+            this.clearValidationErrors();
+            errors.forEach(field => {
+                const el = document.getElementById(field);
+                if (el) el.classList.add('is-invalid');
+            });
+        }
+
+        // ----------------------------------------------------------
+        // Limpiar errores de validación (Task 3.2)
+        // ----------------------------------------------------------
+        clearValidationErrors() {
+            document.querySelectorAll('#formObservation .is-invalid')
+                .forEach(el => el.classList.remove('is-invalid'));
+        }
+
+        // ----------------------------------------------------------
+        // Spinner en botón guardar (Task 3.3)
+        // ----------------------------------------------------------
+        setLoading(isLoading) {
+            const btn = document.getElementById('btnSaveObservation');
+            const spinner = document.getElementById('btnSaveSpinner');
+            const text = document.getElementById('btnSaveText');
+
+            btn.disabled = isLoading;
+            spinner.classList.toggle('d-none', !isLoading);
+            text.textContent = isLoading ? 'Guardando...' : 'Guardar';
+        }
+    }
+
+    // Instancia global del formulario de observaciones
+    const observationForm = new ObservationForm();
+
+    // ============================================================
+    // Variables globales
+    // ============================================================
     let importPreviewData = null;
-    const modalObservation = new bootstrap.Modal(document.getElementById('modalObservation'));
     const modalImport = new bootstrap.Modal(document.getElementById('modalImport'));
     const modalDetails = new bootstrap.Modal(document.getElementById('modalDetails'));
 
-    // Filtrar tabla
+    // Datos de hojas REM por serie (generado desde PHP)
+    const hojasPorSerie = <?php echo json_encode($HOJAS_POR_SERIE); ?>;
+
+    // ============================================================
+    // Wrappers globales para compatibilidad con onclick en HTML
+    // ============================================================
+    function openCreateModal() { observationForm.openCreate(); }
+
+    function editObservation(id) { observationForm.edit(id); }
+
+    // ============================================================
+    // Filtros de tabla
+    // ============================================================
     function filterTable() {
         const search = document.getElementById('searchInput').value.toLowerCase();
         const estado = document.getElementById('filterEstado').value;
@@ -528,117 +841,14 @@ global $TIPOS_ERROR, $MESES;
         });
     }
 
-    // Cargar código del establecimiento seleccionado
-    function loadEstablecimientoCodigo() {
-        const select = document.getElementById('establecimiento_id');
-        const selectedOption = select.options[select.selectedIndex];
-        const codigo = selectedOption.getAttribute('data-codigo');
-
-        if (codigo) {
-            document.getElementById('codigo_establecimiento').value = codigo;
-        } else {
-            document.getElementById('codigo_establecimiento').value = '';
-        }
-    }
-
-    // Datos de hojas REM por serie (generado desde PHP)
-    const hojasPorSerie = <?php echo json_encode($HOJAS_POR_SERIE); ?>;
-
-    // Cargar hojas REM según la serie seleccionada
-    function loadHojasREM() {
-        const serieSelect = document.getElementById('codigo_serie');
-        const hojaSelect = document.getElementById('codigo_hoja');
-        const serieSeleccionada = serieSelect.value;
-        const tipoError = document.getElementById('tipo_error').value;
-
-        // Limpiar opciones actuales
-        hojaSelect.innerHTML = '';
-
-        // Si es S/OBSERVACION, ocultar el campo de hoja
-        if (tipoError === 'S/OBSERVACION') {
-            document.getElementById('hojaRemContainer').style.display = 'none';
-            hojaSelect.value = '';
-            return;
-        }
-
-        // Mostrar el campo de hoja para otros tipos
-        document.getElementById('hojaRemContainer').style.display = '';
-
-        if (!serieSeleccionada) {
-            hojaSelect.innerHTML = '<option value="">Primero seleccione una Serie</option>';
-            hojaSelect.disabled = true;
-            return;
-        }
-
-        // Obtener hojas para la serie seleccionada
-        const hojas = hojasPorSerie[serieSeleccionada] || [];
-
-        if (hojas.length > 0) {
-            hojaSelect.innerHTML = '<option value="">Seleccione...</option>';
-            hojas.forEach(hoja => {
-                const option = document.createElement('option');
-                option.value = hoja.codigo;
-                option.textContent = hoja.nombre;
-                hojaSelect.appendChild(option);
-            });
-            hojaSelect.disabled = false;
-        } else {
-            hojaSelect.innerHTML = '<option value="">No hay hojas disponibles</option>';
-            hojaSelect.disabled = true;
-        }
-    }
-
-    // Manejar cambio de tipo de error
-    function handleTipoChange() {
-        const tipoError = document.getElementById('tipo_error').value;
-        const hojaContainer = document.getElementById('hojaRemContainer');
-        const respuestaContainer = document.getElementById('respuestaContainer');
-        const detalleObs = document.getElementById('detalle_observacion');
-
-        if (tipoError === 'S/OBSERVACION') {
-            // Ocultar hoja REM
-            hojaContainer.style.display = 'none';
-            document.getElementById('codigo_hoja').value = '';
-            
-            // Ocultar respuesta del establecimiento
-            respuestaContainer.style.display = 'none';
-            document.getElementById('respuesta_establecimiento').value = '';
-        } else {
-            // Mostrar hoja REM
-            hojaContainer.style.display = '';
-            
-            // Mostrar respuesta del establecimiento
-            respuestaContainer.style.display = '';
-            
-            // Recargar hojas si hay serie seleccionada
-            loadHojasREM();
-        }
-    }
-
-    // Abrir modal para crear
-    function openCreateModal() {
-        document.getElementById('obsId').value = '';
-        document.getElementById('modalTitle').textContent = 'Nueva Observación';
-        document.getElementById('formObservation').reset();
-        // Resetear campo de código establecimiento
-        document.getElementById('codigo_establecimiento').value = '';
-        // Resetear hojas REM
-        const hojaSelect = document.getElementById('codigo_hoja');
-        hojaSelect.innerHTML = '<option value="">Primero seleccione una Serie</option>';
-        hojaSelect.disabled = true;
-        // Mostrar todos los campos
-        document.getElementById('hojaRemContainer').style.display = '';
-        document.getElementById('respuestaContainer').style.display = '';
-        modalObservation.show();
-    }
-
-    // Abrir modal de importación
+    // ============================================================
+    // Importación
+    // ============================================================
     function openImportModal() {
         resetImport();
         modalImport.show();
     }
 
-    // Resetear estado de importación
     function resetImport() {
         document.getElementById('importStep1').classList.remove('hidden');
         document.getElementById('importStep2').classList.add('hidden');
@@ -646,7 +856,6 @@ global $TIPOS_ERROR, $MESES;
         importPreviewData = null;
     }
 
-    // Preview de importación
     async function previewImport() {
         const fileInput = document.getElementById('csvFile');
         if (!fileInput.files || fileInput.files.length === 0) return;
@@ -680,17 +889,14 @@ global $TIPOS_ERROR, $MESES;
         }
     }
 
-    // Mostrar preview
     function showImportPreview(data) {
         document.getElementById('importStep1').classList.add('hidden');
         document.getElementById('importStep2').classList.remove('hidden');
 
-        // Actualizar contadores
         document.getElementById('totalRows').textContent = data.total;
         document.getElementById('validRows').textContent = data.valid;
         document.getElementById('errorRows').textContent = data.errors.length;
 
-        // Mostrar errores si hay
         const errorsDiv = document.getElementById('importErrors');
         const errorList = document.getElementById('errorList');
         if (data.errors.length > 0) {
@@ -702,7 +908,6 @@ global $TIPOS_ERROR, $MESES;
             errorsDiv.classList.add('hidden');
         }
 
-        // Mostrar preview (primeros 5)
         const previewBody = document.getElementById('previewBody');
         const previewItems = data.preview.slice(0, 5);
         previewBody.innerHTML = previewItems.map(item => `
@@ -728,13 +933,11 @@ global $TIPOS_ERROR, $MESES;
             `;
         }
 
-        // Deshabilitar botón si no hay registros válidos
         const confirmBtn = document.getElementById('confirmImportBtn');
         confirmBtn.disabled = data.valid === 0;
         confirmBtn.classList.toggle('opacity-50', data.valid === 0);
     }
 
-    // Confirmar importación
     async function confirmImport() {
         if (!importPreviewData || importPreviewData.valid === 0) {
             showError('No hay registros válidos para importar');
@@ -778,113 +981,9 @@ global $TIPOS_ERROR, $MESES;
         }
     }
 
-    // Editar observación
-    async function editObservation(id) {
-        try {
-            showLoading();
-            const response = await fetchAPI(`observations.php?id=${id}`);
-
-            if (response.success) {
-                const obs = response.data;
-                document.getElementById('obsId').value = obs.id;
-                document.getElementById('mes').value = obs.mes;
-                document.getElementById('establecimiento_id').value = obs.establecimiento_id;
-
-                // Cargar código del establecimiento
-                loadEstablecimientoCodigo();
-
-                // Establecer el tipo primero para manejar la visibilidad
-                document.getElementById('tipo_error').value = obs.tipo_error;
-                handleTipoChange();
-
-                // Establecer la serie
-                document.getElementById('codigo_serie').value = obs.codigo_serie;
-
-                // Cargar las hojas REM para esa serie (si no es S/OBSERVACION)
-                if (obs.tipo_error !== 'S/OBSERVACION') {
-                    loadHojasREM();
-                    // Ahora establecer la hoja seleccionada
-                    document.getElementById('codigo_hoja').value = obs.codigo_hoja;
-                }
-
-                document.getElementById('detalle_observacion').value = obs.detalle_observacion;
-                document.getElementById('plazo_entrega').value = obs.plazo_entrega;
-                
-                // Manejar usa_validador - si es 'no' mostrar como 'no' (N/A se guarda como 'no')
-                document.getElementById('usa_validador').value = obs.usa_validador || '';
-                
-                document.getElementById('respuesta_establecimiento').value = obs.respuesta_establecimiento || '';
-
-                document.getElementById('modalTitle').textContent = 'Editar Observación';
-                modalObservation.show();
-            }
-
-            hideLoading();
-        } catch (error) {
-            hideLoading();
-            showError('Error al cargar la observación: ' + error.message);
-        }
-    }
-
-    // Guardar observación
-    async function saveObservation(event) {
-        event.preventDefault();
-
-        if (!validateForm('formObservation')) return;
-
-        const obsId = document.getElementById('obsId').value;
-        const tipoError = document.getElementById('tipo_error').value;
-        let usaValidador = document.getElementById('usa_validador').value;
-        
-        // Convertir 'n/a' a 'no' para guardar en BD
-        if (usaValidador === 'n/a') {
-            usaValidador = 'no';
-        }
-
-        const formData = {
-            mes: document.getElementById('mes').value,
-            establecimiento_id: parseInt(document.getElementById('establecimiento_id').value),
-            codigo_serie: document.getElementById('codigo_serie').value,
-            codigo_hoja: tipoError === 'S/OBSERVACION' ? '' : document.getElementById('codigo_hoja').value,
-            tipo_error: tipoError,
-            detalle_observacion: document.getElementById('detalle_observacion').value,
-            plazo_entrega: document.getElementById('plazo_entrega').value,
-            usa_validador: usaValidador,
-            respuesta_establecimiento: tipoError === 'S/OBSERVACION' ? '' : document.getElementById('respuesta_establecimiento').value
-        };
-
-        try {
-            showLoading();
-
-            let response;
-            if (obsId) {
-                // Actualizar
-                response = await fetchAPI(`observations.php?id=${obsId}`, {
-                    method: 'PUT',
-                    body: JSON.stringify(formData)
-                });
-            } else {
-                // Crear
-                response = await fetchAPI('observations.php', {
-                    method: 'POST',
-                    body: JSON.stringify(formData)
-                });
-            }
-
-            hideLoading();
-
-            if (response.success) {
-                showSuccess(obsId ? 'Observación actualizada correctamente' : 'Observación creada correctamente');
-                modalObservation.hide();
-                setTimeout(() => location.reload(), 1500);
-            }
-        } catch (error) {
-            hideLoading();
-            showError(error.message || 'Error al guardar la observación');
-        }
-    }
-
+    // ============================================================
     // Ver detalle de observación
+    // ============================================================
     async function viewObservation(id) {
         try {
             showLoading();
@@ -893,38 +992,32 @@ global $TIPOS_ERROR, $MESES;
             if (response.success) {
                 const obs = response.data;
 
-                // Poblar modal con datos
                 document.getElementById('detailEstablecimiento').textContent = obs.nombre_corto || obs.nombre || '-';
                 document.getElementById('detailComuna').textContent = obs.comuna || '-';
                 document.getElementById('detailCodigoEst').textContent = obs.codigo_establecimiento ? 'Código: ' + obs.codigo_establecimiento : '-';
 
-                // Badge de estado
                 const badge = document.getElementById('detailBadge');
                 badge.textContent = obs.estado_actual ? obs.estado_actual.charAt(0).toUpperCase() + obs.estado_actual.slice(1) : '-';
                 badge.className = 'badge bg-' + ({
-    'pendiente': 'yellow',
-    'aprobado': 'green',
-    'rechazado': 'red',
-    'error': 'red',
-    'justificado': 'blue'
-}[obs.estado_actual] || 'secondary') + ' text-' + ({
-    'pendiente': 'yellow-fg',
-    'aprobado': 'green-fg',
-    'rechazado': 'red-fg',
-    'error': 'red-fg',
-    'justificado': 'blue-fg'
-}[obs.estado_actual] || 'secondary-fg') + ' fw-normal';
+                    'pendiente': 'yellow',
+                    'aprobado': 'green',
+                    'rechazado': 'red',
+                    'error': 'red',
+                    'justificado': 'blue'
+                }[obs.estado_actual] || 'secondary') + ' text-' + ({
+                    'pendiente': 'yellow-fg',
+                    'aprobado': 'green-fg',
+                    'rechazado': 'red-fg',
+                    'error': 'red-fg',
+                    'justificado': 'blue-fg'
+                }[obs.estado_actual] || 'secondary-fg') + ' fw-normal';
 
-                // Información principal
                 document.getElementById('detailMesAnio').textContent = (obs.mes || '-') + ' ' + (obs.anio || '');
                 document.getElementById('detailReferencia').textContent = 'Serie ' + (obs.codigo_serie || '-') + ' / Hoja ' + (obs.codigo_hoja || '-');
                 document.getElementById('detailTipoError').textContent = obs.tipo_error || '-';
                 document.getElementById('detailPlazo').textContent = obs.plazo_entrega || 'No especificado';
-
-                // Detalle de observación
                 document.getElementById('detailObservacion').textContent = obs.detalle_observacion || 'Sin detalle registrado';
 
-                // Respuesta/Justificación
                 const respuestaSection = document.getElementById('detailRespuestaSection');
                 if (obs.respuesta) {
                     document.getElementById('detailRespuesta').textContent = obs.respuesta;
@@ -933,7 +1026,6 @@ global $TIPOS_ERROR, $MESES;
                     respuestaSection.classList.add('hidden');
                 }
 
-                // Clasificación y Detalle Error (supervisor)
                 const clasifSection = document.getElementById('detailClasificacionSection');
                 if (obs.clasificacion) {
                     document.getElementById('detailClasificacion').textContent = obs.clasificacion;
@@ -949,12 +1041,10 @@ global $TIPOS_ERROR, $MESES;
                     detErrorSection.classList.add('hidden');
                 }
 
-                // Info de registro
                 document.getElementById('detailRegistradoPor').textContent = obs.nombre_registro || '-';
                 document.getElementById('detailFechaRegistro').textContent = obs.fecha_registro ? formatDate(obs.fecha_registro) : '-';
                 document.getElementById('detailFechaActualizacion').textContent = obs.fecha_actualizacion ? 'Última modificación: ' + formatDate(obs.fecha_actualizacion) : '';
 
-                // Info de supervisor
                 const supervisorInfo = document.getElementById('detailSupervisorInfo');
                 if (obs.nombre_supervisor) {
                     document.getElementById('detailSupervisadoPor').textContent = obs.nombre_supervisor;
@@ -964,7 +1054,6 @@ global $TIPOS_ERROR, $MESES;
                     supervisorInfo.classList.add('hidden');
                 }
 
-                // Validador
                 const validadorEl = document.getElementById('detailValidador');
                 if (obs.tipo_error === 'S/OBSERVACION') {
                     validadorEl.textContent = 'N/A';
@@ -976,7 +1065,6 @@ global $TIPOS_ERROR, $MESES;
 
                 document.getElementById('detailId').textContent = 'ID: ' + obs.id;
 
-                // Abrir modal
                 modalDetails.show();
             }
 
@@ -987,6 +1075,9 @@ global $TIPOS_ERROR, $MESES;
         }
     }
 
+    // ============================================================
+    // Utilidades
+    // ============================================================
     function formatDate(dateString) {
         if (!dateString) return '-';
         const date = new Date(dateString);
