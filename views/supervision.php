@@ -411,6 +411,7 @@ $comunas = $locationModel->getComunas();
             <div>
                 <p class="text-sm text-slate-600">Establecimiento</p>
                 <p class="font-bold">${escapeHtml(obs.establecimiento)}</p>
+                ${obs.codigo_establecimiento ? `<p class="text-xs text-slate-400">Código: ${escapeHtml(obs.codigo_establecimiento)}</p>` : ''}
             </div>
             <div>
                 <p class="text-sm text-slate-600">Estado</p>
@@ -427,6 +428,14 @@ $comunas = $locationModel->getComunas();
             <div class="col-span-2">
                 <p class="text-sm text-slate-600">Tipo de Error</p>
                 <p>${escapeHtml(obs.tipo_error)}</p>
+            </div>
+            <div>
+                <p class="text-sm text-slate-600">Plazo Entrega</p>
+                <p>${obs.plazo_entrega ? escapeHtml(obs.plazo_entrega.replace('_', ' ')) : '-'}</p>
+            </div>
+            <div>
+                <p class="text-sm text-slate-600">Usa Validador</p>
+                <p>${obs.usa_validador ? escapeHtml(obs.usa_validador) : '-'}</p>
             </div>
             <div>
                 <p class="text-sm text-slate-600">Serie REM</p>
@@ -456,6 +465,11 @@ $comunas = $locationModel->getComunas();
             <div class="col-span-2 p-3 bg-sky-50 rounded border border-sky-200">
                 <p class="text-sm text-sky-700 font-semibold">Detalle Error</p>
                 <p class="text-sm text-sky-900">${escapeHtml(obs.detalle_error)}</p>
+            </div>
+            ` : ''}
+            ${obs.fecha_actualizacion ? `
+            <div class="col-span-2 text-xs text-slate-400 text-right border-t pt-2 mt-2">
+                Última modificación: ${formatDate(obs.fecha_actualizacion)}
             </div>
             ` : ''}
         </div>

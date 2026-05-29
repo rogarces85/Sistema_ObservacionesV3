@@ -59,6 +59,24 @@ try {
             jsonResponse(true, $obsModel->reportePorValidador($year, $userId, $userRole));
             break;
 
+        // Nuevos reportes agregados con ambos lados
+        case 'plazo-agregado':
+        case 'validador-agregado':
+            $meses = $_GET['meses'] ?? [];
+            if (!is_array($meses)) $meses = $meses ? [$meses] : [];
+            if ($report === 'plazo-agregado') {
+                jsonResponse(true, [
+                    'establecimientos' => $obsModel->reportePlazoAgregado((int)$year, $meses),
+                    'detalle_mensual' => $obsModel->reportePlazoMensual((int)$year)
+                ]);
+            } else {
+                jsonResponse(true, [
+                    'establecimientos' => $obsModel->reporteValidadorAgregado((int)$year, $meses),
+                    'detalle_mensual' => $obsModel->reporteValidadorMensual((int)$year)
+                ]);
+            }
+            break;
+
         // GRUPO A: Reportes de Errores
         case 'errores_mes':
             jsonResponse(true, $obsModel->reporteErroresPorMes($year, $userId, $userRole));

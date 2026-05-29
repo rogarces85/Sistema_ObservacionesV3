@@ -253,6 +253,15 @@ $statsJson = json_encode($stats);
                         </div>
                         <span class="text-amber-500">→</span>
                     </a>
+                    <button onclick="openInformeModal()"
+                        class="flex items-center gap-3 p-4 rounded-xl bg-rose-50 hover:bg-rose-100 transition-all cursor-pointer group w-full text-left">
+                        <div class="p-2 rounded-lg bg-rose-500 text-white">📄</div>
+                        <div class="flex-1">
+                            <p class="font-semibold text-slate-800 group-hover:text-rose-700">Informe de Errores</p>
+                            <p class="text-xs text-slate-500">Trimestral o anual en PDF</p>
+                        </div>
+                        <span class="text-rose-500">→</span>
+                    </button>
                 <?php endif; ?>
             </div>
         </div>
@@ -326,6 +335,103 @@ $statsJson = json_encode($stats);
             </div>
         <?php endif; ?>
     </div>
+
+    <!-- Informe de Errores - Modal de selección -->
+    <div id="modalInforme" class="modal-overlay hidden">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <div>
+                    <h3 class="text-xl font-bold text-slate-800">📄 Informe de Errores REM</h3>
+                    <p class="text-sm text-slate-500">Seleccione el período para generar el informe</p>
+                </div>
+                <button onclick="closeModal('modalInforme')" class="btn-secondary px-3 py-2" type="button">✕</button>
+            </div>
+            <div class="modal-body">
+                <form id="formInforme" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-2">Tipo de Informe</label>
+                        <select id="informeTipo" name="tipo" onchange="toggleTrimestre()" class="w-full">
+                            <option value="trimestral">Trimestral</option>
+                            <option value="anual">Anual</option>
+                        </select>
+                    </div>
+                    <div id="trimestreGroup">
+                        <label class="block text-sm font-semibold text-slate-700 mb-2">Trimestre</label>
+                        <select id="informeTrimestre" name="trimestre" class="w-full">
+                            <option value="1">1° Trimestre (Ene - Mar)</option>
+                            <option value="2">2° Trimestre (Abr - Jun)</option>
+                            <option value="3">3° Trimestre (Jul - Sep)</option>
+                            <option value="4">4° Trimestre (Oct - Dic)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-2">Año</label>
+                        <select id="informeAnio" name="anio" class="w-full">
+                            <?php for ($y = date('Y'); $y >= 2020; $y--): ?>
+                                <option value="<?php echo $y; ?>" <?php echo $y == $currentYear ? 'selected' : ''; ?>>
+                                    <?php echo $y; ?>
+                                </option>
+                            <?php endfor; ?>
+                        </select>
+                    </div>
+                    <div class="flex gap-3 pt-4">
+                        <button type="button" onclick="cargarInformeWeb()" class="btn btn-primary flex-1">
+                            🌐 Ver en Web
+                        </button>
+                        <button type="button" onclick="descargarInformePDF()" class="btn btn-secondary flex-1">
+                            📥 Descargar PDF
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Informe de Errores - Resultados Web -->
+    <div id="informeResultados" class="hidden">
+        <div class="card overflow-hidden">
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center">
+                <div>
+                    <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                        <span>📋</span> Detalle de Errores REM
+                    </h3>
+                    <p id="informePeriodo" class="text-sm text-slate-500"></p>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="descargarInformePDF()" class="btn btn-secondary text-sm">
+                        📥 PDF
+                    </button>
+                    <button onclick="document.getElementById('informeResultados').classList.add('hidden')" class="btn-secondary px-3 py-1 text-xs">
+                        ✕ Cerrar
+                    </button>
+                </div>
+            </div>
+            <div class="overflow-x-auto">
+                <table id="informeTable">
+                    <thead>
+                        <tr>
+                            <th>Comuna</th>
+                            <th>Establecimiento</th>
+                            <th>Mes</th>
+                            <th>Detalle del Error</th>
+                            <th>Clasificación</th>
+                            <th>Detalle Error</th>
+                        </tr>
+                    </thead>
+                    <tbody id="informeTableBody"></tbody>
+                </table>
+            </div>
+            <div id="informePagination" class="hidden p-4 border-t border-slate-100 flex items-center justify-between">
+                <button id="pagPrev" onclick="cambiarPagina(-1)" class="btn-secondary px-4 py-2 text-sm" disabled>
+                    ← Anterior
+                </button>
+                <span id="pagInfo" class="text-sm text-slate-600"></span>
+                <button id="pagNext" onclick="cambiarPagina(1)" class="btn-secondary px-4 py-2 text-sm">
+                    Siguiente →
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -337,4 +443,112 @@ document.addEventListener('DOMContentLoaded', () => {
         initializeCharts(__dashboardStats);
     }
 });
+
+// --- Informe de Errores ---
+let informeData = [];
+let paginaActual = 1;
+const FILAS_POR_PAGINA = 20;
+
+function openInformeModal() {
+    document.getElementById('informeResultados').classList.add('hidden');
+    openModal('modalInforme');
+}
+
+function toggleTrimestre() {
+    const tipo = document.getElementById('informeTipo').value;
+    document.getElementById('trimestreGroup').style.display = tipo === 'trimestral' ? '' : 'none';
+}
+
+function getInformeParams() {
+    const tipo = document.getElementById('informeTipo').value;
+    const params = new URLSearchParams();
+    params.set('tipo', tipo);
+    params.set('anio', document.getElementById('informeAnio').value);
+    if (tipo === 'trimestral') {
+        params.set('trimestre', document.getElementById('informeTrimestre').value);
+    }
+    return params;
+}
+
+async function cargarInformeWeb() {
+    const params = getInformeParams();
+    params.set('format', 'json');
+
+    try {
+        showLoading();
+        const response = await fetch('api/informe_errores.php?' + params.toString());
+        const result = await response.json();
+
+        hideLoading();
+
+        if (result.success) {
+            informeData = result.data.datos;
+            paginaActual = 1;
+            document.getElementById('informePeriodo').textContent = 'Período: ' + result.data.periodo + ' | Total: ' + result.data.total + ' errores';
+            renderInformeTabla();
+            closeModal('modalInforme');
+            document.getElementById('informeResultados').classList.remove('hidden');
+        } else {
+            showError(result.message || 'Error al cargar el informe');
+        }
+    } catch (error) {
+        hideLoading();
+        showError('Error al cargar el informe: ' + error.message);
+    }
+}
+
+function descargarInformePDF() {
+    const params = getInformeParams();
+    params.set('format', 'pdf');
+    window.open('api/informe_errores.php?' + params.toString(), '_blank');
+}
+
+function renderInformeTabla() {
+    const tbody = document.getElementById('informeTableBody');
+    const totalPaginas = Math.ceil(informeData.length / FILAS_POR_PAGINA);
+    const inicio = (paginaActual - 1) * FILAS_POR_PAGINA;
+    const fin = Math.min(inicio + FILAS_POR_PAGINA, informeData.length);
+    const paginas = informeData.slice(inicio, fin);
+
+    tbody.innerHTML = paginas.map(row => {
+        const detalle = (row.codigo_serie ? '<strong>' + escapeHtml(row.codigo_serie) + '</strong>' : '')
+            + (row.codigo_hoja ? ' | <strong>' + escapeHtml(row.codigo_hoja) + '</strong>' : '')
+            + '<br/><span class="text-slate-600">' + escapeHtml(row.detalle_observacion || '') + '</span>';
+        return '<tr>' +
+            '<td><span class="font-semibold text-slate-700">' + escapeHtml(row.comuna) + '</span></td>' +
+            '<td>' + escapeHtml(row.establecimiento) + '</td>' +
+            '<td>' + escapeHtml(row.mes) + '</td>' +
+            '<td>' + detalle + '</td>' +
+            '<td>' + escapeHtml(row.clasificacion || '-') + '</td>' +
+            '<td>' + escapeHtml(row.detalle_error || '-') + '</td>' +
+            '</tr>';
+    }).join('');
+
+    // Paginación
+    const pagDiv = document.getElementById('informePagination');
+    if (totalPaginas > 1) {
+        pagDiv.classList.remove('hidden');
+        document.getElementById('pagInfo').textContent = 'Página ' + paginaActual + ' de ' + totalPaginas + ' (' + informeData.length + ' registros)';
+        document.getElementById('pagPrev').disabled = paginaActual <= 1;
+        document.getElementById('pagNext').disabled = paginaActual >= totalPaginas;
+    } else {
+        pagDiv.classList.add('hidden');
+    }
+}
+
+function cambiarPagina(delta) {
+    const totalPaginas = Math.ceil(informeData.length / FILAS_POR_PAGINA);
+    const nueva = paginaActual + delta;
+    if (nueva >= 1 && nueva <= totalPaginas) {
+        paginaActual = nueva;
+        renderInformeTabla();
+    }
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
 </script>

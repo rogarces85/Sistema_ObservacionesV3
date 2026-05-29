@@ -430,6 +430,7 @@ global $TIPOS_ERROR, $MESES;
                 <div>
                     <h4 id="detailEstablecimiento" class="text-lg font-bold text-slate-800">-</h4>
                     <p id="detailComuna" class="text-sm text-slate-500">-</p>
+                    <p id="detailCodigoEst" class="text-xs text-slate-400 mt-1">-</p>
                 </div>
                 <span id="detailBadge" class="badge">-</span>
             </div>
@@ -451,6 +452,10 @@ global $TIPOS_ERROR, $MESES;
                 <div class="p-4 rounded-xl bg-emerald-50">
                     <div class="text-xs text-emerald-600 uppercase font-bold mb-1">📆 Plazo Entrega</div>
                     <div id="detailPlazo" class="font-semibold text-slate-800">-</div>
+                </div>
+                <div class="p-4 rounded-xl bg-teal-50">
+                    <div class="text-xs text-teal-600 uppercase font-bold mb-1">✅ Usa Validador</div>
+                    <div id="detailValidador" class="font-semibold text-slate-800">-</div>
                 </div>
             </div>
 
@@ -484,6 +489,7 @@ global $TIPOS_ERROR, $MESES;
                     <div class="text-xs text-slate-400 uppercase">Registrado por</div>
                     <div id="detailRegistradoPor" class="font-semibold text-slate-700">-</div>
                     <div id="detailFechaRegistro" class="text-xs text-slate-400">-</div>
+                    <div id="detailFechaActualizacion" class="text-xs text-slate-400 mt-1">-</div>
                 </div>
                 <div id="detailSupervisorInfo" class="hidden">
                     <div class="text-xs text-slate-400 uppercase">Supervisado por</div>
@@ -494,7 +500,6 @@ global $TIPOS_ERROR, $MESES;
 
             <!-- Información adicional -->
             <div class="mt-4 flex flex-wrap gap-2">
-                <span id="detailValidador" class="badge badge-info hidden">Usa Validador</span>
                 <span id="detailId" class="text-xs text-slate-400">ID: -</span>
             </div>
         </div>
@@ -574,8 +579,8 @@ global $TIPOS_ERROR, $MESES;
             hojaSelect.innerHTML = '<option value="">Seleccione...</option>';
             hojas.forEach(hoja => {
                 const option = document.createElement('option');
-                option.value = hoja;
-                option.textContent = hoja;
+                option.value = hoja.codigo;
+                option.textContent = hoja.nombre;
                 hojaSelect.appendChild(option);
             });
             hojaSelect.disabled = false;
@@ -893,6 +898,7 @@ global $TIPOS_ERROR, $MESES;
                 // Poblar modal con datos
                 document.getElementById('detailEstablecimiento').textContent = obs.nombre_corto || obs.nombre || '-';
                 document.getElementById('detailComuna').textContent = obs.comuna || '-';
+                document.getElementById('detailCodigoEst').textContent = obs.codigo_establecimiento ? 'Código: ' + obs.codigo_establecimiento : '-';
 
                 // Badge de estado
                 const badge = document.getElementById('detailBadge');
@@ -936,6 +942,7 @@ global $TIPOS_ERROR, $MESES;
                 // Info de registro
                 document.getElementById('detailRegistradoPor').textContent = obs.nombre_registro || '-';
                 document.getElementById('detailFechaRegistro').textContent = obs.fecha_registro ? formatDate(obs.fecha_registro) : '-';
+                document.getElementById('detailFechaActualizacion').textContent = obs.fecha_actualizacion ? 'Última modificación: ' + formatDate(obs.fecha_actualizacion) : '';
 
                 // Info de supervisor
                 const supervisorInfo = document.getElementById('detailSupervisorInfo');
@@ -948,15 +955,13 @@ global $TIPOS_ERROR, $MESES;
                 }
 
                 // Validador
-                const validadorBadge = document.getElementById('detailValidador');
+                const validadorEl = document.getElementById('detailValidador');
                 if (obs.tipo_error === 'S/OBSERVACION') {
-                    validadorBadge.textContent = 'N/A';
-                    validadorBadge.classList.remove('hidden');
+                    validadorEl.textContent = 'N/A';
                 } else if (obs.usa_validador && obs.usa_validador !== 'no') {
-                    validadorBadge.textContent = '✓ Usa Validador';
-                    validadorBadge.classList.remove('hidden');
+                    validadorEl.textContent = 'Sí';
                 } else {
-                    validadorBadge.classList.add('hidden');
+                    validadorEl.textContent = 'No';
                 }
 
                 document.getElementById('detailId').textContent = 'ID: ' + obs.id;

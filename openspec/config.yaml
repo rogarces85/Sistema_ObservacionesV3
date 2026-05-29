@@ -29,6 +29,8 @@ context: |
   - JS: Vanilla ES6+, sin frameworks, fetch API para llamadas al backend
   - Constantes del sistema en config/constants.php (estados, roles, series REM)
 
+  **Especificación de Hojas REM por Serie:** Definida en config/constants.php ($HOJAS_POR_SERIE) con estructura `{codigo, nombre}`. Cada serie incluye "Hoja Nombre" como primer elemento. Las series son: SERIE A (A01-A34, Hoja Control, Renombre archivo), SERIE BS (B, B17, Hoja Control, Renombre archivo), SERIE BM (BM18, BM18a, Hoja Control, Renombre archivo), SERIE P (P01-P13, Hoja Control, Renombre archivo), SERIE ANEXO (Hoja Parto_RN, Hoja S_Infancia, Hoja I.T.S, Hoja Rechazos, Hoja Farmacia, Hoja S_Mental, Hoja S_Adolescencia, Hoja Laboratorio, Hoja Intercultural, Hoja S_Familiar, Hoja Control, Renombre archivo), SERIE D (D15, D16, Hoja Control, Renombre archivo).
+
   **Especificaciones:** Documentadas en specs/ (10 módulos + índice maestro)
 
 rules:

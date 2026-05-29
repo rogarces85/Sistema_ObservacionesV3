@@ -508,4 +508,232 @@ class Exporter
         $writer->save('php://output');
         exit;
     }
+
+    /**
+     * Exportar Informe de Errores REM a PDF
+     * Formato vertical (portrait), diseño moderno para presentación a directivos
+     */
+    public function exportInformeErroresPDF($data, $periodo, $filename)
+    {
+        require_once __DIR__ . '/../vendor/autoload.php';
+
+        $pdf = new \TCPDF('P', 'mm', 'A4', true, 'UTF-8');
+
+        $pdf->SetCreator('Sistema Observaciones REM');
+        $pdf->SetAuthor('Servicio de Salud Osorno');
+        $pdf->SetTitle("Informe de Errores REM - $periodo");
+
+        $pdf->SetMargins(18, 40, 18);
+        $pdf->SetHeaderMargin(0);
+        $pdf->SetFooterMargin(15);
+        $pdf->SetAutoPageBreak(true, 22);
+
+        $pdf->setPrintHeader(false);
+        $pdf->setPrintFooter(true);
+        $pdf->setFooterFont(['helvetica', '', 8]);
+
+        $pdf->AddPage();
+
+        // ---- ENCABEZADO ----
+        $logoPath = __DIR__ . '/../assets/images/logo.png';
+        $xLogo = ($pdf->getPageWidth() - 30) / 2;
+        if (file_exists($logoPath)) {
+            $pdf->Image($logoPath, $xLogo, 12, 30, 0, 'PNG', '', '', false, 300, '', false, false, 0);
+        }
+
+        $pdf->SetY(32);
+        $pdf->SetFont('helvetica', 'B', 13);
+        $pdf->Cell(0, 7, 'SERVICIO SALUD OSORNO', 0, 1, 'C');
+        $pdf->SetFont('helvetica', '', 10);
+        $pdf->Cell(0, 5, 'DEGI - Departamento de Estadística', 0, 1, 'C');
+
+        // Línea decorativa
+        $pdf->SetDrawColor(0, 82, 136);
+        $pdf->SetLineWidth(0.5);
+        $pdf->Line(50, $pdf->GetY() + 2, $pdf->getPageWidth() - 50, $pdf->GetY() + 2);
+
+        $pdf->Ln(6);
+
+        // ---- TÍTULO ----
+        $pdf->SetFont('helvetica', 'B', 16);
+        $pdf->Cell(0, 8, 'INFORME DE ERRORES REM', 0, 1, 'C');
+        $pdf->SetFont('helvetica', '', 11);
+        $pdf->Cell(0, 6, $periodo, 0, 1, 'C');
+        $pdf->SetFont('helvetica', '', 8);
+        $pdf->Cell(0, 4, 'Emitido: ' . date('d/m/Y H:i'), 0, 1, 'C');
+        $pdf->Ln(3);
+
+        if (empty($data)) {
+            $pdf->SetFont('helvetica', '', 10);
+            $pdf->Cell(0, 10, 'No se encontraron errores en el período seleccionado.', 0, 1, 'C');
+            $pdf->Output($filename, 'D');
+            exit;
+        }
+
+        // ---- TABLA ----
+        // Columnas fijas en portrait (ancho útil: 210 - 36 = 174mm)
+        $colWidths = [24, 32, 13, 56, 23, 26];
+        $headers = ['COMUNA', 'ESTABLECIMIENTO', 'MES', 'DETALLE DEL ERROR', 'CLASIFICACIÓN', 'DETALLE ERROR'];
+
+        // Agrupamiento jerárquico
+        $groupedData = [];
+        $currentComuna = '';
+        $currentEstablecimiento = '';
+        $comunaStart = 0;
+        $estStart = 0;
+
+        foreach ($data as $idx => $row) {
+            $comuna = strtoupper($row['comuna'] ?? '');
+            $establecimiento = $row['establecimiento'] ?? '';
+            $mes = $row['mes'] ?? '';
+
+            if ($comuna !== $currentComuna) {
+                if ($currentComuna !== '') {
+                    $groupedData[$comunaStart]['comuna_span'] = $idx - $comunaStart;
+                }
+                $comunaStart = $idx;
+                $currentComuna = $comuna;
+                $currentEstablecimiento = '';
+            }
+
+            if ($establecimiento !== $currentEstablecimiento) {
+                if ($currentEstablecimiento !== '') {
+                    $groupedData[$estStart]['est_span'] = $idx - $estStart;
+                }
+                $estStart = $idx;
+                $currentEstablecimiento = $establecimiento;
+            }
+
+            $serie = htmlspecialchars($row['codigo_serie'] ?? '');
+            $hoja = htmlspecialchars($row['codigo_hoja'] ?? '');
+            $detalleObs = htmlspecialchars($row['detalle_observacion'] ?? '');
+
+            $detalleHtml = "<span style=\"font-weight: bold; color: #005288;\">{$serie}</span> | <span style=\"font-weight: bold; color: #005288;\">{$hoja}</span><br/><span style=\"color: #374151;\">{$detalleObs}</span>";
+
+            $groupedData[$idx] = [
+                'comuna' => $comuna,
+                'establecimiento' => $establecimiento,
+                'mes' => $mes,
+                'detalle_html' => $detalleHtml,
+                'clasificacion' => $row['clasificacion'] ?? '',
+                'detalle_error' => $row['detalle_error'] ?? '',
+                'estado_actual' => $row['estado_actual'] ?? 'pendiente'
+            ];
+        }
+        if (!empty($groupedData)) {
+            $lastIdx = count($data) - 1;
+            if (!isset($groupedData[$comunaStart]['comuna_span'])) {
+                $groupedData[$comunaStart]['comuna_span'] = $lastIdx - $comunaStart + 1;
+            }
+            if (!isset($groupedData[$estStart]['est_span'])) {
+                $groupedData[$estStart]['est_span'] = $lastIdx - $estStart + 1;
+            }
+        }
+
+        // Paleta de colores institucional
+        $colorPrimary = '#005288';
+        $colorPrimaryLight = '#E8F0F8';
+        $colorAccent = '#00A3B5';
+
+        $html = '<table border="0" cellpadding="2.5" cellspacing="0" width="100%" style="border-collapse: collapse;">';
+
+        // Header con bordes sólidos
+        $html .= '<tr>';
+        for ($i = 0; $i < count($headers); $i++) {
+            $html .= '<th width="' . $colWidths[$i] . '" align="center" style="background-color: ' . $colorPrimary . '; color: #FFFFFF; font-weight: bold; font-size: 6.5pt; padding: 4px 2px; border: 0.5px solid #003D66;">' . $headers[$i] . '</th>';
+        }
+        $html .= '</tr>';
+
+        $rowCount = 0;
+        foreach ($groupedData as $idx => $item) {
+            $comuna = $item['comuna'];
+            $establecimiento = $item['establecimiento'];
+            $mes = $item['mes'];
+            $detalleHtml = $item['detalle_html'];
+            $clasificacion = htmlspecialchars($item['clasificacion']);
+            $detalleError = htmlspecialchars($item['detalle_error']);
+            $estado = $item['estado_actual'];
+
+            $comunaSpan = $item['comuna_span'] ?? 1;
+            $estSpan = $item['est_span'] ?? 1;
+
+            // Color según estado (más sutiles, tonos pastel)
+            $bgColor = '#FFFFFF';
+            if ($estado === 'aprobado') {
+                $bgColor = '#F0FDF4';
+            } elseif ($estado === 'pendiente') {
+                $bgColor = '#FFFBEB';
+            } elseif ($estado === 'rechazado') {
+                $bgColor = '#FEF2F2';
+            } elseif ($estado === 'justificado') {
+                $bgColor = '#EFF6FF';
+            }
+
+            if ($rowCount % 2 === 0 && $bgColor === '#FFFFFF') {
+                $bgColor = '#F8FAFC';
+            }
+
+            $html .= '<tr style="background-color: ' . $bgColor . '; font-size: 6.5pt;">';
+
+            // COMUNA
+            if ($comunaSpan > 0) {
+                $html .= '<td width="' . $colWidths[0] . '" rowspan="' . $comunaSpan . '" align="center" style="font-weight: bold; color: ' . $colorPrimary . '; vertical-align: middle; padding: 3px 2px; border: 0.3px solid #D1D5DB;">' . htmlspecialchars($comuna) . '</td>';
+                $groupedData[$idx]['comuna_span'] = 0;
+            }
+
+            // ESTABLECIMIENTO
+            if ($estSpan > 0) {
+                $html .= '<td width="' . $colWidths[1] . '" rowspan="' . $estSpan . '" style="vertical-align: middle; padding: 3px 2px; border: 0.3px solid #D1D5DB;">' . htmlspecialchars($establecimiento) . '</td>';
+                $groupedData[$idx]['est_span'] = 0;
+            }
+
+            // MES
+            $html .= '<td width="' . $colWidths[2] . '" align="center" style="padding: 3px 2px; border: 0.3px solid #D1D5DB;">' . htmlspecialchars($mes) . '</td>';
+
+            // DETALLE DEL ERROR
+            $html .= '<td width="' . $colWidths[3] . '" style="padding: 3px 3px; border: 0.3px solid #D1D5DB;">' . $detalleHtml . '</td>';
+
+            // CLASIFICACIÓN
+            $html .= '<td width="' . $colWidths[4] . '" align="center" style="padding: 3px 2px; border: 0.3px solid #D1D5DB;">' . $clasificacion . '</td>';
+
+            // DETALLE ERROR
+            $html .= '<td width="' . $colWidths[5] . '" style="padding: 3px 3px; border: 0.3px solid #D1D5DB;">' . $detalleError . '</td>';
+
+            $html .= '</tr>';
+            $rowCount++;
+
+            // Paginación cada ~22 filas (por ser portrait)
+            if ($rowCount % 22 === 0) {
+                $html .= '</table>';
+                $pdf->writeHTML($html, true, false, true, false, '');
+                $pdf->AddPage();
+                $html = '<table border="0" cellpadding="2.5" cellspacing="0" width="100%" style="border-collapse: collapse;">';
+                $html .= '<tr>';
+                for ($i = 0; $i < count($headers); $i++) {
+                    $html .= '<th width="' . $colWidths[$i] . '" align="center" style="background-color: ' . $colorPrimary . '; color: #FFFFFF; font-weight: bold; font-size: 6.5pt; padding: 4px 2px; border: 0.5px solid #003D66;">' . $headers[$i] . '</th>';
+                }
+                $html .= '</tr>';
+            }
+        }
+
+        $html .= '</table>';
+
+        $pdf->writeHTML($html, true, false, true, false, '');
+
+        // ---- FIRMAS ----
+        $pdf->Ln(10);
+        $pdf->SetFont('helvetica', '', 9);
+        $html = '<table width="100%" style="margin-top: 15px;">';
+        $html .= '<tr><td align="center" style="padding-top: 25px;">';
+        $html .= '<hr style="width: 250px; border: none; border-top: 0.5px solid #9CA3AF; margin-bottom: 5px;"/>';
+        $html .= '<span style="font-weight: bold; color: ' . $colorPrimary . ';">Cecilia Barría Ojeda</span><br/>';
+        $html .= '<span style="color: #6B7280; font-size: 8pt;">Jefa Subdepto. Producción Estadística</span>';
+        $html .= '</td></tr>';
+        $html .= '</table>';
+
+        $pdf->writeHTML($html, true, false, true, false, '');
+
+        $pdf->Output($filename, 'D');
+        exit;
+    }
 }

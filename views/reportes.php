@@ -28,13 +28,24 @@ $mesesList = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto',
     <!-- Filtros estilo supervision.php -->
     <div class="card p-6">
         <h3 class="text-lg font-bold text-slate-800 mb-4">🔍 Filtros</h3>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             <div>
                 <label class="form-label">Año</label>
                 <select id="filterYear" class="form-select">
                     <?php for ($y = date('Y') + 1; $y >= 2020; $y--): ?>
                         <option value="<?php echo $y; ?>" <?php echo $y == $currentYear ? 'selected' : ''; ?>><?php echo $y; ?></option>
                     <?php endfor; ?>
+                </select>
+            </div>
+
+            <div>
+                <label class="form-label">Trimestre</label>
+                <select id="filterTrimestre" class="form-select">
+                    <option value="">Todos</option>
+                    <option value="1">1er Trimestre</option>
+                    <option value="2">2do Trimestre</option>
+                    <option value="3">3er Trimestre</option>
+                    <option value="4">4to Trimestre</option>
                 </select>
             </div>
 
@@ -113,31 +124,31 @@ $mesesList = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto',
                 </div>
             </div>
 
-            <!-- Tab 2: Plazos Entrega -->
+            <!-- Tab 2: Plazos Entrega (mejorado: ambos lados + detalle mensual) -->
             <div id="tab-plazos" class="tab-panel" role="tabpanel" hidden>
                 <div class="p-4">
                     <div class="relative" id="chart2Container" style="height: 400px;">
-                        <canvas id="chartFueraPlazo"></canvas>
+                        <canvas id="chartPlazoAgregado"></canvas>
                     </div>
                     <div class="mt-3 overflow-x-auto">
                         <table class="w-full text-sm">
-                            <thead><tr class="text-left text-slate-500 border-b"><th class="pb-1 font-medium">Establecimiento</th><th class="pb-1 font-medium text-right">Fuera Plazo</th></tr></thead>
-                            <tbody id="tableFueraPlazo"></tbody>
+                            <thead><tr class="text-left text-slate-500 border-b"><th class="pb-1 font-medium">Establecimiento</th><th class="pb-1 font-medium text-right">Dentro plazo</th><th class="pb-1 font-medium text-right">Fuera plazo</th><th class="pb-1 font-medium text-right">Total meses</th></tr></thead>
+                            <tbody id="tablePlazoResumen"></tbody>
                         </table>
                     </div>
                 </div>
             </div>
 
-            <!-- Tab 3: Uso Validador -->
+            <!-- Tab 3: Uso Validador (mejorado: ambos lados) -->
             <div id="tab-validador" class="tab-panel" role="tabpanel" hidden>
                 <div class="p-4">
                     <div class="relative" id="chart3Container" style="height: 400px;">
-                        <canvas id="chartNoValidador"></canvas>
+                        <canvas id="chartValidadorAgregado"></canvas>
                     </div>
                     <div class="mt-3 overflow-x-auto">
                         <table class="w-full text-sm">
-                            <thead><tr class="text-left text-slate-500 border-b"><th class="pb-1 font-medium">Establecimiento</th><th class="pb-1 font-medium text-right">No usa validador</th></tr></thead>
-                            <tbody id="tableNoValidador"></tbody>
+                            <thead><tr class="text-left text-slate-500 border-b"><th class="pb-1 font-medium">Establecimiento</th><th class="pb-1 font-medium text-right">Usa validador</th><th class="pb-1 font-medium text-right">No usa validador</th><th class="pb-1 font-medium text-right">Total meses</th></tr></thead>
+                            <tbody id="tableValidadorResumen"></tbody>
                         </table>
                     </div>
                 </div>
@@ -249,11 +260,16 @@ $mesesList = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto',
 let errorCharts = {};
 let tabDataLoaded = {};
 let cachedData = null;
+const mesesList = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const TRIMESTRES = {
+    '1': ['Enero','Febrero','Marzo'],
+    '2': ['Abril','Mayo','Junio'],
+    '3': ['Julio','Agosto','Septiembre'],
+    '4': ['Octubre','Noviembre','Diciembre']
+};
 
 const TAB_CONFIG = {
     'tab-errores-est': { canvas: 'chartErroresEst', container: 'chart1Container', table: 'tableErroresEst', orientation: 'horizontal', color: '#dc2626', label: 'Errores', key: 'errores_establecimiento' },
-    'tab-plazos': { canvas: 'chartFueraPlazo', container: 'chart2Container', table: 'tableFueraPlazo', orientation: 'vertical', color: '#f59e0b', label: 'Fuera Plazo', key: 'fuera_plazo_establecimiento' },
-    'tab-validador': { canvas: 'chartNoValidador', container: 'chart3Container', table: 'tableNoValidador', orientation: 'vertical', color: '#6366f1', label: 'No usa validador', key: 'no_validador_establecimiento' },
     'tab-serie': { canvas: 'chartErroresSerie', container: 'chart4Container', table: 'tableErroresSerie', orientation: 'horizontal', color: '#0ea5e9', label: 'Errores', key: 'errores_serie' },
     'tab-hoja': { canvas: 'chartErroresHoja', container: 'chart5Container', table: 'tableErroresHoja', orientation: 'vertical', color: '#10b981', label: 'Errores', key: 'errores_hoja' }
 };
@@ -263,25 +279,27 @@ const TAB_CONFIG = {
 // ============================================
 
 function switchTab(tabId) {
-    // Update tab buttons
     document.querySelectorAll('.report-tab').forEach(tab => {
         const isActive = tab.dataset.tab === tabId;
         tab.classList.toggle('active', isActive);
         tab.setAttribute('aria-selected', isActive);
     });
 
-    // Update tab panels
     document.querySelectorAll('.tab-panel').forEach(panel => {
         const isActive = panel.id === tabId;
         panel.classList.toggle('active', isActive);
         panel.hidden = !isActive;
     });
 
-    // Update URL hash
     location.hash = tabId;
 
-    // Lazy load: load data if not loaded yet
-    if (!tabDataLoaded[tabId] && cachedData) {
+    if (tabDataLoaded[tabId]) return;
+
+    if (tabId === 'tab-plazos') {
+        loadPlazoAgregado();
+    } else if (tabId === 'tab-validador') {
+        loadValidadorAgregado();
+    } else if (cachedData) {
         renderTabChart(tabId, cachedData);
         tabDataLoaded[tabId] = true;
     }
@@ -316,14 +334,28 @@ async function loadEstablecimientos() {
     }
 }
 
+function getMesesFiltro() {
+    const trimestre = document.getElementById('filterTrimestre').value;
+    if (trimestre && TRIMESTRES[trimestre]) {
+        return TRIMESTRES[trimestre];
+    }
+    const mes = document.getElementById('filterMes').value;
+    return mes ? [mes] : [];
+}
+
+function appendMeses(url, meses) {
+    meses.forEach(m => { url += `&meses[]=${encodeURIComponent(m)}`; });
+    return url;
+}
+
 async function loadErrorReports() {
     const year = document.getElementById('filterYear').value;
-    const mes = document.getElementById('filterMes').value;
+    const meses = getMesesFiltro();
     const comunaId = document.getElementById('filterComuna').value;
     const establecimientoId = document.getElementById('filterEstablecimiento').value;
 
     let url = `api/reports.php?report=error-reports&year=${year}`;
-    if (mes) url += `&meses[]=${encodeURIComponent(mes)}`;
+    url = appendMeses(url, meses);
     if (comunaId) url += `&comuna_ids[]=${comunaId}`;
     if (establecimientoId) url += `&establecimiento_id=${establecimientoId}`;
 
@@ -337,8 +369,12 @@ async function loadErrorReports() {
 
         // Render active tab immediately
         const activeTab = document.querySelector('.tab-panel.active').id;
-        renderTabChart(activeTab, cachedData);
-        tabDataLoaded[activeTab] = true;
+        if (activeTab === 'tab-plazos' || activeTab === 'tab-validador') {
+            switchTab(activeTab);
+        } else {
+            renderTabChart(activeTab, cachedData);
+            tabDataLoaded[activeTab] = true;
+        }
 
     } catch (e) {
         console.error('Error cargando reportes:', e);
@@ -411,6 +447,118 @@ function escapeHtml(text) {
 }
 
 // ============================================
+// Reportes Mejorados: Plazo y Validador
+// ============================================
+
+async function loadPlazoAgregado() {
+    const year = document.getElementById('filterYear').value;
+    const meses = getMesesFiltro();
+    let url = `api/reports.php?report=plazo-agregado&year=${year}`;
+    url = appendMeses(url, meses);
+    try {
+        const resp = await fetch(url);
+        const json = await resp.json();
+        if (!json.success) return;
+        renderPlazoChart(json.data);
+        tabDataLoaded['tab-plazos'] = true;
+    } catch (e) {
+        console.error('Error cargando reporte plazo agregado:', e);
+    }
+}
+
+function renderPlazoChart(data) {
+    const est = data.establecimientos || [];
+    const labels = est.map(e => e.nombre_corto);
+
+    // Destruir chart anterior
+    if (errorCharts['chartPlazoAgregado']) {
+        errorCharts['chartPlazoAgregado'].destroy();
+        delete errorCharts['chartPlazoAgregado'];
+    }
+
+    const container = document.getElementById('chart2Container');
+    if (!document.getElementById('chartPlazoAgregado')) {
+        container.innerHTML = '<canvas id="chartPlazoAgregado"></canvas>';
+    }
+    if (labels.length > 10) {
+        container.style.height = (400 + (labels.length - 10) * 22) + 'px';
+    } else {
+        container.style.height = '400px';
+    }
+
+    if (labels.length === 0) {
+        container.innerHTML = '<p class="text-slate-400 text-center py-8">Sin datos para el año seleccionado</p>';
+        document.getElementById('tablePlazoResumen').innerHTML = '';
+        return;
+    }
+
+    errorCharts['chartPlazoAgregado'] = createBarHorizontal('chartPlazoAgregado', labels, est.map(e => parseInt(e.meses_fuera)), '#dc2626');
+
+    document.getElementById('tablePlazoResumen').innerHTML = est.map(e => `
+        <tr class="border-b border-slate-100">
+            <td class="py-1">${escapeHtml(e.nombre_corto)}</td>
+            <td class="py-1 text-right font-medium text-green-600">${e.meses_dentro}</td>
+            <td class="py-1 text-right font-medium text-red-600">${e.meses_fuera}</td>
+            <td class="py-1 text-right text-slate-500">${e.meses_con_datos}</td>
+        </tr>
+    `).join('');
+
+}
+
+async function loadValidadorAgregado() {
+    const year = document.getElementById('filterYear').value;
+    const meses = getMesesFiltro();
+    let url = `api/reports.php?report=validador-agregado&year=${year}`;
+    url = appendMeses(url, meses);
+    try {
+        const resp = await fetch(url);
+        const json = await resp.json();
+        if (!json.success) return;
+        renderValidadorChart(json.data);
+        tabDataLoaded['tab-validador'] = true;
+    } catch (e) {
+        console.error('Error cargando reporte validador agregado:', e);
+    }
+}
+
+function renderValidadorChart(data) {
+    const est = data.establecimientos || [];
+    const labels = est.map(e => e.nombre_corto);
+
+    if (errorCharts['chartValidadorAgregado']) {
+        errorCharts['chartValidadorAgregado'].destroy();
+        delete errorCharts['chartValidadorAgregado'];
+    }
+
+    const container = document.getElementById('chart3Container');
+    if (!document.getElementById('chartValidadorAgregado')) {
+        container.innerHTML = '<canvas id="chartValidadorAgregado"></canvas>';
+    }
+    if (labels.length > 10) {
+        container.style.height = (400 + (labels.length - 10) * 22) + 'px';
+    } else {
+        container.style.height = '400px';
+    }
+
+    if (labels.length === 0) {
+        container.innerHTML = '<p class="text-slate-400 text-center py-8">Sin datos para el año seleccionado</p>';
+        document.getElementById('tableValidadorResumen').innerHTML = '';
+        return;
+    }
+
+    errorCharts['chartValidadorAgregado'] = createBarHorizontal('chartValidadorAgregado', labels, est.map(e => parseInt(e.meses_no_usa)), '#94a3b8');
+
+    document.getElementById('tableValidadorResumen').innerHTML = est.map(e => `
+        <tr class="border-b border-slate-100">
+            <td class="py-1">${escapeHtml(e.nombre_corto)}</td>
+            <td class="py-1 text-right font-medium text-blue-600">${e.meses_usa}</td>
+            <td class="py-1 text-right font-medium text-slate-500">${e.meses_no_usa}</td>
+            <td class="py-1 text-right text-slate-500">${e.meses_con_datos}</td>
+        </tr>
+    `).join('');
+}
+
+// ============================================
 // Event Listeners
 // ============================================
 
@@ -427,7 +575,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Restore tab from hash
     const hashTab = location.hash.replace('#', '');
-    if (hashTab && TAB_CONFIG[hashTab]) {
+    if (hashTab && ['tab-errores-est','tab-plazos','tab-validador','tab-serie','tab-hoja'].includes(hashTab)) {
         switchTab(hashTab);
     }
 
@@ -437,6 +585,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function clearFilters() {
     document.getElementById('filterYear').value = '<?php echo $currentYear; ?>';
+    document.getElementById('filterTrimestre').value = '';
     document.getElementById('filterMes').value = '';
     document.getElementById('filterComuna').value = '';
     document.getElementById('filterEstablecimiento').innerHTML = '<option value="">Todos</option>';

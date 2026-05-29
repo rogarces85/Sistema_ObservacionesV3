@@ -509,6 +509,68 @@ function initializeCharts(statsData) {
     return charts;
 }
 
+// ============================================================
+// GRÁFICO DE BARRAS APILADAS (stacked horizontal)
+// ============================================================
+
+function renderStackedBarChart(canvasId, labels, datasets) {
+    const el = document.getElementById(canvasId);
+    if (!el || !labels.length) return null;
+
+    datasets = datasets.map(d => ({
+        label: d.label,
+        data: d.data,
+        backgroundColor: d.color,
+        borderWidth: 1,
+        borderRadius: 4
+    }));
+
+    const chart = new Chart(el, {
+        type: 'bar',
+        data: { labels, datasets },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: { ...ANIM_CONFIG },
+            plugins: {
+                legend: { display: true, position: 'bottom', labels: { boxWidth: 12, padding: 16, font: { size: 12 } } },
+                tooltip: {
+                    ...TOOLTIP_BASE,
+                    mode: 'point',
+                    callbacks: {
+                        title: () => '',
+                        label: function(ctx) {
+                            return `${ctx.dataset.label}: ${ctx.parsed.x} meses`;
+                        },
+                        afterLabel: function(ctx) {
+                            const total = ctx.chart.data.datasets.reduce((s, ds) => s + (ds.data[ctx.dataIndex] || 0), 0);
+                            return `Total meses con datos: ${total}`;
+                        }
+                    }
+                },
+                datalabels: { display: false }
+            },
+            scales: {
+                x: {
+                    stacked: true,
+                    beginAtZero: true,
+                    ticks: { stepSize: 1, font: { size: 11 } },
+                    grid: { display: true, drawBorder: false, color: 'rgba(226, 232, 240, 0.5)' }
+                },
+                y: {
+                    stacked: true,
+                    grid: { display: false },
+                    ticks: { font: { size: 12, weight: '600' } }
+                }
+            }
+        }
+    });
+
+    addExportButton(chart, canvasId);
+    return chart;
+}
+
 // Exponer globalmente
 window.PALETTE_SISTEMA = PALETTE_SISTEMA;
 window.PALETTE_ERRORES = PALETTE_ERRORES;
@@ -517,4 +579,5 @@ window.createTendenciaChart = createTendenciaChart;
 window.createTipoErrorChart = createTipoErrorChart;
 window.createBarHorizontal = createBarHorizontal;
 window.createBarVertical = createBarVertical;
+window.renderStackedBarChart = renderStackedBarChart;
 window.initializeCharts = initializeCharts;

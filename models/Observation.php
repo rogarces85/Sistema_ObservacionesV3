@@ -952,5 +952,159 @@ class Observation
         $sql .= " GROUP BY o.codigo_hoja ORDER BY total DESC";
         return $this->db->query($sql, $params);
     }
+
+    /**
+     * Reporte: Plazo de entrega agregado por establecimiento
+     * Agregación binaria por establecimiento+mes: si al menos una serie está dentro/fuera, cuenta como 1
+     */
+    public function reportePlazoAgregado(int $anio, array $meses = []): array
+    {
+        $params = [$anio];
+        $sql = "WITH per_mes AS (
+            SELECT e.id, e.nombre, e.nombre_corto, o.mes,
+                   MAX(CASE WHEN o.plazo_entrega = 'dentro_plazo' THEN 1 ELSE 0 END) as dentro,
+                   MAX(CASE WHEN o.plazo_entrega = 'fuera_plazo' THEN 1 ELSE 0 END) as fuera
+            FROM observaciones o
+            INNER JOIN establecimientos e ON o.establecimiento_id = e.id
+            WHERE o.anio = ? AND o.plazo_entrega IS NOT NULL AND o.plazo_entrega != ''";
+        if (!empty($meses)) {
+            $placeholders = implode(',', array_fill(0, count($meses), '?'));
+            $sql .= " AND o.mes IN ($placeholders)";
+            $params = array_merge($params, $meses);
+        }
+        $sql .= " GROUP BY e.id, e.nombre, e.nombre_corto, o.mes
+        )
+        SELECT id, nombre, nombre_corto,
+               SUM(dentro) as meses_dentro,
+               SUM(fuera) as meses_fuera,
+               COUNT(*) as meses_con_datos
+        FROM per_mes
+        GROUP BY id, nombre, nombre_corto
+        ORDER BY meses_fuera DESC";
+        return $this->db->query($sql, $params);
+    }
+
+    /**
+     * Reporte: Plazo de entrega detalle mensual por establecimiento
+     */
+    public function reportePlazoMensual(int $anio): array
+    {
+        $sql = "SELECT e.id, e.nombre_corto, o.mes,
+                       MAX(CASE WHEN o.plazo_entrega = 'dentro_plazo' THEN 1 ELSE 0 END) as dentro,
+                       MAX(CASE WHEN o.plazo_entrega = 'fuera_plazo' THEN 1 ELSE 0 END) as fuera,
+                       COUNT(*) as total_observaciones
+                FROM observaciones o
+                INNER JOIN establecimientos e ON o.establecimiento_id = e.id
+                WHERE o.anio = ? AND o.plazo_entrega IS NOT NULL AND o.plazo_entrega != ''
+                GROUP BY e.id, e.nombre_corto, o.mes
+                ORDER BY e.nombre_corto, FIELD(o.mes, 'Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre')";
+        return $this->db->query($sql, [$anio]);
+    }
+
+    /**
+     * Reporte: Uso de validador agregado por establecimiento
+     * Agregación binaria por establecimiento+mes: si al menos una serie usa/no usa validador, cuenta como 1
+     */
+    public function reporteValidadorAgregado(int $anio, array $meses = []): array
+    {
+        $params = [$anio];
+        $sql = "WITH per_mes AS (
+            SELECT e.id, e.nombre, e.nombre_corto, o.mes,
+                   MAX(CASE WHEN o.usa_validador = 'si' THEN 1 ELSE 0 END) as usa,
+                   MAX(CASE WHEN o.usa_validador = 'no' THEN 1 ELSE 0 END) as no_usa
+            FROM observaciones o
+            INNER JOIN establecimientos e ON o.establecimiento_id = e.id
+            WHERE o.anio = ? AND o.usa_validador IS NOT NULL AND o.usa_validador != ''";
+        if (!empty($meses)) {
+            $placeholders = implode(',', array_fill(0, count($meses), '?'));
+            $sql .= " AND o.mes IN ($placeholders)";
+            $params = array_merge($params, $meses);
+        }
+        $sql .= " GROUP BY e.id, e.nombre, e.nombre_corto, o.mes
+        )
+        SELECT id, nombre, nombre_corto,
+               SUM(usa) as meses_usa,
+               SUM(no_usa) as meses_no_usa,
+               COUNT(*) as meses_con_datos
+        FROM per_mes
+        GROUP BY id, nombre, nombre_corto
+        ORDER BY meses_no_usa DESC";
+        return $this->db->query($sql, $params);
+    }
+
+    /**
+     * Reporte: Uso de validador detalle mensual por establecimiento
+     */
+    public function reporteValidadorMensual(int $anio): array
+    {
+        $sql = "SELECT e.id, e.nombre_corto, o.mes,
+                       MAX(CASE WHEN o.usa_validador = 'si' THEN 1 ELSE 0 END) as usa,
+                       MAX(CASE WHEN o.usa_validador = 'no' THEN 1 ELSE 0 END) as no_usa,
+                       COUNT(*) as total_observaciones
+                FROM observaciones o
+                INNER JOIN establecimientos e ON o.establecimiento_id = e.id
+                WHERE o.anio = ? AND o.usa_validador IS NOT NULL AND o.usa_validador != ''
+                GROUP BY e.id, e.nombre_corto, o.mes
+                ORDER BY e.nombre_corto, FIELD(o.mes, 'Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre')";
+        return $this->db->query($sql, [$anio]);
+    }
+
+    /**
+     * Obtener errores para informe trimestral/anual
+     * Filtra tipo_error = 'ERROR', ordena por comuna → categoría establecimiento → establecimiento → mes
+     */
+    public function getErroresInforme($anio, $trimestre = null, $userId = null, $userRole = null)
+    {
+        $sql = "SELECT
+                    c.nombre as comuna,
+                    e.nombre as establecimiento,
+                    o.mes,
+                    o.codigo_serie,
+                    o.codigo_hoja,
+                    o.detalle_observacion,
+                    o.clasificacion,
+                    o.detalle_error,
+                    o.estado_actual
+                FROM observaciones o
+                INNER JOIN establecimientos e ON o.establecimiento_id = e.id
+                INNER JOIN comunas c ON e.comuna_id = c.id
+                WHERE o.anio = ? AND o.tipo_error = 'ERROR'";
+
+        $params = [$anio];
+
+        // Filtro por trimestre
+        if ($trimestre !== null) {
+            $meses = match ($trimestre) {
+                1 => ['Enero', 'Febrero', 'Marzo'],
+                2 => ['Abril', 'Mayo', 'Junio'],
+                3 => ['Julio', 'Agosto', 'Septiembre'],
+                4 => ['Octubre', 'Noviembre', 'Diciembre'],
+                default => []
+            };
+            if (!empty($meses)) {
+                $placeholders = implode(',', array_fill(0, count($meses), '?'));
+                $sql .= " AND o.mes IN ($placeholders)";
+                $params = array_merge($params, $meses);
+            }
+        }
+
+        if ($userRole === ROL_REGISTRADOR && $userId) {
+            $sql .= " AND o.usuario_registro_id = ?";
+            $params[] = $userId;
+        }
+
+        $sql .= " ORDER BY c.nombre,
+                    CASE
+                        WHEN e.nombre LIKE '%HOSPITAL%' THEN 1
+                        WHEN e.nombre LIKE '%CESFAM%' THEN 2
+                        WHEN e.nombre LIKE '%CECOSF%' THEN 3
+                        WHEN e.nombre LIKE '%POSTA%' THEN 4
+                        ELSE 5
+                    END,
+                    e.nombre,
+                    FIELD(o.mes, 'Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre')";
+
+        return $this->db->query($sql, $params);
+    }
 }
 
