@@ -86,7 +86,7 @@ $establecimientos = $locationModel->getAllEstablecimientosConInactivos();
                 <div class="col-12">
                     <div class="card">
                         <div class="table-responsive">
-                            <table class="table table-vcenter card-table">
+                            <table class="table table-vcenter card-table table-hover">
                                 <thead>
                                     <tr>
                                         <th>Código</th>

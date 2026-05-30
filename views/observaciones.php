@@ -101,8 +101,8 @@ global $TIPOS_ERROR, $MESES;
 
     <!-- Tabla -->
     <div class="card overflow-hidden">
-        <div class="overflow-x-auto">
-            <table id="observationsTable">
+        <div class="table-responsive">
+            <table class="table table-vcenter card-table table-hover" id="observationsTable">
                 <thead>
                     <tr>
                         <th>Establecimiento</th>
@@ -110,54 +110,52 @@ global $TIPOS_ERROR, $MESES;
                         <th>Tipo de Error</th>
                         <th>Estado</th>
                         <th>Registrado por</th>
-                        <th class="text-right">Acciones</th>
+                        <th class="text-end">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php foreach ($observations as $obs): ?>
                         <tr data-estado="<?php echo $obs['estado_actual']; ?>" data-mes="<?php echo $obs['mes']; ?>">
                             <td>
-                                <div class="flex items-center gap-3">
-                                    <div>
-                                        <div class="text-sm font-bold text-slate-800">
-                                            <?php echo htmlspecialchars($obs['nombre_corto']); ?>
-                                        </div>
-                                        <div class="text-xs text-slate-400">
-                                            <?php echo htmlspecialchars($obs['comuna']) . ' • ' . htmlspecialchars($obs['mes']); ?>
-                                        </div>
+                                <div>
+                                    <div class="fw-semibold">
+                                        <?php echo htmlspecialchars($obs['nombre_corto']); ?>
+                                    </div>
+                                    <div class="small text-secondary">
+                                        <?php echo htmlspecialchars($obs['comuna']) . ' • ' . htmlspecialchars($obs['mes']); ?>
                                     </div>
                                 </div>
                             </td>
                             <td>
-                                <div class="text-xs font-semibold text-slate-500">Serie
+                                <div class="small fw-semibold text-secondary">Serie
                                     <?php echo htmlspecialchars($obs['codigo_serie']); ?>
                                 </div>
-                                <div class="text-xs text-slate-400">Hoja
+                                <div class="small text-secondary">Hoja
                                     <?php echo htmlspecialchars($obs['codigo_hoja']); ?>
                                 </div>
                             </td>
                             <td>
-                                <span class="text-xs font-medium text-slate-600">
+                                <span class="small text-secondary">
                                     <?php echo htmlspecialchars($obs['tipo_error']); ?>
                                 </span>
                             </td>
                             <td>
-                                <span class="badge badge-<?php echo $obs['estado_actual']; ?>">
+                                <span class="badge bg-<?php echo $obs['estado_actual'] === 'pendiente' ? 'warning' : ($obs['estado_actual'] === 'aprobado' ? 'success' : ($obs['estado_actual'] === 'error' ? 'danger' : ($obs['estado_actual'] === 'justificado' ? 'info' : 'secondary'))); ?>">
                                     <?php echo ucfirst($obs['estado_actual']); ?>
                                 </span>
                             </td>
                             <td>
-                                <div class="text-sm text-slate-700">
+                                <div class="fw-semibold">
                                     <?php echo htmlspecialchars($obs['nombre_registro']); ?>
                                 </div>
-                                <div class="text-xs text-slate-400">
+                                <div class="small text-secondary">
                                     <?php echo $obs['fecha_registro'] ? date('d/m/Y', strtotime($obs['fecha_registro'])) : 'Sin fecha'; ?>
                                 </div>
                             </td>
-                            <td class="text-right">
+                            <td class="text-end">
                                 <button onclick="viewObservation(<?php echo $obs['id']; ?>)"
-                                    class="btn-secondary px-3 py-1 text-xs" title="Ver detalle">
-                                    👁️
+                                    class="btn btn-ghost-secondary btn-icon" title="Ver detalle" data-bs-toggle="tooltip">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><circle cx="12" cy="12" r="2"/><path d="M22 12c-2.667 4.667-6 7-10 7s-7.333-2.333-10-7c2.667-4.667 6-7 10-7s7.333 2.333 10 7z"/></svg>
                                 </button>
                                 <?php
                                 $canEdit = ($userRole === ROL_SUPERVISOR) ||
@@ -165,8 +163,8 @@ global $TIPOS_ERROR, $MESES;
                                 if ($canEdit):
                                     ?>
                                     <button onclick="editObservation(<?php echo $obs['id']; ?>)"
-                                        class="btn-secondary px-3 py-1 text-xs" title="Editar">
-                                        ✏️
+                                        class="btn btn-ghost-secondary btn-icon" title="Editar" data-bs-toggle="tooltip">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path d="M15.232 5.232l3.536 3.536M9 11l-3 3v3h3l8.232-8.232a2.5 2.5 0 00-3.536-3.536L9 11z"/></svg>
                                     </button>
                                 <?php endif; ?>
                             </td>
@@ -174,7 +172,7 @@ global $TIPOS_ERROR, $MESES;
                     <?php endforeach; ?>
                     <?php if (empty($observations)): ?>
                         <tr>
-                            <td colspan="6" class="text-center text-slate-400 py-8">
+                            <td colspan="6" class="text-center text-secondary py-4">
                                 No se encontraron observaciones para el año
                                 <?php echo $currentYear; ?>
                             </td>

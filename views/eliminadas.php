@@ -131,7 +131,7 @@ $comunas = $locationModel->getComunas();
                             <p class="mt-2">Cargando observaciones eliminadas...</p>
                         </div>
                         <div id="observationsTable" class="d-none table-responsive">
-                            <table class="table table-vcenter card-table">
+                            <table class="table table-vcenter card-table table-hover">
                                 <thead>
                                     <tr>
                                         <th class="w-1"></th>

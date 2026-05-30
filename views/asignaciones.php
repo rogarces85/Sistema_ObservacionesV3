@@ -377,7 +377,7 @@ $registradores = $asignacionModel->getEstadisticasAsignaciones($anioSeleccionado
             const response = await fetchAPI(`assignments.php?action=referentes&establecimiento_id=${establecimientoId}`);
             
             if (response.success && response.data.length > 0) {
-                let html = '<table class="table table-sm table-vcenter"><thead><tr><th>Cargo</th><th>Nombre</th><th>Teléfono</th><th>Email</th></tr></thead><tbody>';
+                let html = '<table class="table table-vcenter table-hover"><thead><tr><th>Cargo</th><th>Nombre</th><th>Teléfono</th><th>Email</th></tr></thead><tbody>';
                 
                 response.data.forEach(ref => {
                     html += `
@@ -684,7 +684,7 @@ $registradores = $asignacionModel->getEstadisticasAsignaciones($anioSeleccionado
             if (response.success && response.data.length > 0) {
                     let html = `
                         <div class="table-responsive">
-                            <table class="table table-vcenter card-table">
+                            <table class="table table-vcenter card-table table-hover">
                                 <thead>
                                     <tr>
                                         <th>Establecimiento</th>

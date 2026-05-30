@@ -136,7 +136,7 @@ $mesesList = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto',
                                     <canvas id="chartErroresEst"></canvas>
                                 </div>
                                 <div class="mt-3 overflow-x-auto">
-                                    <table class="table table-vcenter card-table">
+                                    <table class="table table-vcenter card-table table-hover">
                                         <thead><tr><th>Establecimiento</th><th class="text-end">Errores</th></tr></thead>
                                         <tbody id="tableErroresEst"></tbody>
                                     </table>
@@ -149,7 +149,7 @@ $mesesList = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto',
                                     <canvas id="chartPlazoAgregado"></canvas>
                                 </div>
                                 <div class="mt-3 overflow-x-auto">
-                                    <table class="table table-vcenter card-table">
+                                    <table class="table table-vcenter card-table table-hover">
                                         <thead><tr><th>Establecimiento</th><th class="text-end">Dentro plazo</th><th class="text-end">Fuera plazo</th><th class="text-end">Total meses</th></tr></thead>
                                         <tbody id="tablePlazoResumen"></tbody>
                                     </table>
@@ -162,7 +162,7 @@ $mesesList = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto',
                                     <canvas id="chartValidadorAgregado"></canvas>
                                 </div>
                                 <div class="mt-3 overflow-x-auto">
-                                    <table class="table table-vcenter card-table">
+                                    <table class="table table-vcenter card-table table-hover">
                                         <thead><tr><th>Establecimiento</th><th class="text-end">Usa validador</th><th class="text-end">No usa validador</th><th class="text-end">Total meses</th></tr></thead>
                                         <tbody id="tableValidadorResumen"></tbody>
                                     </table>
@@ -175,7 +175,7 @@ $mesesList = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto',
                                     <canvas id="chartErroresSerie"></canvas>
                                 </div>
                                 <div class="mt-3 overflow-x-auto">
-                                    <table class="table table-vcenter card-table">
+                                    <table class="table table-vcenter card-table table-hover">
                                         <thead><tr><th>Serie REM</th><th class="text-end">Errores</th></tr></thead>
                                         <tbody id="tableErroresSerie"></tbody>
                                     </table>
@@ -188,7 +188,7 @@ $mesesList = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto',
                                     <canvas id="chartErroresHoja"></canvas>
                                 </div>
                                 <div class="mt-3 overflow-x-auto">
-                                    <table class="table table-vcenter card-table">
+                                    <table class="table table-vcenter card-table table-hover">
                                         <thead><tr><th>Hoja REM</th><th class="text-end">Errores</th></tr></thead>
                                         <tbody id="tableErroresHoja"></tbody>
                                     </table>
@@ -369,7 +369,7 @@ function renderChart(canvasId, containerId, tableId, orientation, labels, values
     tableBody.innerHTML = labels.map((l, i) => `
         <tr class="border-b border-slate-100">
             <td class="py-1">${escapeHtml(l)}</td>
-            <td class="py-1 text-right font-medium">${values[i]}</td>
+            <td class="py-1 text-end fw-medium">${values[i]}</td>
         </tr>
     `).join('');
 }
@@ -431,9 +431,9 @@ function renderPlazoChart(data) {
     document.getElementById('tablePlazoResumen').innerHTML = est.map(e => `
         <tr class="border-b border-slate-100">
             <td class="py-1">${escapeHtml(e.nombre_corto)}</td>
-            <td class="py-1 text-right font-medium text-green-600">${e.meses_dentro}</td>
-            <td class="py-1 text-right font-medium text-red-600">${e.meses_fuera}</td>
-            <td class="py-1 text-right text-slate-500">${e.meses_con_datos}</td>
+            <td class="py-1 text-end fw-medium text-green">${e.meses_dentro}</td>
+            <td class="py-1 text-end fw-medium text-red">${e.meses_fuera}</td>
+            <td class="py-1 text-end text-secondary">${e.meses_con_datos}</td>
         </tr>
     `).join('');
 
@@ -485,9 +485,9 @@ function renderValidadorChart(data) {
     document.getElementById('tableValidadorResumen').innerHTML = est.map(e => `
         <tr class="border-b border-slate-100">
             <td class="py-1">${escapeHtml(e.nombre_corto)}</td>
-            <td class="py-1 text-right font-medium text-blue-600">${e.meses_usa}</td>
-            <td class="py-1 text-right font-medium text-slate-500">${e.meses_no_usa}</td>
-            <td class="py-1 text-right text-slate-500">${e.meses_con_datos}</td>
+            <td class="py-1 text-end fw-medium text-info">${e.meses_usa}</td>
+            <td class="py-1 text-end fw-medium text-secondary">${e.meses_no_usa}</td>
+            <td class="py-1 text-end text-secondary">${e.meses_con_datos}</td>
         </tr>
     `).join('');
 }

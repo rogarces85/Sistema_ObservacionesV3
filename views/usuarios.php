@@ -35,7 +35,7 @@ $usuarios = $userModel->getAll();
                 <div class="col-12">
                     <div class="card">
                         <div class="table-responsive">
-                            <table class="table table-vcenter card-table">
+                            <table class="table table-vcenter card-table table-hover">
                                 <thead>
                                     <tr>
                                         <th>Usuario</th>

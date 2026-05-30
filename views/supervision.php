@@ -146,11 +146,11 @@ $comunas = $locationModel->getComunas();
             <p class="mt-2">Cargando observaciones...</p>
         </div>
 
-        <div id="observationsTable" class="hidden overflow-x-auto">
-            <table class="table">
+        <div id="observationsTable" class="hidden table-responsive">
+            <table class="table table-vcenter card-table table-hover">
                 <thead>
                     <tr>
-                        <th class="w-12"></th>
+                        <th class="w-1"></th>
                         <th>ID</th>
                         <th>Fecha</th>
                         <th>Establecimiento</th>
@@ -158,7 +158,7 @@ $comunas = $locationModel->getComunas();
                         <th>Tipo Error</th>
                         <th>Estado</th>
                         <th>Registrador</th>
-                        <th class="text-right">Acciones</th>
+                        <th class="text-end">Acciones</th>
                     </tr>
                 </thead>
                 <tbody id="observationsBody">
@@ -332,8 +332,8 @@ $comunas = $locationModel->getComunas();
             <td><span class="text-xs">${escapeHtml(obs.tipo_error)}</span></td>
             <td>${getEstadoBadge(obs.estado_actual)}</td>
             <td class="text-sm">${escapeHtml(obs.nombre_registro)}</td>
-            <td class="text-right">
-                <div class="flex justify-end gap-2">
+            <td class="text-end">
+                <div class="d-flex justify-content-end gap-2">
                     <button class="btn-icon" onclick="viewDetail(${obs.id})" title="Ver Detalle">
                         👁️
                     </button>
