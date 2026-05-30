@@ -30,3 +30,9 @@
 .text-muted {
   color: var(--tblr-muted) !important;
 }
+
+.icon.icon-lg {
+  width: 32px;
+  height: 32px;
+  stroke-width: 1.5;
+}

@@ -1,6 +1,7 @@
 <?php
 require_once 'models/Observation.php';
 require_once 'models/EstablecimientoAsignacion.php';
+require_once 'includes/icons.php';
 
 $obsModel = new Observation();
 $asigModel = new EstablecimientoAsignacion();
@@ -55,29 +56,29 @@ $maxValue = !empty($mesesData) ? max(array_values($mesesData)) : 1;
 $statsJson = json_encode($stats);
 ?>
 
-<div class="space-y-6">
+<div class="mb-4">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
         <div>
-            <h2 class="text-2xl fw-bold" style="color:#1e293b">Panel de Control <?php echo $currentYear; ?></h2>
-            <p style="color:#64748b">Resumen estadístico del sistema de observaciones REM</p>
+            <h2 class="mb-1 fw-bold text-primary">Panel de Control <?php echo $currentYear; ?></h2>
+            <p class="text-secondary mb-0">Resumen estadístico del sistema de observaciones REM</p>
         </div>
         <div class="d-flex gap-2">
             <?php if ($userRole === ROL_REGISTRADOR): ?>
                 <a href="?page=observaciones&year=<?php echo $currentYear; ?>" class="btn btn-primary">
-                    📝 Nueva Observación
+                    <?php echo icon_edit(); ?> Nueva Observación
                 </a>
             <?php endif; ?>
             <?php if ($userRole === ROL_SUPERVISOR): ?>
                 <a href="?page=supervision&year=<?php echo $currentYear; ?>" class="btn btn-outline-secondary">
-                    👁️ Supervisar
+                    <?php echo icon_eye(); ?> Supervisar
                 </a>
             <?php endif; ?>
         </div>
     </div>
 
     <?php if ($userRole === ROL_REGISTRADOR && !$tieneAsignaciones): ?>
-        <div class="alert alert-warning d-flex align-items-center gap-3" role="alert">
-            <div class="fs-2">⚠️</div>
+        <div class="alert alert-warning alert-icon mt-3" role="alert">
+            <?php echo icon_alert_triangle('icon me-2'); ?>
             <div>
                 <strong>No tiene establecimientos asignados</strong><br>
                 <small>No tiene establecimientos asignados para el año <strong><?php echo $currentYear; ?></strong>.
@@ -87,8 +88,8 @@ $statsJson = json_encode($stats);
     <?php endif; ?>
 
     <?php if ($userRole === ROL_SUPERVISOR && !empty($registradoresSinAsignaciones)): ?>
-        <div class="alert alert-danger d-flex align-items-center gap-3" role="alert">
-            <div class="fs-2">🚨</div>
+        <div class="alert alert-danger alert-icon mt-3" role="alert">
+            <?php echo icon_alert_triangle('icon me-2'); ?>
             <div>
                 <strong><?php echo count($registradoresSinAsignaciones); ?> registrador(es) sin establecimientos asignados</strong><br>
                 <small>Los siguientes registradores no tienen establecimientos asignados para el año <strong><?php echo $currentYear; ?></strong>:</small>
@@ -103,62 +104,62 @@ $statsJson = json_encode($stats);
     <?php endif; ?>
 
     <!-- Stats Cards -->
-    <div class="row g-3">
+    <div class="row g-3 mt-3">
         <div class="col-sm-6 col-lg-3">
-            <div class="card" style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border-color: #bae6fd;">
+            <div class="card bg-primary-lt">
                 <div class="card-body">
                     <div class="d-flex align-items-center gap-3">
-                        <div class="p-3 rounded-3" style="background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);">
-                            <span class="fs-2">📊</span>
+                        <div class="p-3 rounded-3 bg-primary text-white">
+                            <?php echo icon_chart_bar('icon icon-lg'); ?>
                         </div>
                         <div>
-                            <div class="fs-1 fw-bold" style="color:#1e293b"><?php echo $stats['total']; ?></div>
-                            <div class="small fw-semibold" style="color:#64748b">Total Registradas</div>
+                            <div class="fs-1 fw-bold text-primary"><?php echo $stats['total']; ?></div>
+                            <div class="small fw-semibold text-secondary">Total Registradas</div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
         <div class="col-sm-6 col-lg-3">
-            <div class="card" style="background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); border-color: #fde68a;">
+            <div class="card bg-warning-lt">
                 <div class="card-body">
                     <div class="d-flex align-items-center gap-3">
-                        <div class="p-3 rounded-3" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
-                            <span class="fs-2">⏳</span>
+                        <div class="p-3 rounded-3 bg-warning text-white">
+                            <?php echo icon_clock('icon icon-lg'); ?>
                         </div>
                         <div>
-                            <div class="fs-1 fw-bold" style="color:#b45309"><?php echo $pendientes; ?></div>
-                            <div class="small fw-semibold" style="color:#d97706">Pendientes</div>
+                            <div class="fs-1 fw-bold text-warning"><?php echo $pendientes; ?></div>
+                            <div class="small fw-semibold text-warning">Pendientes</div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
         <div class="col-sm-6 col-lg-3">
-            <div class="card" style="background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); border-color: #a7f3d0;">
+            <div class="card bg-success-lt">
                 <div class="card-body">
                     <div class="d-flex align-items-center gap-3">
-                        <div class="p-3 rounded-3" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
-                            <span class="fs-2">✅</span>
+                        <div class="p-3 rounded-3 bg-success text-white">
+                            <?php echo icon_circle_check('icon icon-lg'); ?>
                         </div>
                         <div>
-                            <div class="fs-1 fw-bold" style="color:#047857"><?php echo $aprobados; ?></div>
-                            <div class="small fw-semibold" style="color:#059669">Aprobados</div>
+                            <div class="fs-1 fw-bold text-success"><?php echo $aprobados; ?></div>
+                            <div class="small fw-semibold text-success">Aprobados</div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
         <div class="col-sm-6 col-lg-3">
-            <div class="card" style="background: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%); border-color: #fecdd3;">
+            <div class="card bg-danger-lt">
                 <div class="card-body">
                     <div class="d-flex align-items-center gap-3">
-                        <div class="p-3 rounded-3" style="background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);">
-                            <span class="fs-2">⚠️</span>
+                        <div class="p-3 rounded-3 bg-danger text-white">
+                            <?php echo icon_alert_triangle('icon icon-lg'); ?>
                         </div>
                         <div>
-                            <div class="fs-1 fw-bold" style="color:#be123c"><?php echo $problemas; ?></div>
-                            <div class="small fw-semibold" style="color:#e11d48">Con Problemas</div>
+                            <div class="fs-1 fw-bold text-danger"><?php echo $problemas; ?></div>
+                            <div class="small fw-semibold text-danger">Con Problemas</div>
                         </div>
                     </div>
                 </div>
@@ -167,10 +168,10 @@ $statsJson = json_encode($stats);
     </div>
 
     <!-- Charts + Acciones Rápidas -->
-    <div class="row g-3">
+    <div class="row g-3 mt-3">
         <div class="col-lg-4">
             <div class="card">
-                <div class="card-header"><h3 class="card-title">📈 Distribución por Estado</h3></div>
+                <div class="card-header"><h3 class="card-title"><?php echo icon_chart_pie('icon me-2'); ?>Distribución por Estado</h3></div>
                 <div class="card-body">
                     <div style="height: 240px;"><canvas id="chartEstado"></canvas></div>
                 </div>
@@ -178,7 +179,7 @@ $statsJson = json_encode($stats);
         </div>
         <div class="col-lg-4">
             <div class="card">
-                <div class="card-header"><h3 class="card-title">🔍 Top Tipos de Error</h3></div>
+                <div class="card-header"><h3 class="card-title"><?php echo icon_search('icon me-2'); ?>Top Tipos de Error</h3></div>
                 <div class="card-body">
                     <div style="height: 240px;"><canvas id="chartTipoError"></canvas></div>
                 </div>
@@ -186,36 +187,36 @@ $statsJson = json_encode($stats);
         </div>
         <div class="col-lg-4">
             <div class="card">
-                <div class="card-header"><h3 class="card-title">⚡ Acciones Rápidas</h3></div>
+                <div class="card-header"><h3 class="card-title"><?php echo icon_zap('icon me-2'); ?>Acciones Rápidas</h3></div>
                 <div class="card-body">
                     <div class="list-group list-group-flush">
                         <?php if ($userRole === ROL_REGISTRADOR): ?>
-                            <a href="?page=observaciones&year=<?php echo $currentYear; ?>" class="list-group-item list-group-item-action d-flex align-items-center gap-3 border-0 rounded-3 mb-1" style="background:#f0f9ff">
-                                <span class="p-2 rounded-2 text-white" style="background:#0ea5e9">📝</span>
-                                <div class="flex-grow-1"><div class="fw-semibold" style="color:#1e293b">Nueva Observación</div><small style="color:#64748b">Registrar una nueva observación</small></div>
-                                <span style="color:#0ea5e9">→</span>
+                            <a href="?page=observaciones&year=<?php echo $currentYear; ?>" class="list-group-item list-group-item-action d-flex align-items-center gap-3 border-0 rounded-3 mb-1">
+                                <span class="p-2 rounded-2 bg-primary text-white"><?php echo icon_edit('icon'); ?></span>
+                                <div class="flex-grow-1"><div class="fw-semibold">Nueva Observación</div><small class="text-secondary">Registrar una nueva observación</small></div>
+                                <span class="text-primary">→</span>
                             </a>
                         <?php endif; ?>
-                        <a href="api/import_template.php" class="list-group-item list-group-item-action d-flex align-items-center gap-3 border-0 rounded-3 mb-1" style="background:#ecfdf5">
-                            <span class="p-2 rounded-2 text-white" style="background:#10b981">📥</span>
-                            <div class="flex-grow-1"><div class="fw-semibold" style="color:#1e293b">Descargar Plantilla</div><small style="color:#64748b">CSV para importación masiva</small></div>
-                            <span style="color:#10b981">→</span>
+                        <a href="api/import_template.php" class="list-group-item list-group-item-action d-flex align-items-center gap-3 border-0 rounded-3 mb-1">
+                            <span class="p-2 rounded-2 bg-success text-white"><?php echo icon_download('icon'); ?></span>
+                            <div class="flex-grow-1"><div class="fw-semibold">Descargar Plantilla</div><small class="text-secondary">CSV para importación masiva</small></div>
+                            <span class="text-success">→</span>
                         </a>
-                        <a href="?page=reportes&year=<?php echo $currentYear; ?>" class="list-group-item list-group-item-action d-flex align-items-center gap-3 border-0 rounded-3 mb-1" style="background:#f5f3ff">
-                            <span class="p-2 rounded-2 text-white" style="background:#8b5cf6">📊</span>
-                            <div class="flex-grow-1"><div class="fw-semibold" style="color:#1e293b">Generar Reportes</div><small style="color:#64748b">Exportar datos a Excel</small></div>
-                            <span style="color:#8b5cf6">→</span>
+                        <a href="?page=reportes&year=<?php echo $currentYear; ?>" class="list-group-item list-group-item-action d-flex align-items-center gap-3 border-0 rounded-3 mb-1">
+                            <span class="p-2 rounded-2 bg-secondary text-white"><?php echo icon_chart_bar('icon'); ?></span>
+                            <div class="flex-grow-1"><div class="fw-semibold">Generar Reportes</div><small class="text-secondary">Exportar datos a Excel</small></div>
+                            <span class="text-secondary">→</span>
                         </a>
                         <?php if ($userRole === ROL_SUPERVISOR): ?>
-                            <a href="?page=supervision&year=<?php echo $currentYear; ?>" class="list-group-item list-group-item-action d-flex align-items-center gap-3 border-0 rounded-3 mb-1" style="background:#fffbeb">
-                                <span class="p-2 rounded-2 text-white" style="background:#f59e0b">👁️</span>
-                                <div class="flex-grow-1"><div class="fw-semibold" style="color:#1e293b">Supervisar</div><small style="color:#64748b"><?php echo $pendientes; ?> pendientes de revisión</small></div>
-                                <span style="color:#f59e0b">→</span>
+                            <a href="?page=supervision&year=<?php echo $currentYear; ?>" class="list-group-item list-group-item-action d-flex align-items-center gap-3 border-0 rounded-3 mb-1">
+                                <span class="p-2 rounded-2 bg-warning text-white"><?php echo icon_eye('icon'); ?></span>
+                                <div class="flex-grow-1"><div class="fw-semibold">Supervisar</div><small class="text-secondary"><?php echo $pendientes; ?> pendientes de revisión</small></div>
+                                <span class="text-warning">→</span>
                             </a>
-                            <button type="button" data-bs-toggle="modal" data-bs-target="#modalInforme" class="list-group-item list-group-item-action d-flex align-items-center gap-3 border-0 rounded-3 mb-1 w-100 text-start border-0" style="background:#fff1f2">
-                                <span class="p-2 rounded-2 text-white" style="background:#f43f5e">📄</span>
-                                <div class="flex-grow-1"><div class="fw-semibold" style="color:#1e293b">Informe de Errores</div><small style="color:#64748b">Trimestral o anual en PDF</small></div>
-                                <span style="color:#f43f5e">→</span>
+                            <button type="button" data-bs-toggle="modal" data-bs-target="#modalInforme" class="list-group-item list-group-item-action d-flex align-items-center gap-3 border-0 rounded-3 mb-1 w-100 text-start border-0">
+                                <span class="p-2 rounded-2 bg-danger text-white"><?php echo icon_file_text('icon'); ?></span>
+                                <div class="flex-grow-1"><div class="fw-semibold">Informe de Errores</div><small class="text-secondary">Trimestral o anual en PDF</small></div>
+                                <span class="text-danger">→</span>
                             </button>
                         <?php endif; ?>
                     </div>
@@ -225,18 +226,18 @@ $statsJson = json_encode($stats);
     </div>
 
     <!-- Chart por Mes -->
-    <div class="card">
-        <div class="card-header"><h3 class="card-title">📅 Observaciones por Mes - <?php echo $currentYear; ?></h3></div>
+    <div class="card mt-3">
+        <div class="card-header"><h3 class="card-title"><?php echo icon_calendar('icon me-2'); ?>Observaciones por Mes - <?php echo $currentYear; ?></h3></div>
         <div class="card-body">
             <div style="height: 280px;"><canvas id="chartTendencia"></canvas></div>
         </div>
     </div>
 
     <!-- Últimas Observaciones -->
-    <div class="card">
+    <div class="card mt-3">
         <div class="card-header d-flex justify-content-between align-items-center">
-            <h3 class="card-title">📋 Últimas Observaciones Registradas</h3>
-            <a href="?page=observaciones&year=<?php echo $currentYear; ?>" class="small text-decoration-none" style="color:#0ea5e9">Ver todas →</a>
+            <h3 class="card-title"><?php echo icon_clipboard_list('icon me-2'); ?>Últimas Observaciones Registradas</h3>
+            <a href="?page=observaciones&year=<?php echo $currentYear; ?>" class="small text-decoration-none text-primary">Ver todas →</a>
         </div>
         <?php if (!empty($recentObs)): ?>
             <div class="table-responsive">
@@ -245,7 +246,7 @@ $statsJson = json_encode($stats);
                     <tbody>
                         <?php foreach ($recentObs as $obs): ?>
                             <tr>
-                                <td><div class="fw-semibold" style="color:#1e293b"><?php echo htmlspecialchars($obs['nombre_corto']); ?></div><div class="text-xs text-muted"><?php echo htmlspecialchars($obs['comuna']); ?></div></td>
+                                <td><div class="fw-semibold"><?php echo htmlspecialchars($obs['nombre_corto']); ?></div><div class="text-muted small"><?php echo htmlspecialchars($obs['comuna']); ?></div></td>
                                 <td class="text-muted"><?php echo htmlspecialchars($obs['mes']); ?></td>
                                 <td class="text-muted"><?php echo htmlspecialchars($obs['tipo_error']); ?></td>
                                 <td><span class="badge bg-<?php echo $obs['estado_actual'] === 'pendiente' ? 'warning' : ($obs['estado_actual'] === 'aprobado' ? 'success' : ($obs['estado_actual'] === 'error' ? 'danger' : ($obs['estado_actual'] === 'justificado' ? 'info' : 'secondary'))); ?>"><?php echo ucfirst($obs['estado_actual']); ?></span></td>
@@ -258,10 +259,10 @@ $statsJson = json_encode($stats);
         <?php else: ?>
             <div class="card-body text-center py-5">
                 <div class="fs-1 mb-2">📭</div>
-                <p class="fw-medium" style="color:#64748b">No hay observaciones registradas</p>
+                <p class="fw-medium text-secondary">No hay observaciones registradas</p>
                 <?php if ($userRole === ROL_REGISTRADOR): ?>
                     <p class="small text-muted mb-3">Comienza creando tu primera observación</p>
-                    <a href="?page=observaciones&year=<?php echo $currentYear; ?>" class="btn btn-primary">➕ Crear Observación</a>
+                    <a href="?page=observaciones&year=<?php echo $currentYear; ?>" class="btn btn-primary"><?php echo icon_edit('icon me-2'); ?>Crear Observación</a>
                 <?php endif; ?>
             </div>
         <?php endif; ?>
@@ -274,7 +275,7 @@ $statsJson = json_encode($stats);
         <div class="modal-content">
             <div class="modal-header">
                 <div>
-                    <h5 class="modal-title">📄 Informe de Errores REM</h5>
+                    <h5 class="modal-title"><?php echo icon_file_text('icon me-2'); ?>Informe de Errores REM</h5>
                     <small class="text-muted">Seleccione el período para generar el informe</small>
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
@@ -308,8 +309,8 @@ $statsJson = json_encode($stats);
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" onclick="cargarInformeWeb()" class="btn btn-primary flex-fill">🌐 Ver en Web</button>
-                <button type="button" onclick="descargarInformePDF()" class="btn btn-outline-secondary flex-fill">📥 Descargar PDF</button>
+                <button type="button" onclick="cargarInformeWeb()" class="btn btn-primary flex-fill"><?php echo icon_edit('icon me-2'); ?>Ver en Web</button>
+                <button type="button" onclick="descargarInformePDF()" class="btn btn-outline-secondary flex-fill"><?php echo icon_download('icon me-2'); ?>Descargar PDF</button>
             </div>
         </div>
     </div>
@@ -320,11 +321,11 @@ $statsJson = json_encode($stats);
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
             <div>
-                <h3 class="card-title">📋 Detalle de Errores REM</h3>
+                <h3 class="card-title"><?php echo icon_clipboard_list('icon me-2'); ?>Detalle de Errores REM</h3>
                 <span id="informePeriodo" class="text-muted small"></span>
             </div>
             <div class="d-flex gap-2">
-                <button onclick="descargarInformePDF()" class="btn btn-outline-secondary btn-sm">📥 PDF</button>
+                <button onclick="descargarInformePDF()" class="btn btn-outline-secondary btn-sm"><?php echo icon_download('icon me-2'); ?>PDF</button>
                 <button onclick="document.getElementById('informeResultados').style.display='none'" class="btn-close"></button>
             </div>
         </div>
@@ -412,7 +413,7 @@ function renderInformeTabla() {
             + (row.codigo_hoja ? ' | <strong>' + escapeHtml(row.codigo_hoja) + '</strong>' : '')
             + '<br/><span class="text-muted">' + escapeHtml(row.detalle_observacion || '') + '</span>';
         return '<tr>' +
-            '<td><span class="fw-semibold" style="color:#1e293b">' + escapeHtml(row.comuna) + '</span></td>' +
+            '<td><span class="fw-semibold">' + escapeHtml(row.comuna) + '</span></td>' +
             '<td>' + escapeHtml(row.establecimiento) + '</td>' +
             '<td>' + escapeHtml(row.mes) + '</td>' +
             '<td>' + detalle + '</td>' +
