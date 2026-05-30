@@ -582,12 +582,12 @@ global $TIPOS_ERROR, $MESES;
             hojaSelect.innerHTML = '';
 
             if (tipoError === 'S/OBSERVACION') {
-                document.getElementById('hojaRemContainer').style.display = 'none';
+                document.getElementById('hojaRemContainer').classList.add('d-none');
                 hojaSelect.value = '';
                 return;
             }
 
-            document.getElementById('hojaRemContainer').style.display = '';
+            document.getElementById('hojaRemContainer').classList.remove('d-none');
 
             if (!serieSeleccionada) {
                 hojaSelect.innerHTML = '<option value="">Primero seleccione una Serie</option>';
@@ -621,13 +621,13 @@ global $TIPOS_ERROR, $MESES;
             const respuestaContainer = document.getElementById('respuestaContainer');
 
             if (tipoError === 'S/OBSERVACION') {
-                hojaContainer.style.display = 'none';
+                hojaContainer.classList.add('d-none');
                 document.getElementById('codigo_hoja').value = '';
-                respuestaContainer.style.display = 'none';
+                respuestaContainer.classList.add('d-none');
                 document.getElementById('respuesta_establecimiento').value = '';
             } else {
-                hojaContainer.style.display = '';
-                respuestaContainer.style.display = '';
+                hojaContainer.classList.remove('d-none');
+                respuestaContainer.classList.remove('d-none');
                 this.loadHojasREM();
             }
         }
@@ -645,8 +645,8 @@ global $TIPOS_ERROR, $MESES;
             hojaSelect.innerHTML = '<option value="">Primero seleccione una Serie</option>';
             hojaSelect.disabled = true;
 
-            document.getElementById('hojaRemContainer').style.display = '';
-            document.getElementById('respuestaContainer').style.display = '';
+            document.getElementById('hojaRemContainer').classList.remove('d-none');
+            document.getElementById('respuestaContainer').classList.remove('d-none');
             this.clearValidationErrors();
             this.modal.show();
         }
