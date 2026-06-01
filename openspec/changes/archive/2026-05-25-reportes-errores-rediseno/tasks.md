@@ -1,0 +1,23 @@
+## 1. Modelo — Nuevos métodos en Observation.php
+
+- [x] 1.1 Agregar parámetros opcionales `$meses = []` y `$comunaIds = []` a `reporteErroresPorEstablecimiento()` con cláusulas SQL condicionales
+- [x] 1.2 Agregar parámetros opcionales `$meses = []` y `$comunaIds = []` a `reporteFueraPlazoPorEstablecimiento()` con cláusulas SQL condicionales
+- [x] 1.3 Crear `reporteNoValidadorPorEstablecimiento($year, $userId, $userRole, $meses, $comunaIds)` — filtra `usa_validador = 'no'`
+- [x] 1.4 Crear `reporteErroresPorSerie($year, $userId, $userRole, $meses, $comunaIds)` — filtra `tipo_error = 'ERROR'`, agrupa por `codigo_serie`
+- [x] 1.5 Crear `reporteErroresPorHoja($year, $userId, $userRole, $meses, $comunaIds)` — filtra `tipo_error = 'ERROR'`, agrupa por `codigo_hoja`
+- [x] 2.1 Agregar `case 'error-reports'` que lea `year`, `meses[]`, `comuna_ids[]` del request
+- [x] 2.2 Llamar a los 5 métodos del modelo y devolver el JSON combinado
+- [x] 3.1 Crear `createBarHorizontal(canvasId, labels, values, color)` — barra horizontal con bordes redondeados y tooltips
+- [x] 3.2 Crear `createBarVertical(canvasId, labels, values, color)` — barra vertical con bordes redondeados y tooltips
+- [x] 4.1 Implementar header con selector de año y contenedor de filtros (meses checkboxes + comunas multi-select)
+- [x] 4.2 Implementar grid de 2 columnas con canvas para gráficos ①-④ y tabla de datos debajo de cada uno
+- [x] 4.3 Implementar sección de ancho completo con canvas para gráfico ⑤ y su tabla
+- [x] 4.4 Implementar `loadErrorReports()` que llama al endpoint y renderiza los 5 gráficos
+- [x] 4.5 Implementar altura dinámica para gráficos con más de 10 items
+- [x] 5.1 Probar los 5 gráficos con datos del año actual sin filtros — verificar que todos renderizan
+- [x] 5.2 Probar filtro de meses: seleccionar solo Enero, verificar que datos se filtran correctamente
+- [x] 5.3 Probar filtro de comunas: seleccionar 1 comuna, verificar que solo muestra establecimientos de esa comuna
+- [x] 5.4 Probar combinación de filtros: año + meses + comunas simultáneamente
+- [x] 5.5 Probar con rol Registrador — verificar que solo ve sus propios datos
+- [x] 5.6 Probar sin datos: aplicar filtros que no producen resultados — verificar mensaje "Sin datos"
+- [x] 5.7 Verificar backward compatibility: los otros endpoints de reports.php (`mes`, `establecimiento`, etc.) siguen funcionando
