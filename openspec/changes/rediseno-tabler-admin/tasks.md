@@ -46,7 +46,7 @@
 - [x] 4.6 Replace empty state with Tabler `.empty` component
 - [x] 4.7 Replace modals with proper Bootstrap modal structure, remove emoji from titles
 - [x] 4.8 Replace inline style color references with `.text-body`, `.text-secondary`, `.fw-semibold`
-- [ ] 4.9 Replace import modal drag-and-drop zone with Tabler `.dropzone` if applicable
+- [x] 4.9 Replace import modal drag-and-drop zone with Tabler `.dropzone` if applicable
 
 ## 5. Supervisión View Redesign
 
@@ -63,11 +63,11 @@
 
 - [x] 6.1 Add `.page-header` for the view title
 - [x] 6.2 Ensure tabs use Tabler `.nav-tabs.card-header-tabs` with `data-bs-toggle="tabs"`
-- [ ] 6.3 Replace chart canvases rendering with proper ApexCharts containers (Phase 2)
+- [x] 6.3 Replace chart canvases rendering with proper ApexCharts containers (Phase 2)
 - [x] 6.4 Replace form filters with Tabler form classes
 - [x] 6.5 Replace emoji icons in tab titles with `tablerIcon()`
 - [x] 6.6 Replace tables with `.table.table-vcenter.card-table`
-- [ ] 6.7 Replace inline styles with Tabler utility classes (chart container heights, Phase 2)
+- [x] 6.7 Replace inline styles with Tabler utility classes (chart container heights, Phase 2)
 
 ## 7. Remaining Views Redesign (usuarios, perfil, establecimientos, asignaciones, eliminadas)
 

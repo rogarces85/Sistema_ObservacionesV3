@@ -129,7 +129,7 @@ $mesesList = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto',
                         <div class="card-body tab-content">
                             <!-- Tab 1: Total Errores -->
                             <div id="tab-errores-est" class="tab-pane active" role="tabpanel">
-                                <div class="relative" id="chart1Container" style="height: 400px;">
+                                <div class="position-relative" id="chart1Container" style="min-height: 400px;">
                                     <div id="chartErroresEst"></div>
                                 </div>
                                 <div class="mt-3 overflow-x-auto">
@@ -142,7 +142,7 @@ $mesesList = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto',
 
                             <!-- Tab 2: Plazos Entrega -->
                             <div id="tab-plazos" class="tab-pane" role="tabpanel">
-                                <div class="relative" id="chart2Container" style="height: 400px;">
+                                <div class="position-relative" id="chart2Container" style="min-height: 400px;">
                                     <div id="chartPlazoAgregado"></div>
                                 </div>
                                 <div class="mt-3 overflow-x-auto">
@@ -155,7 +155,7 @@ $mesesList = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto',
 
                             <!-- Tab 3: Uso Validador -->
                             <div id="tab-validador" class="tab-pane" role="tabpanel">
-                                <div class="relative" id="chart3Container" style="height: 400px;">
+                                <div class="position-relative" id="chart3Container" style="min-height: 400px;">
                                     <div id="chartValidadorAgregado"></div>
                                 </div>
                                 <div class="mt-3 overflow-x-auto">
@@ -168,7 +168,7 @@ $mesesList = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto',
 
                             <!-- Tab 4: Errores por Serie -->
                             <div id="tab-serie" class="tab-pane" role="tabpanel">
-                                <div class="relative" id="chart4Container" style="height: 400px;">
+                                <div class="position-relative" id="chart4Container" style="min-height: 400px;">
                                     <div id="chartErroresSerie"></div>
                                 </div>
                                 <div class="mt-3 overflow-x-auto">
@@ -181,7 +181,7 @@ $mesesList = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto',
 
                             <!-- Tab 5: Errores por Hoja -->
                             <div id="tab-hoja" class="tab-pane" role="tabpanel">
-                                <div class="relative" id="chart5Container" style="height: 400px;">
+                                <div class="position-relative" id="chart5Container" style="min-height: 400px;">
                                     <div id="chartErroresHoja"></div>
                                 </div>
                                 <div class="mt-3 overflow-x-auto">
@@ -344,9 +344,9 @@ function renderChart(canvasId, containerId, tableId, orientation, labels, values
 
     if (labels.length > 10) {
         const extraHeight = (labels.length - 10) * 22;
-        container.style.height = (orientation === 'horizontal' ? 400 : 500) + extraHeight + 'px';
+        container.style.minHeight = (orientation === 'horizontal' ? 400 : 500) + extraHeight + 'px';
     } else {
-        container.style.height = '400px';
+        container.style.minHeight = '400px';
     }
 
     if (orientation === 'horizontal') {
@@ -400,9 +400,9 @@ function renderPlazoChart(data) {
         container.innerHTML = '<div id="chartPlazoAgregado"></div>';
     }
     if (labels.length > 10) {
-        container.style.height = (400 + (labels.length - 10) * 22) + 'px';
+        container.style.minHeight = (400 + (labels.length - 10) * 22) + 'px';
     } else {
-        container.style.height = '400px';
+        container.style.minHeight = '400px';
     }
 
     if (labels.length === 0) {
@@ -451,9 +451,9 @@ function renderValidadorChart(data) {
         container.innerHTML = '<div id="chartValidadorAgregado"></div>';
     }
     if (labels.length > 10) {
-        container.style.height = (400 + (labels.length - 10) * 22) + 'px';
+        container.style.minHeight = (400 + (labels.length - 10) * 22) + 'px';
     } else {
-        container.style.height = '400px';
+        container.style.minHeight = '400px';
     }
 
     if (labels.length === 0) {

@@ -364,12 +364,14 @@ global $TIPOS_ERROR, $MESES;
             <div class="modal-body">
                 <!-- Paso 1 -->
                 <div id="importStep1">
-                    <div class="text-center p-6 border-2 border-dashed rounded mb-4">
-                        <p class="text-secondary mb-4">Seleccione un archivo Excel (.xlsx) o CSV con las observaciones</p>
-                        <input type="file" id="csvFile" accept=".xlsx,.xls,.csv" class="d-none" onchange="previewImport()">
-                        <button onclick="document.getElementById('csvFile').click()" class="btn btn-primary">
-                            Seleccionar Archivo Excel
-                        </button>
+                    <div class="dropzone mb-4">
+                        <div class="dropzone-content">
+                            <p class="text-secondary mb-4">Seleccione un archivo Excel (.xlsx) o CSV con las observaciones</p>
+                            <input type="file" id="csvFile" accept=".xlsx,.xls,.csv" class="d-none" onchange="previewImport()">
+                            <button onclick="document.getElementById('csvFile').click()" class="btn btn-primary">
+                                Seleccionar Archivo Excel
+                            </button>
+                        </div>
                     </div>
                     <div class="d-flex align-items-center justify-content-between p-4 bg-light rounded">
                         <div>

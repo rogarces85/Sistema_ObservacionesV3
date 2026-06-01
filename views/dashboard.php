@@ -110,12 +110,23 @@ $statsJson = json_encode($stats);
     <div class="col-sm-6 col-lg-3">
         <div class="card card-sm">
             <div class="card-status-top bg-blue"></div>
-            <div class="card-body">
-                <div class="d-flex align-items-center gap-3">
-                    <div><?php echo tablerIcon('chart-bar'); ?></div>
-                    <div>
-                        <div class="h1 mb-0 text-primary"><?php echo $stats['total']; ?></div>
-                        <div class="text-secondary small fw-semibold">Total Registradas</div>
+            <div class="card-body" style="position:relative">
+                <div class="skeleton-overlay" style="position:absolute;inset:0;background:white;z-index:10;padding:1rem;transition:opacity 0.3s">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="skeleton avatar avatar-md"></div>
+                        <div class="flex-grow-1">
+                            <div class="skeleton mb-2" style="width:60%;height:1.5rem"></div>
+                            <div class="skeleton" style="width:40%;height:0.875rem"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="real-content" style="opacity:0;transition:opacity 0.3s">
+                    <div class="d-flex align-items-center gap-3">
+                        <div><?php echo tablerIcon('chart-bar'); ?></div>
+                        <div>
+                            <div class="h1 mb-0 text-primary"><?php echo $stats['total']; ?></div>
+                            <div class="text-secondary small fw-semibold">Total Registradas</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -124,12 +135,23 @@ $statsJson = json_encode($stats);
     <div class="col-sm-6 col-lg-3">
         <div class="card card-sm">
             <div class="card-status-top bg-yellow"></div>
-            <div class="card-body">
-                <div class="d-flex align-items-center gap-3">
-                    <div><?php echo tablerIcon('clock'); ?></div>
-                    <div>
-                        <div class="h1 mb-0 text-yellow"><?php echo $pendientes; ?></div>
-                        <div class="text-secondary small fw-semibold">Pendientes</div>
+            <div class="card-body" style="position:relative">
+                <div class="skeleton-overlay" style="position:absolute;inset:0;background:white;z-index:10;padding:1rem;transition:opacity 0.3s">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="skeleton avatar avatar-md"></div>
+                        <div class="flex-grow-1">
+                            <div class="skeleton mb-2" style="width:60%;height:1.5rem"></div>
+                            <div class="skeleton" style="width:40%;height:0.875rem"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="real-content" style="opacity:0;transition:opacity 0.3s">
+                    <div class="d-flex align-items-center gap-3">
+                        <div><?php echo tablerIcon('clock'); ?></div>
+                        <div>
+                            <div class="h1 mb-0 text-yellow"><?php echo $pendientes; ?></div>
+                            <div class="text-secondary small fw-semibold">Pendientes</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -138,12 +160,23 @@ $statsJson = json_encode($stats);
     <div class="col-sm-6 col-lg-3">
         <div class="card card-sm">
             <div class="card-status-top bg-green"></div>
-            <div class="card-body">
-                <div class="d-flex align-items-center gap-3">
-                    <div><?php echo tablerIcon('check-circle'); ?></div>
-                    <div>
-                        <div class="h1 mb-0 text-green"><?php echo $aprobados; ?></div>
-                        <div class="text-secondary small fw-semibold">Aprobados</div>
+            <div class="card-body" style="position:relative">
+                <div class="skeleton-overlay" style="position:absolute;inset:0;background:white;z-index:10;padding:1rem;transition:opacity 0.3s">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="skeleton avatar avatar-md"></div>
+                        <div class="flex-grow-1">
+                            <div class="skeleton mb-2" style="width:60%;height:1.5rem"></div>
+                            <div class="skeleton" style="width:40%;height:0.875rem"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="real-content" style="opacity:0;transition:opacity 0.3s">
+                    <div class="d-flex align-items-center gap-3">
+                        <div><?php echo tablerIcon('check-circle'); ?></div>
+                        <div>
+                            <div class="h1 mb-0 text-green"><?php echo $aprobados; ?></div>
+                            <div class="text-secondary small fw-semibold">Aprobados</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -152,12 +185,23 @@ $statsJson = json_encode($stats);
     <div class="col-sm-6 col-lg-3">
         <div class="card card-sm">
             <div class="card-status-top bg-red"></div>
-            <div class="card-body">
-                <div class="d-flex align-items-center gap-3">
-                    <div><?php echo tablerIcon('alert-triangle'); ?></div>
-                    <div>
-                        <div class="h1 mb-0 text-red"><?php echo $problemas; ?></div>
-                        <div class="text-secondary small fw-semibold">Con Problemas</div>
+            <div class="card-body" style="position:relative">
+                <div class="skeleton-overlay" style="position:absolute;inset:0;background:white;z-index:10;padding:1rem;transition:opacity 0.3s">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="skeleton avatar avatar-md"></div>
+                        <div class="flex-grow-1">
+                            <div class="skeleton mb-2" style="width:60%;height:1.5rem"></div>
+                            <div class="skeleton" style="width:40%;height:0.875rem"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="real-content" style="opacity:0;transition:opacity 0.3s">
+                    <div class="d-flex align-items-center gap-3">
+                        <div><?php echo tablerIcon('alert-triangle'); ?></div>
+                        <div>
+                            <div class="h1 mb-0 text-red"><?php echo $problemas; ?></div>
+                            <div class="text-secondary small fw-semibold">Con Problemas</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -168,26 +212,77 @@ $statsJson = json_encode($stats);
 <!-- Charts + Acciones Rápidas -->
 <div class="row g-3">
     <div class="col-lg-4">
-        <div class="card">
-            <div class="card-header"><h3 class="card-title"><?php echo tablerIcon('chart-bar'); ?> Distribución por Estado</h3></div>
-            <div class="card-body">
-                <div id="chartEstado" style="height: 240px;"></div>
+        <div class="card" id="chart-estado-card">
+            <div class="card-header">
+                <h3 class="card-title"><?php echo tablerIcon('chart-bar'); ?> Distribución por Estado</h3>
+                <ul class="nav nav-tabs card-header-tabs ms-auto" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-chart-estado" type="button" role="tab">Gráfico</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-table-estado" type="button" role="tab">Tabla</button>
+                    </li>
+                </ul>
+            </div>
+            <div class="card-body" style="position:relative">
+                <div class="tab-content">
+                    <div class="tab-pane show active" id="tab-chart-estado" role="tabpanel">
+                        <div class="skeleton-overlay-chart" style="position:absolute;inset:0;background:white;z-index:10;padding:1rem;transition:opacity 0.3s">
+                            <div class="skeleton" style="width:100%;height:100%;border-radius:0.5rem"></div>
+                        </div>
+                        <div class="real-content-chart" style="opacity:0;transition:opacity 0.3s">
+                            <div id="chartEstado" style="height: 240px;"></div>
+                        </div>
+                    </div>
+                    <div class="tab-pane" id="tab-table-estado" role="tabpanel">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-vcenter">
+                                <thead><tr><th>Estado</th><th class="text-end">Cantidad</th></tr></thead>
+                                <tbody>
+                                    <?php foreach ($stats['por_estado'] as $estado): ?>
+                                        <tr>
+                                            <td><span class="badge bg-<?php echo $estado['estado_actual'] === 'pendiente' ? 'yellow text-yellow-fg' : ($estado['estado_actual'] === 'aprobado' ? 'green text-green-fg' : ($estado['estado_actual'] === 'error' ? 'red text-red-fg' : ($estado['estado_actual'] === 'justificado' ? 'blue text-blue-fg' : 'secondary'))); ?>"><?php echo ucfirst($estado['estado_actual']); ?></span></td>
+                                            <td class="text-end fw-semibold"><?php echo $estado['total']; ?></td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
     <div class="col-lg-4">
         <div class="card">
             <div class="card-header"><h3 class="card-title"><?php echo tablerIcon('activity'); ?> Top Tipos de Error</h3></div>
-            <div class="card-body">
-                <div id="chartTipoError" style="height: 240px;"></div>
+            <div class="card-body" style="position:relative">
+                <div class="skeleton-overlay-chart" style="position:absolute;inset:0;background:white;z-index:10;padding:1rem;transition:opacity 0.3s">
+                    <div class="skeleton" style="width:100%;height:100%;border-radius:0.5rem"></div>
+                </div>
+                <div class="real-content-chart" style="opacity:0;transition:opacity 0.3s">
+                    <div id="chartTipoError" style="height: 240px;"></div>
+                </div>
             </div>
         </div>
     </div>
     <div class="col-lg-4">
-        <div class="card">
-            <div class="card-header"><h3 class="card-title"><?php echo tablerIcon('list'); ?> Acciones Rápidas</h3></div>
+        <div class="card" id="acciones-card">
+            <div class="card-header">
+                <h3 class="card-title"><?php echo tablerIcon('list'); ?> Acciones Rápidas</h3>
+                <ul class="nav nav-tabs card-header-tabs ms-auto" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-acciones" type="button" role="tab">Acciones</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-notificaciones" type="button" role="tab">Notificaciones</button>
+                    </li>
+                </ul>
+            </div>
             <div class="card-body">
-                <div class="list-group list-group-flush">
+                <div class="tab-content">
+                    <div class="tab-pane show active" id="tab-acciones" role="tabpanel">
+                        <div class="list-group list-group-flush">
                     <?php if ($userRole === ROL_REGISTRADOR): ?>
                         <a href="?page=observaciones&year=<?php echo $currentYear; ?>" class="list-group-item list-group-item-action d-flex align-items-center gap-3">
                             <span class="avatar avatar-sm bg-blue text-blue-fg"><?php echo tablerIcon('plus'); ?></span>
@@ -217,6 +312,15 @@ $statsJson = json_encode($stats);
                             <?php echo tablerIcon('chevron-right'); ?>
                         </button>
                     <?php endif; ?>
+                        </div>
+                    </div>
+                    <div class="tab-pane" id="tab-notificaciones" role="tabpanel">
+                        <div class="empty">
+                            <div class="empty-icon"><?php echo tablerIcon('bell'); ?></div>
+                            <p class="empty-title">Sin notificaciones</p>
+                            <p class="empty-subtitle text-secondary">No hay notificaciones recientes</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -224,26 +328,75 @@ $statsJson = json_encode($stats);
 </div>
 
 <!-- Chart por Mes -->
-<div class="card">
-    <div class="card-header"><h3 class="card-title"><?php echo tablerIcon('calendar'); ?> Observaciones por Mes - <?php echo $currentYear; ?></h3></div>
-    <div class="card-body">
-        <div id="chartTendencia" style="height: 280px;"></div>
+<div class="card" id="tendencia-card">
+    <div class="card-header d-flex align-items-center">
+        <h3 class="card-title"><?php echo tablerIcon('calendar'); ?> Observaciones por Mes</h3>
+        <div class="dropdown ms-auto">
+            <button class="btn btn-sm btn-ghost-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-label="Filtros">
+                <i class="ti ti-filter"></i>
+            </button>
+            <div class="dropdown-menu dropdown-menu-end" style="min-width:200px">
+                <div class="px-3 py-2">
+                    <label class="form-label small">Año</label>
+                    <select class="form-select form-select-sm" id="filter-tendencia-year" onchange="applyDashboardFilter('year', this.value)">
+                        <?php for ($y = date('Y') + 1; $y >= 2020; $y--): ?>
+                            <option value="<?php echo $y; ?>" <?php echo $y == $currentYear ? 'selected' : ''; ?>><?php echo $y; ?></option>
+                        <?php endfor; ?>
+                    </select>
+                </div>
+                <div class="px-3 py-2">
+                    <label class="form-label small">Mes</label>
+                    <select class="form-select form-select-sm" id="filter-tendencia-mes" onchange="applyDashboardFilter('mes', this.value)">
+                        <option value="">Todos</option>
+                        <?php foreach ($MESES as $mes): ?>
+                            <option value="<?php echo $mes; ?>"><?php echo $mes; ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="dropdown-divider"></div>
+                <button class="dropdown-item text-danger" onclick="clearDashboardFilters()">
+                    <i class="ti ti-x"></i> Limpiar filtros
+                </button>
+            </div>
+        </div>
+    </div>
+    <div class="card-body" style="position:relative">
+        <div class="skeleton-overlay-chart" style="position:absolute;inset:0;background:white;z-index:10;padding:1rem;transition:opacity 0.3s">
+            <div class="skeleton" style="width:100%;height:100%;border-radius:0.5rem"></div>
+        </div>
+        <div class="real-content-chart" style="opacity:0;transition:opacity 0.3s">
+            <div id="chartTendencia" style="height: 280px;"></div>
+        </div>
     </div>
 </div>
 
 <!-- Últimas Observaciones -->
-<div class="card">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <h3 class="card-title"><?php echo tablerIcon('list'); ?> Últimas Observaciones Registradas</h3>
-        <a href="?page=observaciones&year=<?php echo $currentYear; ?>" class="btn btn-ghost-primary btn-sm">Ver todas <?php echo tablerIcon('chevron-right'); ?></a>
+<div class="card" id="observations-card">
+    <div class="card-header">
+        <h3 class="card-title"><?php echo tablerIcon('list'); ?> Últimas Observaciones</h3>
+        <ul class="nav nav-tabs card-header-tabs ms-auto" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-recientes" type="button" role="tab">Recientes</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-pendientes" type="button" role="tab">Pendientes</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-problemas" type="button" role="tab">Problemas</button>
+            </li>
+        </ul>
+        <a href="?page=observaciones&year=<?php echo $currentYear; ?>" class="btn btn-ghost-primary btn-sm ms-2">Ver todas</a>
     </div>
+    <div class="card-body">
+        <div class="tab-content">
+            <div class="tab-pane show active" id="tab-recientes" role="tabpanel">
     <?php if (!empty($recentObs)): ?>
-        <div class="table-responsive">
-            <table class="table table-vcenter card-table">
+        <div class="table-responsive" id="observations-table-container">
+            <table class="table table-vcenter card-table" id="observationsTable">
                 <thead><tr><th>Establecimiento</th><th>Mes</th><th>Tipo de Error</th><th>Estado</th><th>Fecha</th></tr></thead>
                 <tbody>
                     <?php foreach ($recentObs as $obs): ?>
-                        <tr>
+                        <tr data-estado="<?php echo $obs['estado_actual']; ?>">
                             <td><div class="fw-semibold"><?php echo htmlspecialchars($obs['nombre_corto']); ?></div><div class="text-secondary"><?php echo htmlspecialchars($obs['comuna']); ?></div></td>
                             <td class="text-secondary"><?php echo htmlspecialchars($obs['mes']); ?></td>
                             <td class="text-secondary"><?php echo htmlspecialchars($obs['tipo_error']); ?></td>
@@ -266,6 +419,57 @@ $statsJson = json_encode($stats);
             <?php endif; ?>
         </div>
     <?php endif; ?>
+            </div>
+            <div class="tab-pane" id="tab-pendientes" role="tabpanel">
+                <div class="table-responsive">
+                    <table class="table table-vcenter card-table" id="observationsTablePendientes">
+                        <thead><tr><th>Establecimiento</th><th>Mes</th><th>Tipo de Error</th><th>Estado</th><th>Fecha</th></tr></thead>
+                        <tbody>
+                            <?php
+                            $pendientesObs = array_filter($recentObs, fn($obs) => $obs['estado_actual'] === 'pendiente');
+                            if (!empty($pendientesObs)):
+                                foreach ($pendientesObs as $obs): ?>
+                                    <tr data-estado="<?php echo $obs['estado_actual']; ?>">
+                                        <td><div class="fw-semibold"><?php echo htmlspecialchars($obs['nombre_corto']); ?></div><div class="text-secondary"><?php echo htmlspecialchars($obs['comuna']); ?></div></td>
+                                        <td class="text-secondary"><?php echo htmlspecialchars($obs['mes']); ?></td>
+                                        <td class="text-secondary"><?php echo htmlspecialchars($obs['tipo_error']); ?></td>
+                                        <td><span class="badge bg-yellow text-yellow-fg">Pendiente</span></td>
+                                        <td class="text-secondary"><?php echo $obs['fecha_registro'] ? date('d/m/Y', strtotime($obs['fecha_registro'])) : '-'; ?></td>
+                                    </tr>
+                                <?php endforeach;
+                            else: ?>
+                                <tr><td colspan="5" class="text-center text-secondary py-4">No hay observaciones pendientes</td></tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="tab-pane" id="tab-problemas" role="tabpanel">
+                <div class="table-responsive">
+                    <table class="table table-vcenter card-table" id="observationsTableProblemas">
+                        <thead><tr><th>Establecimiento</th><th>Mes</th><th>Tipo de Error</th><th>Estado</th><th>Fecha</th></tr></thead>
+                        <tbody>
+                            <?php
+                            $problemasObs = array_filter($recentObs, fn($obs) => in_array($obs['estado_actual'], ['error', 'rechazado']));
+                            if (!empty($problemasObs)):
+                                foreach ($problemasObs as $obs): ?>
+                                    <tr data-estado="<?php echo $obs['estado_actual']; ?>">
+                                        <td><div class="fw-semibold"><?php echo htmlspecialchars($obs['nombre_corto']); ?></div><div class="text-secondary"><?php echo htmlspecialchars($obs['comuna']); ?></div></td>
+                                        <td class="text-secondary"><?php echo htmlspecialchars($obs['mes']); ?></td>
+                                        <td class="text-secondary"><?php echo htmlspecialchars($obs['tipo_error']); ?></td>
+                                        <td><span class="badge bg-red text-red-fg"><?php echo ucfirst($obs['estado_actual']); ?></span></td>
+                                        <td class="text-secondary"><?php echo $obs['fecha_registro'] ? date('d/m/Y', strtotime($obs['fecha_registro'])) : '-'; ?></td>
+                                    </tr>
+                                <?php endforeach;
+                            else: ?>
+                                <tr><td colspan="5" class="text-center text-secondary py-4">No hay observaciones con problemas</td></tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- Modal Informe de Errores -->
