@@ -1,0 +1,232 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="700" viewBox="0 0 1200 700">
+  <defs>
+    <style>
+      .bg { fill: #f8fafc; }
+      .card { fill: #ffffff; stroke: #e2e8f0; stroke-width: 1; }
+      .header { fill: #1e40af; }
+      .text-primary { fill: #1e40af; }
+      .text-secondary { fill: #64748b; }
+      .text-dark { fill: #1e293b; }
+      .text-muted { fill: #94a3b8; }
+      .badge-yellow { fill: #fef3c7; stroke: #f59e0b; }
+      .badge-green { fill: #d1fae5; stroke: #10b981; }
+      .badge-red { fill: #fee2e2; stroke: #ef4444; }
+      .badge-blue { fill: #dbeafe; stroke: #3b82f6; }
+      .btn-primary { fill: #3b82f6; }
+      .btn-success { fill: #10b981; }
+      .btn-warning { fill: #f59e0b; }
+      .btn-danger { fill: #ef4444; }
+      .input { fill: #ffffff; stroke: #cbd5e1; stroke-width: 1; }
+      .row-hover { fill: #f1f5f9; }
+      .checkbox { fill: #ffffff; stroke: #94a3b8; stroke-width: 1.5; }
+      .stat-card { fill: #ffffff; stroke: #e2e8f0; stroke-width: 1; rx: 8; }
+    </style>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="700" class="bg"/>
+
+  <!-- Header -->
+  <rect width="1200" height="60" class="header"/>
+  <text x="30" y="38" fill="white" font-family="system-ui" font-size="20" font-weight="bold">Sistema REM</text>
+  <text x="30" y="52" fill="#93c5fd" font-family="system-ui" font-size="11">Servicio de Salud</text>
+  <text x="250" y="38" fill="white" font-family="system-ui" font-size="14">Panel de Control</text>
+  <text x="250" y="52" fill="#93c5fd" font-family="system-ui" font-size="11">Supervisión</text>
+  <text x="1050" y="38" fill="white" font-family="system-ui" font-size="12">María Supervisor</text>
+
+  <!-- Page Title -->
+  <text x="40" y="100" font-family="system-ui" font-size="24" font-weight="bold" class="text-dark">Panel de Supervisión</text>
+  <text x="40" y="118" font-family="system-ui" font-size="13" class="text-secondary">Revise y gestione las observaciones registradas</text>
+
+  <!-- Mass Action Buttons -->
+  <rect x="800" y="85" width="90" height="32" class="btn-success" rx="4"/>
+  <text x="820" y="106" fill="white" font-family="system-ui" font-size="12">✓ Aprobar</text>
+  <rect x="900" y="85" width="100" height="32" class="btn-warning" rx="4"/>
+  <text x="915" y="106" fill="white" font-family="system-ui" font-size="12">✗ Cancelar</text>
+  <rect x="1010" y="85" width="100" height="32" class="btn-danger" rx="4"/>
+  <text x="1025" y="106" fill="white" font-family="system-ui" font-size="12">🗑 Eliminar</text>
+
+  <!-- Stats Cards -->
+  <rect x="40" y="140" width="260" height="60" class="stat-card"/>
+  <rect x="50" y="150" width="40" height="40" fill="#3b82f6" rx="20"/>
+  <text x="70" y="175" fill="white" font-family="system-ui" font-size="18">📄</text>
+  <text x="100" y="165" font-family="system-ui" font-size="20" font-weight="bold" class="text-dark">245</text>
+  <text x="100" y="185" font-family="system-ui" font-size="12" class="text-secondary">Total</text>
+
+  <rect x="320" y="140" width="260" height="60" class="stat-card"/>
+  <rect x="330" y="150" width="40" height="40" fill="#f59e0b" rx="20"/>
+  <text x="350" y="175" fill="white" font-family="system-ui" font-size="18">🕐</text>
+  <text x="380" y="165" font-family="system-ui" font-size="20" font-weight="bold" class="text-dark">89</text>
+  <text x="380" y="185" font-family="system-ui" font-size="12" class="text-secondary">Pendientes</text>
+
+  <rect x="600" y="140" width="260" height="60" class="stat-card"/>
+  <rect x="610" y="150" width="40" height="40" fill="#10b981" rx="20"/>
+  <text x="630" y="175" fill="white" font-family="system-ui" font-size="18">✓</text>
+  <text x="660" y="165" font-family="system-ui" font-size="20" font-weight="bold" class="text-dark">120</text>
+  <text x="660" y="185" font-family="system-ui" font-size="12" class="text-secondary">Aprobados</text>
+
+  <rect x="880" y="140" width="260" height="60" class="stat-card"/>
+  <rect x="890" y="150" width="40" height="40" fill="#ef4444" rx="20"/>
+  <text x="910" y="175" fill="white" font-family="system-ui" font-size="18">⚠</text>
+  <text x="940" y="165" font-family="system-ui" font-size="20" font-weight="bold" class="text-dark">36</text>
+  <text x="940" y="185" font-family="system-ui" font-size="12" class="text-secondary">Errores</text>
+
+  <!-- Filters Card -->
+  <rect x="40" y="220" width="1120" height="80" class="card" rx="4"/>
+  <text x="60" y="245" font-family="system-ui" font-size="14" font-weight="bold" class="text-dark">🔍 Filtros</text>
+
+  <!-- Filter Inputs -->
+  <rect x="60" y="255" width="200" height="32" class="input" rx="4"/>
+  <text x="70" y="275" font-family="system-ui" font-size="11" class="text-muted">Buscar establecimiento...</text>
+
+  <rect x="280" y="255" width="120" height="32" class="input" rx="4"/>
+  <text x="290" y="275" font-family="system-ui" font-size="11" class="text-dark">Mes: Enero ▼</text>
+
+  <rect x="420" y="255" width="140" height="32" class="input" rx="4"/>
+  <text x="430" y="275" font-family="system-ui" font-size="11" class="text-dark">Estado: Pendiente ▼</text>
+
+  <rect x="580" y="255" width="140" height="32" class="input" rx="4"/>
+  <text x="590" y="275" font-family="system-ui" font-size="11" class="text-dark">Tipo: ERROR ▼</text>
+
+  <rect x="740" y="255" width="140" height="32" class="input" rx="4"/>
+  <text x="750" y="275" font-family="system-ui" font-size="11" class="text-dark">Comuna: Osorno ▼</text>
+
+  <rect x="900" y="255" width="140" height="32" class="input" rx="4"/>
+  <text x="910" y="275" font-family="system-ui" font-size="11" class="text-dark">Establecimiento ▼</text>
+
+  <!-- Search Button -->
+  <rect x="1060" y="255" width="85" height="32" class="btn-primary" rx="4"/>
+  <text x="1080" y="275" fill="white" font-family="system-ui" font-size="12">🔍 Buscar</text>
+
+  <!-- Table -->
+  <rect x="40" y="320" width="1120" height="320" class="card" rx="4"/>
+
+  <!-- Table Header -->
+  <rect x="40" y="320" width="1120" height="36" fill="#f8fafc" rx="4"/>
+  <rect x="40" y="340" width="1120" height="16" fill="#f8fafc"/>
+
+  <rect x="55" y="330" width="16" height="16" class="checkbox" rx="2"/>
+  <text x="80" y="342" font-family="system-ui" font-size="12" font-weight="bold" class="text-dark">Seleccionar todas</text>
+
+  <!-- Column Headers -->
+  <text x="120" y="342" font-family="system-ui" font-size="11" font-weight="bold" class="text-secondary">ID</text>
+  <text x="160" y="342" font-family="system-ui" font-size="11" font-weight="bold" class="text-secondary">ESTABLECIMIENTO</text>
+  <text x="380" y="342" font-family="system-ui" font-size="11" font-weight="bold" class="text-secondary">MES</text>
+  <text x="460" y="342" font-family="system-ui" font-size="11" font-weight="bold" class="text-secondary">SERIE / HOJA</text>
+  <text x="600" y="342" font-family="system-ui" font-size="11" font-weight="bold" class="text-secondary">TIPO</text>
+  <text x="720" y="342" font-family="system-ui" font-size="11" font-weight="bold" class="text-secondary">ESTADO</text>
+  <text x="840" y="342" font-family="system-ui" font-size="11" font-weight="bold" class="text-secondary">REGISTRADO POR</text>
+  <text x="1020" y="342" font-family="system-ui" font-size="11" font-weight="bold" class="text-secondary">ACCIONES</text>
+
+  <!-- Row 1 - Pending -->
+  <rect x="40" y="360" width="1120" height="48" class="row-hover"/>
+  <rect x="55" y="372" width="16" height="16" class="checkbox" rx="2"/>
+  <text x="120" y="388" font-family="system-ui" font-size="12" class="text-muted">#45</text>
+  <text x="160" y="380" font-family="system-ui" font-size="12" font-weight="bold" class="text-dark">CESFAM Osorno</text>
+  <text x="160" y="396" font-family="system-ui" font-size="10" class="text-muted">Osorno</text>
+  <text x="380" y="388" font-family="system-ui" font-size="12" class="text-dark">Enero</text>
+  <rect x="460" y="374" width="60" height="20" fill="#e2e8f0" rx="10"/>
+  <text x="470" y="388" font-family="system-ui" font-size="10" class="text-dark">SERIE A</text>
+  <rect x="525" y="374" width="35" height="20" fill="#e2e8f0" rx="10"/>
+  <text x="532" y="388" font-family="system-ui" font-size="10" class="text-dark">A01</text>
+  <rect x="600" y="374" width="60" height="20" class="badge-red" rx="10"/>
+  <text x="610" y="388" font-family="system-ui" font-size="10" fill="#dc2626">ERROR</text>
+  <rect x="720" y="374" width="75" height="20" class="badge-yellow" rx="10"/>
+  <text x="730" y="388" font-family="system-ui" font-size="10" fill="#d97706">Pendiente</text>
+  <text x="840" y="388" font-family="system-ui" font-size="12" class="text-dark">Juan Pérez</text>
+  <text x="1020" y="388" font-family="system-ui" font-size="16">👁 ✓ ✗ 🗑</text>
+
+  <!-- Row 2 - Approved -->
+  <rect x="40" y="410" width="1120" height="48" fill="white"/>
+  <rect x="55" y="422" width="16" height="16" class="checkbox" rx="2"/>
+  <text x="120" y="438" font-family="system-ui" font-size="12" class="text-muted">#44</text>
+  <text x="160" y="430" font-family="system-ui" font-size="12" font-weight="bold" class="text-dark">Hospital Osorno</text>
+  <text x="160" y="446" font-family="system-ui" font-size="10" class="text-muted">Osorno</text>
+  <text x="380" y="438" font-family="system-ui" font-size="12" class="text-dark">Enero</text>
+  <rect x="460" y="424" width="65" height="20" fill="#e2e8f0" rx="10"/>
+  <text x="468" y="438" font-family="system-ui" font-size="10" class="text-dark">SERIE BS</text>
+  <rect x="530" y="424" width="25" height="20" fill="#e2e8f0" rx="10"/>
+  <text x="537" y="438" font-family="system-ui" font-size="10" class="text-dark">B</text>
+  <rect x="600" y="424" width="85" height="20" class="badge-green" rx="10"/>
+  <text x="610" y="438" font-family="system-ui" font-size="10" fill="#059669">S/OBSERV</text>
+  <rect x="720" y="424" width="75" height="20" class="badge-green" rx="10"/>
+  <text x="730" y="438" font-family="system-ui" font-size="10" fill="#059669">Aprobado</text>
+  <text x="840" y="438" font-family="system-ui" font-size="12" class="text-dark">Ana López</text>
+  <text x="1020" y="438" font-family="system-ui" font-size="16">👁</text>
+
+  <!-- Row 3 - Pending -->
+  <rect x="40" y="460" width="1120" height="48" class="row-hover"/>
+  <rect x="55" y="472" width="16" height="16" class="checkbox" rx="2"/>
+  <text x="120" y="488" font-family="system-ui" font-size="12" class="text-muted">#43</text>
+  <text x="160" y="480" font-family="system-ui" font-size="12" font-weight="bold" class="text-dark">CECOSF Rahue</text>
+  <text x="160" y="496" font-family="system-ui" font-size="10" class="text-muted">Osorno</text>
+  <text x="380" y="488" font-family="system-ui" font-size="12" class="text-dark">Febrero</text>
+  <rect x="460" y="474" width="60" height="20" fill="#e2e8f0" rx="10"/>
+  <text x="470" y="488" font-family="system-ui" font-size="10" class="text-dark">SERIE P</text>
+  <rect x="525" y="474" width="35" height="20" fill="#e2e8f0" rx="10"/>
+  <text x="532" y="488" font-family="system-ui" font-size="10" class="text-dark">P01</text>
+  <rect x="600" y="474" width="60" height="20" class="badge-blue" rx="10"/>
+  <text x="610" y="488" font-family="system-ui" font-size="10" fill="#2563eb">F/PLAZO</text>
+  <rect x="720" y="474" width="75" height="20" class="badge-yellow" rx="10"/>
+  <text x="730" y="488" font-family="system-ui" font-size="10" fill="#d97706">Pendiente</text>
+  <text x="840" y="488" font-family="system-ui" font-size="12" class="text-dark">Carlos Díaz</text>
+  <text x="1020" y="488" font-family="system-ui" font-size="16">👁 ✓ ✗ 🗑</text>
+
+  <!-- Row 4 - Pending -->
+  <rect x="40" y="510" width="1120" height="48" fill="white"/>
+  <rect x="55" y="522" width="16" height="16" class="checkbox" rx="2"/>
+  <text x="120" y="538" font-family="system-ui" font-size="12" class="text-muted">#42</text>
+  <text x="160" y="530" font-family="system-ui" font-size="12" font-weight="bold" class="text-dark">Posta Pichoy</text>
+  <text x="160" y="546" font-family="system-ui" font-size="10" class="text-muted">Pichoy</text>
+  <text x="380" y="538" font-family="system-ui" font-size="12" class="text-dark">Enero</text>
+  <rect x="460" y="524" width="60" height="20" fill="#e2e8f0" rx="10"/>
+  <text x="470" y="538" font-family="system-ui" font-size="10" class="text-dark">SERIE A</text>
+  <rect x="525" y="524" width="40" height="20" fill="#e2e8f0" rx="10"/>
+  <text x="530" y="538" font-family="system-ui" font-size="10" class="text-dark">A05</text>
+  <rect x="600" y="524" width="60" height="20" class="badge-red" rx="10"/>
+  <text x="610" y="538" font-family="system-ui" font-size="10" fill="#dc2626">ERROR</text>
+  <rect x="720" y="524" width="75" height="20" class="badge-yellow" rx="10"/>
+  <text x="730" y="538" font-family="system-ui" font-size="10" fill="#d97706">Pendiente</text>
+  <text x="840" y="538" font-family="system-ui" font-size="12" class="text-dark">Juan Pérez</text>
+  <text x="1020" y="538" font-family="system-ui" font-size="16">👁 ✓ ✗ 🗑</text>
+
+  <!-- Row 5 - Error -->
+  <rect x="40" y="560" width="1120" height="48" class="row-hover"/>
+  <rect x="55" y="572" width="16" height="16" class="checkbox" rx="2"/>
+  <text x="120" y="588" font-family="system-ui" font-size="12" class="text-muted">#41</text>
+  <text x="160" y="580" font-family="system-ui" font-size="12" font-weight="bold" class="text-dark">CESFAM Puerto Octay</text>
+  <text x="160" y="596" font-family="system-ui" font-size="10" class="text-muted">Puerto Octay</text>
+  <text x="380" y="588" font-family="system-ui" font-size="12" class="text-dark">Marzo</text>
+  <rect x="460" y="574" width="70" height="20" fill="#e2e8f0" rx="10"/>
+  <text x="468" y="588" font-family="system-ui" font-size="10" class="text-dark">SERIE BM</text>
+  <rect x="535" y="574" width="40" height="20" fill="#e2e8f0" rx="10"/>
+  <text x="540" y="588" font-family="system-ui" font-size="10" class="text-dark">BM18</text>
+  <rect x="600" y="574" width="60" height="20" class="badge-red" rx="10"/>
+  <text x="610" y="588" font-family="system-ui" font-size="10" fill="#dc2626">ERROR</text>
+  <rect x="720" y="574" width="55" height="20" class="badge-red" rx="10"/>
+  <text x="730" y="588" font-family="system-ui" font-size="10" fill="#dc2626">Error</text>
+  <text x="840" y="588" font-family="system-ui" font-size="12" class="text-dark">Ana López</text>
+  <text x="1020" y="588" font-family="system-ui" font-size="16">👁</text>
+
+  <!-- Pagination -->
+  <text x="60" y="665" font-family="system-ui" font-size="12" class="text-secondary">Mostrando 1-50 de 245</text>
+
+  <!-- Pagination Controls -->
+  <rect x="900" y="650" width="32" height="28" class="input" rx="4"/>
+  <text x="910" y="668" font-family="system-ui" font-size="12" class="text-dark">&lt;</text>
+  <rect x="936" y="650" width="32" height="28" class="btn-primary" rx="4"/>
+  <text x="946" y="668" fill="white" font-family="system-ui" font-size="12">1</text>
+  <rect x="972" y="650" width="32" height="28" class="input" rx="4"/>
+  <text x="982" y="668" font-family="system-ui" font-size="12" class="text-dark">2</text>
+  <rect x="1008" y="650" width="32" height="28" class="input" rx="4"/>
+  <text x="1018" y="668" font-family="system-ui" font-size="12" class="text-dark">3</text>
+  <rect x="1044" y="650" width="32" height="28" class="input" rx="4"/>
+  <text x="1054" y="668" font-family="system-ui" font-size="12" class="text-dark">4</text>
+  <rect x="1080" y="650" width="32" height="28" class="input" rx="4"/>
+  <text x="1090" y="668" font-family="system-ui" font-size="12" class="text-dark">5</text>
+  <rect x="1116" y="650" width="32" height="28" class="input" rx="4"/>
+  <text x="1126" y="668" font-family="system-ui" font-size="12" class="text-dark">&gt;</text>
+
+  <!-- Watermark -->
+  <text x="600" y="690" font-family="system-ui" font-size="10" class="text-muted" text-anchor="middle">Mockup: supervision-lista.png - Sistema de Observaciones REM</text>
+</svg>

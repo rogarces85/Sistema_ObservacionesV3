@@ -1,257 +1,422 @@
 <?php
 /**
- * API de Supervisión
- * Endpoint para operaciones de supervisión sobre observaciones
- * Solo accesible para usuarios con rol de supervisor
+ * API de Supervisión - Fase 6
+ * Operaciones: get_filtered, get_detail, approve, cancel, delete, update_status
+ * Solo accesible para rol Supervisor (403 para Registrador)
+ * Soft delete: mover a observaciones_eliminadas (no DELETE físico)
+ * Operaciones masivas no transaccionales (resumen por ID: procesados/fallos)
  */
 
-// Suppress notices/warnings in production to avoid breaking JSON
 error_reporting(E_ERROR | E_PARSE);
 
-require_once '../config/config.php';
-require_once '../config/constants.php';
-require_once '../models/Observation.php';
-require_once '../includes/csrf.php';
+require_once __DIR__ . '/../config/config.php';
+require_once __DIR__ . '/../config/constants.php';
+require_once __DIR__ . '/../includes/csrf.php';
+require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../models/HistorialEstado.php';
 
-header('Content-Type: application/json');
+header('Content-Type: application/json; charset=utf-8');
 
-// Verificar que el usuario esté autenticado
-if (!isset($_SESSION['user_id']) || !isset($_SESSION['rol'])) {
-    http_response_code(401);
-    echo json_encode(['success' => false, 'message' => 'No autenticado']);
+function responder($exito, $datos = null, $error = '', $codigo = 200)
+{
+    http_response_code($codigo);
+    $respuesta = ['success' => $exito];
+    if ($exito) {
+        $respuesta['data'] = $datos;
+    } else {
+        $respuesta['error'] = $error;
+    }
+    $respuesta['code'] = $codigo;
+    echo json_encode($respuesta, JSON_UNESCAPED_UNICODE);
     exit;
 }
 
-// Verificar que el usuario sea supervisor
-if ($_SESSION['rol'] !== ROL_SUPERVISOR) {
-    http_response_code(403);
-    echo json_encode(['success' => false, 'message' => 'Acceso denegado. Se requiere rol de supervisor']);
-    exit;
+function verificarSupervisor()
+{
+    if (!isset($_SESSION['usuario_id']) || $_SESSION['autenticado'] !== true) {
+        responder(false, null, 'No autorizado', 401);
+    }
+    if ($_SESSION['rol'] !== ROL_SUPERVISOR) {
+        responder(false, null, 'Acceso denegado. Se requiere rol de supervisor', 403);
+    }
 }
 
-$action = $_GET['action'] ?? '';
-$obsModel = new Observation();
+function obtenerBodyJSON()
+{
+    $entrada = file_get_contents('php://input');
+    $cuerpo = json_decode($entrada, true);
+    if ($cuerpo === null && json_last_error() !== JSON_ERROR_NONE) {
+        responder(false, null, 'Cuerpo de solicitud inválido', 400);
+    }
+    return $cuerpo ?? [];
+}
+
+verificarSupervisor();
+
+$usuarioId = $_SESSION['usuario_id'];
+$metodo = $_SERVER['REQUEST_METHOD'];
+$accion = $_GET['accion'] ?? '';
 
 try {
-    switch ($action) {
-        case 'approve':
-            // Validar CSRF
-            CSRF::validateRequest();
+    $db = Database::obtenerInstancia();
 
-            // Aprobar observación(es)
-            $data = json_decode(file_get_contents('php://input'), true);
-
-            if (empty($data['id'])) {
-                throw new Exception('ID de observación requerido');
-            }
-
-            $ids = is_array($data['id']) ? $data['id'] : [$data['id']];
-            $comment = $data['comment'] ?? 'Observación aprobada por supervisor';
-            $extraData = [];
-            if (!empty($data['clasificacion'])) {
-                $extraData['clasificacion'] = $data['clasificacion'];
-            }
-            if (isset($data['detalle_error'])) {
-                $extraData['detalle_error'] = $data['detalle_error'];
-            }
-
-            // Determinar estado resultante según selección del supervisor
-            $estadoResultante = $data['estado_resultante'] ?? 'sin_observacion';
-            if ($estadoResultante === 'error') {
-                $nuevoEstado = ESTADO_ERROR;
-                $extraData['tipo_error'] = 'ERROR';
-            } else {
-                $nuevoEstado = ESTADO_APROBADO;
-                $extraData['tipo_error'] = 'S/OBSERVACION';
-            }
-
-            if (count($ids) === 1) {
-                $result = $obsModel->updateStatus($ids[0], $nuevoEstado, $_SESSION['user_id'], $comment, $extraData);
-
-                if ($result) {
-                    echo json_encode([
-                        'success' => true,
-                        'message' => 'Observación aprobada correctamente'
-                    ]);
-                } else {
-                    throw new Exception('Error al aprobar la observación');
-                }
-            } else {
-                // Operación masiva (solo comentario, no campos extra individuales)
-                $count = $obsModel->bulkUpdateStatus($ids, ESTADO_APROBADO, $_SESSION['user_id'], $comment);
-
-                echo json_encode([
-                    'success' => true,
-                    'message' => "Se aprobaron {$count} observaciones correctamente",
-                    'count' => $count
-                ]);
-            }
-            break;
-
-        case 'reject':
-            // Acción no permitida para supervisores
-            http_response_code(403);
-            echo json_encode([
-                'success' => false,
-                'message' => 'Acción no permitida. Los supervisores solo pueden aprobar observaciones.'
-            ]);
-            break;
-
-        case 'cancel':
-            // Validar CSRF
-            CSRF::validateRequest();
-
-            // Cancelar observación(es)
-            $data = json_decode(file_get_contents('php://input'), true);
-
-            if (empty($data['id'])) {
-                throw new Exception('ID de observación requerido');
-            }
-
-            $ids = is_array($data['id']) ? $data['id'] : [$data['id']];
-            $comment = $data['comment'] ?? 'Observación cancelada por supervisor';
-
-            if (count($ids) === 1) {
-                $result = $obsModel->updateStatus($ids[0], ESTADO_RECHAZADO, $_SESSION['user_id'], $comment);
-
-                if ($result) {
-                    echo json_encode([
-                        'success' => true,
-                        'message' => 'Observación cancelada correctamente'
-                    ]);
-                } else {
-                    throw new Exception('Error al cancelar la observación');
-                }
-            } else {
-                // Operación masiva
-                $count = $obsModel->bulkUpdateStatus($ids, ESTADO_RECHAZADO, $_SESSION['user_id'], $comment);
-
-                echo json_encode([
-                    'success' => true,
-                    'message' => "Se cancelaron {$count} observaciones correctamente",
-                    'count' => $count
-                ]);
-            }
-            break;
-
-        case 'delete':
-            // Validar CSRF
-            CSRF::validateRequest();
-
-            // Eliminar observación(es) - mover a papelera
-            require_once '../models/DeletedObservation.php';
-            $deletedModel = new DeletedObservation();
-            
-            $data = json_decode(file_get_contents('php://input'), true);
-
-            if (empty($data['id'])) {
-                throw new Exception('ID de observación requerido');
-            }
-
-            $ids = is_array($data['id']) ? $data['id'] : [$data['id']];
-            $reason = $data['reason'] ?? 'Eliminado por supervisor';
-
-            $successCount = 0;
-            foreach ($ids as $id) {
-                if ($deletedModel->moveToTrash($id, $_SESSION['user_id'], $reason)) {
-                    $successCount++;
-                }
-            }
-
-            echo json_encode([
-                'success' => true,
-                'message' => "{$successCount} observación(es) eliminada(s) correctamente",
-                'count' => $successCount
-            ]);
-            break;
-
-        case 'update_status':
-            // Validar CSRF
-            CSRF::validateRequest();
-
-            // Cambiar estado genérico
-            $data = json_decode(file_get_contents('php://input'), true);
-
-            if (empty($data['id']) || empty($data['estado'])) {
-                throw new Exception('ID y estado son requeridos');
-            }
-
-            $comment = $data['comment'] ?? "Cambio de estado a: {$data['estado']}";
-            $extraData = [];
-            if (!empty($data['clasificacion'])) {
-                $extraData['clasificacion'] = $data['clasificacion'];
-            }
-            if (isset($data['detalle_error'])) {
-                $extraData['detalle_error'] = $data['detalle_error'];
-            }
-            $result = $obsModel->updateStatus($data['id'], $data['estado'], $_SESSION['user_id'], $comment, $extraData);
-
-            if ($result) {
-                echo json_encode([
-                    'success' => true,
-                    'message' => 'Estado actualizado correctamente'
-                ]);
-            } else {
-                throw new Exception('Error al actualizar el estado');
-            }
-            break;
-
+    switch ($accion) {
         case 'get_filtered':
-            // Obtener observaciones con filtros
-            $filters = [
-                'anio' => $_GET['anio'] ?? null,
-                'mes' => $_GET['mes'] ?? null,
-                'estado' => $_GET['estado'] ?? null,
-                'establecimiento_id' => $_GET['establecimiento_id'] ?? null,
-                'usuario_registro_id' => $_GET['usuario_registro_id'] ?? null,
-                'busqueda' => $_GET['busqueda'] ?? null,
-                'limit' => $_GET['limit'] ?? 100,
-                'offset' => $_GET['offset'] ?? 0
-            ];
+            $anio = $_GET['anio'] ?? date('Y');
+            $pagina = max(1, (int) ($_GET['pagina'] ?? 1));
+            $porPagina = 50;
+            $offset = ($pagina - 1) * $porPagina;
 
-            $observations = $obsModel->getWithFilters($filters);
+            $sql = "SELECT o.*, 
+                            e.nombre as establecimiento_nombre,
+                            e.nombre_corto,
+                            e.codigo_establecimiento,
+                            c.nombre as comuna_nombre,
+                            c.id as comuna_id,
+                            u.nombre_completo as usuario_registro_nombre
+                    FROM observaciones o
+                    INNER JOIN establecimientos e ON o.establecimiento_id = e.id
+                    INNER JOIN comunas c ON e.comuna_id = c.id
+                    INNER JOIN usuarios u ON o.usuario_registro_id = u.id
+                    WHERE o.anio = ?";
+            $params = [$anio];
 
-            echo json_encode([
-                'success' => true,
-                'data' => $observations,
-                'count' => count($observations)
+            if (!empty($_GET['mes'])) {
+                $sql .= " AND o.mes = ?";
+                $params[] = $_GET['mes'];
+            }
+            if (!empty($_GET['estado'])) {
+                $sql .= " AND o.estado_actual = ?";
+                $params[] = $_GET['estado'];
+            }
+            if (!empty($_GET['establecimiento_id'])) {
+                $sql .= " AND o.establecimiento_id = ?";
+                $params[] = $_GET['establecimiento_id'];
+            }
+            if (!empty($_GET['comuna_id'])) {
+                $sql .= " AND c.id = ?";
+                $params[] = $_GET['comuna_id'];
+            }
+            if (!empty($_GET['usuario_registro_id'])) {
+                $sql .= " AND o.usuario_registro_id = ?";
+                $params[] = $_GET['usuario_registro_id'];
+            }
+            if (!empty($_GET['tipo_error'])) {
+                $sql .= " AND o.tipo_error = ?";
+                $params[] = $_GET['tipo_error'];
+            }
+            if (!empty($_GET['busqueda'])) {
+                $termino = '%' . $_GET['busqueda'] . '%';
+                $sql .= " AND (o.detalle_observacion LIKE ? OR e.nombre LIKE ? OR e.nombre_corto LIKE ?)";
+                $params[] = $termino;
+                $params[] = $termino;
+                $params[] = $termino;
+            }
+
+            $sqlConteo = preg_replace('/SELECT.*?FROM/s', 'SELECT COUNT(*) as total FROM', $sql);
+            $sqlConteo = preg_replace('/ORDER BY.*$/', '', $sqlConteo);
+            $resultadoConteo = $db->consultarUno($sqlConteo, $params);
+            $total = (int) ($resultadoConteo['total'] ?? 0);
+            $totalPaginas = max(1, ceil($total / $porPagina));
+
+            $sql .= " ORDER BY o.fecha_creacion DESC LIMIT ? OFFSET ?";
+            $params[] = $porPagina;
+            $params[] = $offset;
+
+            $datos = $db->consultar($sql, $params);
+
+            responder(true, [
+                'datos' => $datos,
+                'total' => $total,
+                'pagina' => $pagina,
+                'porPagina' => $porPagina,
+                'totalPaginas' => $totalPaginas
             ]);
             break;
 
         case 'get_detail':
-            // Obtener detalle completo con historial
             $id = $_GET['id'] ?? null;
-
             if (!$id) {
-                throw new Exception('ID de observación requerido');
+                responder(false, null, 'ID de observación requerido', 400);
             }
 
-            $observation = $obsModel->getById($id);
-            $historial = $obsModel->getHistorial($id);
+            $sql = "SELECT o.*, 
+                            e.nombre as establecimiento_nombre,
+                            e.nombre_corto,
+                            e.codigo_establecimiento,
+                            c.nombre as comuna_nombre,
+                            c.id as comuna_id,
+                            u.nombre_completo as usuario_registro_nombre
+                    FROM observaciones o
+                    INNER JOIN establecimientos e ON o.establecimiento_id = e.id
+                    INNER JOIN comunas c ON e.comuna_id = c.id
+                    INNER JOIN usuarios u ON o.usuario_registro_id = u.id
+                    WHERE o.id = ?";
+            $observacion = $db->consultarUno($sql, [$id]);
 
-            if (!$observation) {
-                throw new Exception('Observación no encontrada');
+            if (!$observacion) {
+                responder(false, null, 'Observación no encontrada', 404);
             }
 
-            echo json_encode([
-                'success' => true,
-                'data' => $observation,
+            $historialModel = new HistorialEstado();
+            $historial = $historialModel->obtenerPorObservacion($id);
+
+            responder(true, [
+                'observacion' => $observacion,
                 'historial' => $historial
             ]);
             break;
 
-        default:
-            http_response_code(400);
-            echo json_encode([
-                'success' => false,
-                'message' => 'Acción no válida'
+        case 'approve':
+            CSRF::validateRequest();
+            $cuerpo = obtenerBodyJSON();
+
+            if (empty($cuerpo['ids']) || !is_array($cuerpo['ids'])) {
+                responder(false, null, 'IDs de observación requeridos', 400);
+            }
+
+            $ids = array_map('intval', $cuerpo['ids']);
+            $comentario = $cuerpo['comentario'] ?? 'Observación aprobada por supervisor';
+            $clasificacion = $cuerpo['clasificacion'] ?? null;
+            $detalleError = $cuerpo['detalle_error'] ?? null;
+            $estadoResultante = $cuerpo['estado_resultante'] ?? null;
+
+            $procesados = 0;
+            $fallos = [];
+
+            foreach ($ids as $id) {
+                try {
+                    $obs = $db->consultarUno("SELECT * FROM observaciones WHERE id = ?", [$id]);
+                    if (!$obs) {
+                        $fallos[] = ['id' => $id, 'motivo' => 'Observación no encontrada'];
+                        continue;
+                    }
+
+                    $estadoAnterior = $obs['estado_actual'];
+                    $nuevoEstado = ESTADO_APROBADO;
+
+                    $campos = ["estado_actual = ?", "fecha_actualizacion = NOW()"];
+                    $params = [$nuevoEstado, $id];
+
+                    if ($clasificacion !== null && $clasificacion !== '') {
+                        $campos[] = "clasificacion = ?";
+                        $params[] = $clasificacion;
+                    }
+                    if ($detalleError !== null) {
+                        $campos[] = "detalle_error = ?";
+                        $params[] = $detalleError;
+                    }
+
+                    $sql = "UPDATE observaciones SET " . implode(', ', $campos) . " WHERE id = ?";
+                    $db->ejecutar($sql, $params);
+
+                    $histModel = new HistorialEstado();
+                    $histComentario = $comentario;
+                    if ($estadoResultante) {
+                        $histComentario .= " | Resultado: " . $estadoResultante;
+                    }
+                    $histModel->registrar($id, $usuarioId, $estadoAnterior, $nuevoEstado, $histComentario);
+
+                    $procesados++;
+                } catch (Exception $e) {
+                    $fallos[] = ['id' => $id, 'motivo' => $e->getMessage()];
+                }
+            }
+
+            responder(true, [
+                'procesados' => $procesados,
+                'fallos' => $fallos,
+                'total' => count($ids)
             ]);
             break;
+
+        case 'cancel':
+            CSRF::validateRequest();
+            $cuerpo = obtenerBodyJSON();
+
+            if (empty($cuerpo['ids']) || !is_array($cuerpo['ids'])) {
+                responder(false, null, 'IDs de observación requeridos', 400);
+            }
+
+            $ids = array_map('intval', $cuerpo['ids']);
+            $comentario = $cuerpo['comentario'] ?? 'Observación cancelada por supervisor';
+
+            $procesados = 0;
+            $fallos = [];
+
+            foreach ($ids as $id) {
+                try {
+                    $obs = $db->consultarUno("SELECT * FROM observaciones WHERE id = ?", [$id]);
+                    if (!$obs) {
+                        $fallos[] = ['id' => $id, 'motivo' => 'Observación no encontrada'];
+                        continue;
+                    }
+
+                    $estadoAnterior = $obs['estado_actual'];
+                    $nuevoEstado = ESTADO_RECHAZADO;
+
+                    $db->ejecutar(
+                        "UPDATE observaciones SET estado_actual = ?, fecha_actualizacion = NOW() WHERE id = ?",
+                        [$nuevoEstado, $id]
+                    );
+
+                    $histModel = new HistorialEstado();
+                    $histModel->registrar($id, $usuarioId, $estadoAnterior, $nuevoEstado, $comentario);
+
+                    $procesados++;
+                } catch (Exception $e) {
+                    $fallos[] = ['id' => $id, 'motivo' => $e->getMessage()];
+                }
+            }
+
+            responder(true, [
+                'procesados' => $procesados,
+                'fallos' => $fallos,
+                'total' => count($ids)
+            ]);
+            break;
+
+        case 'delete':
+            CSRF::validateRequest();
+            $cuerpo = obtenerBodyJSON();
+
+            if (empty($cuerpo['ids']) || !is_array($cuerpo['ids'])) {
+                responder(false, null, 'IDs de observación requeridos', 400);
+            }
+
+            $ids = array_map('intval', $cuerpo['ids']);
+            $motivo = $cuerpo['motivo'] ?? 'Eliminado por supervisor';
+
+            $procesados = 0;
+            $fallos = [];
+
+            foreach ($ids as $id) {
+                try {
+                    $obs = $db->consultarUno("SELECT * FROM observaciones WHERE id = ?", [$id]);
+                    if (!$obs) {
+                        $fallos[] = ['id' => $id, 'motivo' => 'Observación no encontrada'];
+                        continue;
+                    }
+
+                    $sqlInsert = "INSERT INTO observaciones_eliminadas 
+                                  (observacion_id, anio, mes, establecimiento_id, establecimiento_nombre, 
+                                   establecimiento_nombre_corto, comuna, codigo_serie, codigo_hoja, 
+                                   tipo_error, detalle_observacion, plazo_entrega, usa_validador, 
+                                   estado_actual, clasificacion, usuario_registro_id, nombre_registro, 
+                                   usuario_supervisor_id, motivo_eliminacion, fecha_eliminacion, 
+                                   fecha_registro_original, fecha_revision)
+                                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?)";
+
+                    $db->ejecutar($sqlInsert, [
+                        $id,
+                        $obs['anio'],
+                        $obs['mes'],
+                        $obs['establecimiento_id'],
+                        $obs['establecimiento_nombre'] ?? '',
+                        $obs['nombre_corto'] ?? null,
+                        $obs['comuna_nombre'] ?? '',
+                        $obs['codigo_serie'] ?? '',
+                        $obs['codigo_hoja'] ?? '',
+                        $obs['tipo_error'] ?? '',
+                        $obs['detalle_observacion'] ?? '',
+                        $obs['plazo_entrega'] ?? 'dentro_plazo',
+                        $obs['usa_validador'] ?? 'no',
+                        $obs['estado_actual'] ?? '',
+                        $obs['clasificacion'],
+                        $obs['usuario_registro_id'],
+                        $obs['usuario_registro_nombre'] ?? '',
+                        $usuarioId,
+                        $motivo,
+                        $obs['fecha_creacion'],
+                        $obs['fecha_actualizacion']
+                    ]);
+
+                    $db->ejecutar("DELETE FROM historial_estados WHERE observacion_id = ?", [$id]);
+                    $db->ejecutar("DELETE FROM observaciones WHERE id = ?", [$id]);
+
+                    $procesados++;
+                } catch (Exception $e) {
+                    $fallos[] = ['id' => $id, 'motivo' => $e->getMessage()];
+                }
+            }
+
+            responder(true, [
+                'procesados' => $procesados,
+                'fallos' => $fallos,
+                'total' => count($ids)
+            ]);
+            break;
+
+        case 'update_status':
+            CSRF::validateRequest();
+            $cuerpo = obtenerBodyJSON();
+
+            if (empty($cuerpo['ids']) || !is_array($cuerpo['ids'])) {
+                responder(false, null, 'IDs de observación requeridos', 400);
+            }
+            if (empty($cuerpo['estado'])) {
+                responder(false, null, 'Estado requerido', 400);
+            }
+
+            $estadosValidos = [ESTADO_PENDIENTE, ESTADO_APROBADO, ESTADO_RECHAZADO, ESTADO_ERROR, ESTADO_JUSTIFICADO];
+            if (!in_array($cuerpo['estado'], $estadosValidos)) {
+                responder(false, null, 'Estado no válido', 400);
+            }
+
+            $ids = array_map('intval', $cuerpo['ids']);
+            $nuevoEstado = $cuerpo['estado'];
+            $comentario = $cuerpo['comentario'] ?? "Cambio de estado a: {$nuevoEstado}";
+            $clasificacion = $cuerpo['clasificacion'] ?? null;
+            $detalleError = $cuerpo['detalle_error'] ?? null;
+
+            $procesados = 0;
+            $fallos = [];
+
+            foreach ($ids as $id) {
+                try {
+                    $obs = $db->consultarUno("SELECT * FROM observaciones WHERE id = ?", [$id]);
+                    if (!$obs) {
+                        $fallos[] = ['id' => $id, 'motivo' => 'Observación no encontrada'];
+                        continue;
+                    }
+
+                    $estadoAnterior = $obs['estado_actual'];
+
+                    $campos = ["estado_actual = ?", "fecha_actualizacion = NOW()"];
+                    $params = [$nuevoEstado, $id];
+
+                    if ($clasificacion !== null && $clasificacion !== '') {
+                        $campos[] = "clasificacion = ?";
+                        $params[] = $clasificacion;
+                    }
+                    if ($detalleError !== null) {
+                        $campos[] = "detalle_error = ?";
+                        $params[] = $detalleError;
+                    }
+
+                    $sql = "UPDATE observaciones SET " . implode(', ', $campos) . " WHERE id = ?";
+                    $db->ejecutar($sql, $params);
+
+                    $histModel = new HistorialEstado();
+                    $histModel->registrar($id, $usuarioId, $estadoAnterior, $nuevoEstado, $comentario);
+
+                    $procesados++;
+                } catch (Exception $e) {
+                    $fallos[] = ['id' => $id, 'motivo' => $e->getMessage()];
+                }
+            }
+
+            responder(true, [
+                'procesados' => $procesados,
+                'fallos' => $fallos,
+                'total' => count($ids)
+            ]);
+            break;
+
+        default:
+            responder(false, null, 'Acción no válida. Acciones disponibles: get_filtered, get_detail, approve, cancel, delete, update_status', 400);
     }
 } catch (Exception $e) {
-    http_response_code(500);
-    echo json_encode([
-        'success' => false,
-        'message' => $e->getMessage()
-    ]);
+    error_log("Error en API supervisión: " . $e->getMessage());
+    responder(false, null, 'Error en el servidor: ' . $e->getMessage(), 500);
 }

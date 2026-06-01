@@ -1,256 +1,383 @@
 <?php
 /**
- * API de Importación de Observaciones
- * Procesa archivos XLSX para carga masiva (Solo Registradores)
+ * API de Importación de Observaciones desde Excel
+ * Acciones: preview (vista previa), confirm (confirmar importación)
+ * Solo acceso para rol Registrador
  */
 
 header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../config/config.php';
+require_once __DIR__ . '/../config/constants.php';
 require_once __DIR__ . '/../vendor/autoload.php';
-require_once __DIR__ . '/../models/Observation.php';
-require_once __DIR__ . '/../models/Location.php';
+require_once __DIR__ . '/../models/Database.php';
 require_once __DIR__ . '/../includes/csrf.php';
 
 use PhpOffice\PhpSpreadsheet\IOFactory;
 
-// Verificar autenticación
-if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
-    http_response_code(401);
-    echo json_encode(['success' => false, 'message' => 'No autorizado']);
+function responder($exito, $datos = null, $error = '', $codigo = 200)
+{
+    http_response_code($codigo);
+    $respuesta = ['success' => $exito];
+    if ($exito) {
+        $respuesta['data'] = $datos;
+    } else {
+        $respuesta['error'] = $error;
+    }
+    $respuesta['code'] = $codigo;
+    echo json_encode($respuesta, JSON_UNESCAPED_UNICODE);
     exit;
 }
 
-$userId = $_SESSION['user_id'];
-$userRole = $_SESSION['rol'];
+// Verificar autenticación
+if (!isset($_SESSION['usuario_id']) || $_SESSION['autenticado'] !== true) {
+    responder(false, null, 'No autorizado', 401);
+}
+
+$usuarioId = $_SESSION['usuario_id'];
+$rol = $_SESSION['rol'];
 
 // Solo registradores pueden importar
-if ($userRole !== ROL_REGISTRADOR) {
-    http_response_code(403);
-    echo json_encode(['success' => false, 'message' => 'Solo los registradores pueden importar archivos']);
-    exit;
+if ($rol !== ROL_REGISTRADOR) {
+    responder(false, null, 'Solo los registradores pueden importar archivos', 403);
 }
 
+$metodo = $_SERVER['REQUEST_METHOD'];
+$accion = $_GET['accion'] ?? '';
+
 try {
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        // Verificar que se subió un archivo - soportar ambos nombres
-        $fileKey = isset($_FILES['csv_file']) ? 'csv_file' : (isset($_FILES['import_file']) ? 'import_file' : null);
+    // GET: descargar información de columnas esperadas
+    if ($metodo === 'GET' && $accion === 'columnas') {
+        responder(true, [
+            'columnas' => [
+                'codigo_establecimiento' => 'Código DEIS del establecimiento (obligatorio)',
+                'mes' => 'Número (1-12) o nombre del mes en español (obligatorio)',
+                'codigo_serie' => 'Serie REM (ej: SERIE A, SERIE BM)',
+                'codigo_hoja' => 'Hoja REM (ej: A01, BM18)',
+                'tipo_error' => 'Tipo: S/OBSERVACION, ERROR, REVISAR, F/PLAZO (obligatorio)',
+                'detalle_observacion' => 'Descripción de la observación',
+                'plazo_entrega' => 'dentro_plazo o fuera_plazo'
+            ],
+            'anio_seleccionado' => $_SESSION['year'] ?? date('Y')
+        ]);
+    }
 
-        if (!$fileKey || $_FILES[$fileKey]['error'] !== UPLOAD_ERR_OK) {
-            throw new Exception('No se recibió un archivo válido');
+    // POST: preview o confirm
+    if ($metodo === 'POST') {
+        CSRF::validateRequest();
+
+        if (!in_array($accion, ['preview', 'confirm'])) {
+            responder(false, null, 'Acción no válida. Use preview o confirm', 400);
         }
 
-        $file = $_FILES[$fileKey];
-        $year = $_POST['year'] ?? date('Y');
-        $isPreview = isset($_POST['preview']) && $_POST['preview'] == '1';
-        $isConfirm = isset($_POST['confirm']) && $_POST['confirm'] == '1';
-
-        // Detectar tipo de archivo - SOLO EXCEL PERMITIDO
-        $filename = $file['name'];
-        $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
-
-        $rows = [];
-
-        if ($extension !== 'xlsx' && $extension !== 'xls') {
-            throw new Exception('Formato no válido. Solo se permiten archivos Excel (.xlsx, .xls)');
+        // Verificar archivo subido
+        if (!isset($_FILES['archivo']) || $_FILES['archivo']['error'] !== UPLOAD_ERR_OK) {
+            responder(false, null, 'No se recibió un archivo válido', 400);
         }
 
-        // Leer archivo Excel
-        $spreadsheet = IOFactory::load($file['tmp_name']);
-        $worksheet = $spreadsheet->getActiveSheet();
-        $data = $worksheet->toArray();
+        $archivo = $_FILES['archivo'];
+        $anio = $_POST['anio'] ?? ($_SESSION['year'] ?? date('Y'));
+        $extension = strtolower(pathinfo($archivo['name'], PATHINFO_EXTENSION));
 
-        if (empty($data)) {
-            throw new Exception('Archivo Excel vacío o formato inválido');
+        if (!in_array($extension, ['xlsx', 'xls'])) {
+            responder(false, null, 'Formato no válido. Solo se permiten archivos Excel (.xlsx, .xls)', 400);
+        }
+
+        // Leer archivo con PhpSpreadsheet (auto-detecta codificación)
+        $spreadsheet = IOFactory::load($archivo['tmp_name']);
+        $hoja = $spreadsheet->getActiveSheet();
+        $datos = $hoja->toArray();
+
+        if (empty($datos)) {
+            responder(false, null, 'Archivo Excel vacío o formato inválido', 400);
         }
 
         // Primera fila como encabezados
-        $header = array_map('trim', $data[0]);
+        $encabezados = array_map(function($h) {
+            return strtolower(trim(str_replace([' ', '-'], '_', $h)));
+        }, $datos[0]);
 
-        // Resto como datos
-        for ($i = 1; $i < count($data); $i++) {
-            if (!empty($data[$i][0])) { // Solo filas con datos
-                $row = [];
-                foreach ($header as $index => $colName) {
-                    $row[$colName] = isset($data[$i][$index]) ? trim($data[$i][$index]) : '';
+        // Mapear encabezados a nombres estándar
+        $mapeoEncabezados = [
+            'codigo_establecimiento' => ['codigo_establecimiento', 'cod_establecimiento', 'codigo_est', 'deis'],
+            'establecimiento' => ['establecimiento', 'nombre_establecimiento', 'nombre'],
+            'mes' => ['mes', 'month', 'mes_rem'],
+            'codigo_serie' => ['codigo_serie', 'serie', 'cod_serie'],
+            'codigo_hoja' => ['codigo_hoja', 'hoja', 'rem', 'cod_hoja'],
+            'tipo_error' => ['tipo_error', 'tipo', 'tipo_observacion'],
+            'detalle_observacion' => ['detalle_observacion', 'detalle', 'observacion', 'descripcion'],
+            'plazo_entrega' => ['plazo_entrega', 'plazo', 'entrega']
+        ];
+
+        // Crear mapeo inverso: índice de columna -> nombre estándar
+        $mapeoColumnas = [];
+        foreach ($encabezados as $indice => $encabezado) {
+            foreach ($mapeoEncabezados as $nombreEstandar => $alias) {
+                if (in_array($encabezado, $alias, true)) {
+                    $mapeoColumnas[$indice] = $nombreEstandar;
+                    break;
                 }
-                $rows[] = $row;
             }
         }
 
-        // Validar y procesar datos
-        $obsModel = new Observation();
-        $locModel = new Location();
+        // Parsear filas de datos
+        $filas = [];
+        for ($i = 1; $i < count($datos); $i++) {
+            $fila = [];
+            foreach ($mapeoColumnas as $indice => $nombre) {
+                $valor = isset($datos[$i][$indice]) ? trim($datos[$i][$indice]) : '';
+                $fila[$nombre] = $valor;
+            }
+            // Solo incluir filas con al menos un dato
+            if (!empty(array_filter($fila))) {
+                $fila['_fila'] = $i + 1; // Número de fila en Excel (1-indexed)
+                $filas[] = $fila;
+            }
+        }
 
-        $valid = [];
-        $errors = [];
-        $establecimientos = $locModel->getAllEstablecimientos();
+        if (empty($filas)) {
+            responder(false, null, 'No se encontraron filas de datos en el archivo', 400);
+        }
 
-        // Crear mapa de establecimientos por código y por nombre
-        $estMapByCodigo = [];
-        $estMapByNombre = [];
+        // Obtener todos los establecimientos para mapeo
+        $db = Database::getInstance();
+        $establecimientos = $db->query("SELECT id, codigo_establecimiento, nombre, nombre_corto FROM establecimientos");
+
+        $mapaPorCodigo = [];
+        $mapaPorNombre = [];
         foreach ($establecimientos as $est) {
-            // Mapeo por código de establecimiento (prioritario)
             if (!empty($est['codigo_establecimiento'])) {
-                $estMapByCodigo[$est['codigo_establecimiento']] = $est;
+                $mapaPorCodigo[trim($est['codigo_establecimiento'])] = $est;
             }
-            // Mapeo por nombre (fallback)
-            $estMapByNombre[strtolower(trim($est['nombre']))] = $est;
-            $estMapByNombre[strtolower(trim($est['nombre_corto']))] = $est;
+            $nombreLower = strtolower(trim($est['nombre']));
+            $nombreCortoLower = strtolower(trim($est['nombre_corto']));
+            $mapaPorNombre[$nombreLower] = $est;
+            if ($nombreCortoLower) {
+                $mapaPorNombre[$nombreCortoLower] = $est;
+            }
         }
 
-        foreach ($rows as $index => $row) {
-            $rowNum = $index + 2; // +2 porque empieza en 1 y hay header
-            $rowErrors = [];
+        // Mapa de meses en español a número
+        $mesesMapa = [
+            'enero' => 1, 'febrero' => 2, 'marzo' => 3, 'abril' => 4,
+            'mayo' => 5, 'junio' => 6, 'julio' => 7, 'agosto' => 8,
+            'septiembre' => 9, 'octubre' => 10, 'noviembre' => 11, 'diciembre' => 12,
+            '1' => 1, '2' => 2, '3' => 3, '4' => 4, '5' => 5, '6' => 6,
+            '7' => 7, '8' => 8, '9' => 9, '10' => 10, '11' => 11, '12' => 12
+        ];
 
-            // Validar campos requeridos (Estrictos: mes, tipo y establecimiento)
-            $required = [
-                'mes',
-                'tipo'           // Antes: tipo_error
-            ];
+        // Validar cada fila
+        $validas = [];
+        $errores = [];
 
-            // Mapear nombres antiguos si existen (compatibilidad)
-            if (!isset($row['tipo']) && isset($row['tipo_error'])) {
-                $row['tipo'] = $row['tipo_error'];
-            }
-            if (!isset($row['serie']) && isset($row['codigo_serie'])) {
-                $row['serie'] = $row['codigo_serie'];
-            }
-            if (!isset($row['rem']) && isset($row['codigo_hoja'])) {
-                $row['rem'] = $row['codigo_hoja'];
-            }
+        foreach ($filas as $fila) {
+            $numFila = $fila['_fila'];
+            $erroresFila = [];
 
-            // Establecer valores por defecto para campos opcionales
-            $row['serie'] = $row['serie'] ?? '';
-            $row['rem'] = $row['rem'] ?? '';
-            $row['detalle_observacion'] = $row['detalle_observacion'] ?? '';
-            $row['plazo_entrega'] = $row['plazo_entrega'] ?? '';
-            $row['usa_validador'] = !empty($row['usa_validador']) ? $row['usa_validador'] : 'NO';
-
-            // Validar campos requeridos según el tipo
-            // Para S/OBSERVACION, codigo_hoja (rem) no es requerido
-            if ($row['tipo'] !== 'S/OBSERVACION' && empty($row['rem'])) {
-                $rowErrors[] = "Campo 'rem' (Hoja) es requerido para tipo '{$row['tipo']}'";
-            }
-
-            // Convertir 'N/A' o 'n/a' a 'NO' para usa_validador
-            if (strtoupper(trim($row['usa_validador'])) === 'N/A') {
-                $row['usa_validador'] = 'NO';
-            }
-
-            foreach ($required as $field) {
-                if (empty($row[$field])) {
-                    $rowErrors[] = "Campo '{$field}' es requerido";
+            // Validar mes (obligatorio)
+            $mesRaw = $fila['mes'] ?? '';
+            if (empty($mesRaw)) {
+                $erroresFila[] = 'Campo "mes" es requerido';
+            } else {
+                $mesLower = strtolower(trim($mesRaw));
+                // Si es numérico, validar rango
+                if (is_numeric($mesRaw)) {
+                    $mesNum = (int) $mesRaw;
+                    if ($mesNum < 1 || $mesNum > 12) {
+                        $erroresFila[] = "Mes '{$mesRaw}' fuera de rango (1-12)";
+                    }
+                } elseif (isset($mesesMapa[$mesLower])) {
+                    $mesNum = $mesesMapa[$mesLower];
+                } else {
+                    $erroresFila[] = "Mes '{$mesRaw}' no reconocido. Use número (1-12) o nombre en español";
                 }
             }
 
-            // Buscar establecimiento: PRIORIDAD por código, luego por nombre
-            $estId = null;
-            $estNombreOficial = '';
-            $codigoEst = $row['codigo_establecimiento'] ?? $row['codigo_est'] ?? $row['cod_establecimiento'] ?? '';
-            $nombreEst = $row['establecimiento'] ?? $row['nombre_establecimiento'] ?? '';
+            // Validar tipo_error (obligatorio)
+            $tipoError = $fila['tipo_error'] ?? '';
+            if (empty($tipoError)) {
+                $erroresFila[] = 'Campo "tipo_error" es requerido';
+            }
 
-            // 1. Buscar por código de establecimiento (prioritario)
+            // Buscar establecimiento: prioridad por código DEIS, fallback por nombre
+            $establecimientoId = null;
+            $establecimientoNombre = '';
+            $codigoEst = $fila['codigo_establecimiento'] ?? '';
+            $nombreEst = $fila['establecimiento'] ?? '';
+
             if (!empty($codigoEst)) {
                 $codigoEst = trim($codigoEst);
-                if (isset($estMapByCodigo[$codigoEst])) {
-                    $estId = $estMapByCodigo[$codigoEst]['id'];
-                    $estNombreOficial = $estMapByCodigo[$codigoEst]['nombre'];
+                if (isset($mapaPorCodigo[$codigoEst])) {
+                    $establecimientoId = $mapaPorCodigo[$codigoEst]['id'];
+                    $establecimientoNombre = $mapaPorCodigo[$codigoEst]['nombre'];
                 } else {
-                    $rowErrors[] = "Código de establecimiento '{$codigoEst}' no encontrado";
+                    $erroresFila[] = "Código de establecimiento '{$codigoEst}' no encontrado";
                 }
-            }
-            // 2. Si no hay código, buscar por nombre (fallback)
-            elseif (!empty($nombreEst)) {
+            } elseif (!empty($nombreEst)) {
                 $nombreBuscar = strtolower(trim($nombreEst));
-                if (isset($estMapByNombre[$nombreBuscar])) {
-                    $estId = $estMapByNombre[$nombreBuscar]['id'];
-                    $estNombreOficial = $estMapByNombre[$nombreBuscar]['nombre'];
+                if (isset($mapaPorNombre[$nombreBuscar])) {
+                    $establecimientoId = $mapaPorNombre[$nombreBuscar]['id'];
+                    $establecimientoNombre = $mapaPorNombre[$nombreBuscar]['nombre'];
                 } else {
-                    $rowErrors[] = "Establecimiento '{$nombreEst}' no encontrado. Usa el código de establecimiento para mayor precisión.";
+                    $erroresFila[] = "Establecimiento '{$nombreEst}' no encontrado. Use el código DEIS para mayor precisión";
                 }
-            }
-            // 3. Si no hay ni código ni nombre, error
-            else {
-                $rowErrors[] = "Debe especificar 'codigo_establecimiento' o 'establecimiento'";
+            } else {
+                $erroresFila[] = 'Debe especificar codigo_establecimiento o establecimiento';
             }
 
-            if (count($rowErrors) > 0) {
-                $errors[] = [
-                    'row' => $rowNum,
-                    'message' => implode(', ', $rowErrors)
+            if (!empty($erroresFila)) {
+                $errores[] = [
+                    'fila' => $numFila,
+                    'errores' => $erroresFila,
+                    'datos' => $fila
                 ];
             } else {
-                $valid[] = [
-                    'mes' => $row['mes'],
-                    'establecimiento_id' => $estId,
-                    'establecimiento_nombre' => $estNombreOficial,
-                    'codigo_serie' => $row['serie'],
-                    'codigo_hoja' => $row['rem'],
-                    'tipo_error' => $row['tipo'],
-                    'detalle_observacion' => $row['detalle_observacion'],
-                    'plazo_entrega' => $row['plazo_entrega'],
-                    'usa_validador' => $row['usa_validador'],
-                    'respuesta_establecimiento' => $row['respuesta_establecimiento'] ?? ''
+                // Construir fila válida
+                $validas[] = [
+                    'fila' => $numFila,
+                    'anio' => (int) $anio,
+                    'mes' => isset($mesNum) ? $mesNum : null,
+                    'establecimiento_id' => $establecimientoId,
+                    'establecimiento_nombre' => $establecimientoNombre,
+                    'codigo_serie' => $fila['codigo_serie'] ?? '',
+                    'codigo_hoja' => $fila['codigo_hoja'] ?? '',
+                    'tipo_error' => $tipoError,
+                    'detalle_observacion' => $fila['detalle_observacion'] ?? '',
+                    'plazo_entrega' => $fila['plazo_entrega'] ?? ''
                 ];
             }
         }
 
-        // Si es preview, retornar resumen
-        if ($isPreview) {
-            echo json_encode([
-                'success' => true,
-                'data' => [
-                    'total' => count($rows),
-                    'valid' => count($valid),
-                    'errors' => $errors,
-                    'preview' => $valid
-                ]
-            ]);
-            exit;
+        // Detectar duplicados dentro del archivo (mismo establecimiento + mes + serie + hoja + tipo)
+        $firmas = [];
+        $duplicados = [];
+        foreach ($validas as $idx => $fila) {
+            $firma = "{$fila['establecimiento_id']}-{$fila['mes']}-{$fila['codigo_serie']}-{$fila['codigo_hoja']}-{$fila['tipo_error']}";
+            if (isset($firmas[$firma])) {
+                $duplicados[] = [
+                    'fila' => $fila['fila'],
+                    'mensaje' => "Duplicado interno: misma combinación establecimiento/mes/serie/hoja/tipo que fila {$firmas[$firma]}"
+                ];
+            } else {
+                $firmas[$firma] = $fila['fila'];
+            }
         }
 
-        // Si es confirmación, insertar en BD
-        if ($isConfirm) {
-            $imported = 0;
-
-            foreach ($valid as $obs) {
-                $data = [
-                    'anio' => $year,
-                    'mes' => $obs['mes'],
-                    'establecimiento_id' => $obs['establecimiento_id'],
-                    'codigo_serie' => $obs['codigo_serie'],
-                    'codigo_hoja' => $obs['codigo_hoja'],
-                    'tipo_error' => $obs['tipo_error'],
-                    'detalle_observacion' => $obs['detalle_observacion'],
-                    'plazo_entrega' => $obs['plazo_entrega'],
-                    'usa_validador' => $obs['usa_validador'],
-                    'usuario_registro_id' => $userId,
-                    'respuesta_establecimiento' => $obs['respuesta_establecimiento'] ?? ''
+        // Detectar duplicados contra la base de datos
+        $duplicadosBD = [];
+        foreach ($validas as $fila) {
+            $sql = "SELECT COUNT(*) as total FROM observaciones 
+                    WHERE establecimiento_id = ? AND mes = ? AND anio = ? 
+                    AND COALESCE(codigo_serie, '') = ? AND COALESCE(codigo_hoja, '') = ? 
+                    AND tipo_error = ?";
+            $resultado = $db->queryOne($sql, [
+                $fila['establecimiento_id'],
+                $fila['mes'],
+                $fila['anio'],
+                $fila['codigo_serie'],
+                $fila['codigo_hoja'],
+                $fila['tipo_error']
+            ]);
+            if ($resultado && (int) $resultado['total'] > 0) {
+                $duplicadosBD[] = [
+                    'fila' => $fila['fila'],
+                    'establecimiento' => $fila['establecimiento_nombre'],
+                    'mes' => $fila['mes'],
+                    'mensaje' => "Ya existe en BD: {$fila['establecimiento_nombre']} - Mes {$fila['mes']}"
                 ];
+            }
+        }
 
-                if ($obsModel->create($data)) {
-                    $imported++;
+        // Si es preview, retornar resumen sin guardar
+        if ($accion === 'preview') {
+            responder(true, [
+                'total_filas' => count($filas),
+                'validas' => count($validas),
+                'con_errores' => count($errores),
+                'duplicados_internos' => count($duplicados),
+                'duplicados_bd' => count($duplicadosBD),
+                'anio' => (int) $anio,
+                'preview' => $validas,
+                'errores' => $errores,
+                'duplicados' => $duplicados,
+                'duplicados_bd' => $duplicadosBD
+            ]);
+        }
+
+        // Si es confirm, insertar solo filas válidas
+        if ($accion === 'confirm') {
+            $db->beginTransaction();
+            try {
+                $importadas = 0;
+                $omitidas = 0;
+                $omitirDuplicados = isset($_POST['omitir_duplicados']) && $_POST['omitir_duplicados'] === '1';
+
+                foreach ($validas as $fila) {
+                    // Verificar duplicado en BD si se solicita omitir
+                    if ($omitirDuplicados) {
+                        $sql = "SELECT COUNT(*) as total FROM observaciones 
+                                WHERE establecimiento_id = ? AND mes = ? AND anio = ? 
+                                AND COALESCE(codigo_serie, '') = ? AND COALESCE(codigo_hoja, '') = ? 
+                                AND tipo_error = ?";
+                        $resultado = $db->queryOne($sql, [
+                            $fila['establecimiento_id'],
+                            $fila['mes'],
+                            $fila['anio'],
+                            $fila['codigo_serie'],
+                            $fila['codigo_hoja'],
+                            $fila['tipo_error']
+                        ]);
+                        if ($resultado && (int) $resultado['total'] > 0) {
+                            $omitidas++;
+                            continue;
+                        }
+                    }
+
+                    $sql = "INSERT INTO observaciones 
+                            (usuario_registro_id, establecimiento_id, comuna_id, anio, mes, 
+                             codigo_serie, codigo_hoja, tipo_error, detalle_observacion, 
+                             plazo_entrega, anio_rem, mes_rem, estado_actual, clasificacion, 
+                             fecha_creacion, fecha_actualizacion)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())";
+
+                    // Obtener comuna del establecimiento
+                    $comuna = $db->queryOne("SELECT comuna_id FROM establecimientos WHERE id = ?", [$fila['establecimiento_id']]);
+                    $comunaId = $comuna ? (int) $comuna['comuna_id'] : null;
+
+                    $db->execute($sql, [
+                        $usuarioId,
+                        $fila['establecimiento_id'],
+                        $comunaId,
+                        $fila['anio'],
+                        $fila['mes'],
+                        $fila['codigo_serie'] ?: null,
+                        $fila['codigo_hoja'] ?: null,
+                        $fila['tipo_error'],
+                        $fila['detalle_observacion'],
+                        $fila['plazo_entrega'] ?: null,
+                        $fila['anio'],
+                        $fila['mes'],
+                        ESTADO_PENDIENTE,
+                        null
+                    ]);
+                    $importadas++;
                 }
+
+                $db->commit();
+                responder(true, [
+                    'importadas' => $importadas,
+                    'omitidas' => $omitidas,
+                    'mensaje' => "Se importaron {$importadas} observaciones" . ($omitidas > 0 ? ", se omitieron {$omitidas} duplicadas" : "")
+                ]);
+            } catch (Exception $e) {
+                $db->rollback();
+                responder(false, null, 'Error al importar: ' . $e->getMessage(), 500);
             }
-
-            echo json_encode([
-                'success' => true,
-                'imported' => $imported,
-                'message' => "Se importaron {$imported} observaciones correctamente"
-            ]);
-            exit;
         }
-
-    } else {
-        http_response_code(405);
-        echo json_encode(['success' => false, 'message' => 'Método no permitido']);
     }
+
+    responder(false, null, 'Método no permitido', 405);
 
 } catch (Exception $e) {
     error_log("Error en importación: " . $e->getMessage());
-    http_response_code(500);
-    echo json_encode([
-        'success' => false,
-        'message' => $e->getMessage()
-    ]);
+    responder(false, null, 'Error en el servidor: ' . $e->getMessage(), 500);
 }

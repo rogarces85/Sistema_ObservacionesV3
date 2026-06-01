@@ -25,6 +25,12 @@ $navGroups = [
                 'roles' => [ROL_REGISTRADOR, ROL_SUPERVISOR]
             ],
             [
+                'id' => 'importacion',
+                'title' => 'Importar desde Excel',
+                'icon' => 'upload',
+                'roles' => [ROL_REGISTRADOR]
+            ],
+            [
                 'id' => 'supervision',
                 'title' => 'Supervisión',
                 'icon' => 'eye',

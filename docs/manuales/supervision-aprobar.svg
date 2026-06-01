@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="520" viewBox="0 0 600 520">
+  <defs>
+    <style>
+      .overlay { fill: rgba(0,0,0,0.5); }
+      .modal { fill: #ffffff; stroke: #e2e8f0; stroke-width: 1; rx: 8; }
+      .modal-header { fill: #10b981; rx: 8 8 0 0; }
+      .input { fill: #ffffff; stroke: #cbd5e1; stroke-width: 1; rx: 4; }
+      .input-focus { fill: #ffffff; stroke: #3b82f6; stroke-width: 2; rx: 4; }
+      .btn-secondary { fill: #64748b; rx: 4; }
+      .btn-success { fill: #10b981; rx: 4; }
+      .radio { fill: #ffffff; stroke: #94a3b8; stroke-width: 1.5; }
+      .radio-checked { fill: #10b981; stroke: #10b981; stroke-width: 1.5; }
+    </style>
+  </defs>
+
+  <!-- Overlay -->
+  <rect width="600" height="520" class="overlay"/>
+
+  <!-- Modal -->
+  <rect x="50" y="40" width="500" height="440" class="modal"/>
+
+  <!-- Modal Header -->
+  <rect x="50" y="40" width="500" height="50" class="modal-header"/>
+  <text x="75" y="72" fill="white" font-family="system-ui" font-size="16" font-weight="bold">✓ Aprobar Observación(es)</text>
+  <text x="520" y="72" fill="white" font-family="system-ui" font-size="18">✕</text>
+
+  <!-- Message -->
+  <text x="75" y="120" font-family="system-ui" font-size="14" fill="#1e293b">¿Aprobar la(s) observación(es) seleccionada(s)?</text>
+
+  <!-- Required Field: Clasificación de Respuesta -->
+  <text x="75" y="160" font-family="system-ui" font-size="13" font-weight="bold" fill="#1e293b">Clasificación de Respuesta <tspan fill="#ef4444">*</tspan></text>
+
+  <!-- Radio Options -->
+  <circle cx="85" cy="185" r="8" class="radio-checked"/>
+  <circle cx="85" cy="185" r="3" fill="white"/>
+  <text x="105" y="190" font-family="system-ui" font-size="13" fill="#1e293b">Sin Observación</text>
+
+  <circle cx="250" cy="185" r="8" class="radio"/>
+  <text x="270" y="190" font-family="system-ui" font-size="13" fill="#1e293b">Error</text>
+
+  <!-- Clasificación Select -->
+  <text x="75" y="230" font-family="system-ui" font-size="13" fill="#1e293b">Clasificación</text>
+  <rect x="75" y="240" width="450" height="36" class="input"/>
+  <text x="85" y="263" font-family="system-ui" font-size="13" fill="#1e293b">Sin clasificar</text>
+  <text x="500" y="263" font-family="system-ui" font-size="13" fill="#64748b">▼</text>
+
+  <!-- Dropdown options shown -->
+  <rect x="75" y="276" width="450" height="120" fill="#ffffff" stroke="#e2e8f0" stroke-width="1" rx="4" opacity="0.95"/>
+  <rect x="75" y="276" width="450" height="28" fill="#f1f5f9"/>
+  <text x="85" y="295" font-family="system-ui" font-size="12" fill="#64748b">Sin clasificar</text>
+  <text x="85" y="323" font-family="system-ui" font-size="12" fill="#1e293b">Corregido</text>
+  <text x="85" y="351" font-family="system-ui" font-size="12" fill="#1e293b">Error</text>
+  <text x="85" y="379" font-family="system-ui" font-size="12" fill="#1e293b">Sin respuesta del Establecimiento</text>
+  <text x="85" y="407" font-family="system-ui" font-size="12" fill="#1e293b">Respuesta incorrecta de Establecimiento</text>
+
+  <!-- Detalle Error -->
+  <text x="75" y="420" font-family="system-ui" font-size="13" fill="#1e293b">Detalle Error</text>
+  <rect x="75" y="430" width="450" height="36" class="input"/>
+  <text x="85" y="453" font-family="system-ui" font-size="12" fill="#94a3b8">Descripción del error si aplica...</text>
+
+  <!-- Comentario -->
+  <text x="75" y="490" font-family="system-ui" font-size="13" fill="#1e293b">Comentario (opcional)</text>
+  <rect x="75" y="500" width="450" height="60" class="input"/>
+  <text x="85" y="520" font-family="system-ui" font-size="12" fill="#94a3b8">Comentario adicional...</text>
+
+  <!-- Footer Buttons -->
+  <rect x="300" y="580" width="100" height="36" class="btn-secondary"/>
+  <text x="330" y="603" fill="white" font-family="system-ui" font-size="13">Cancelar</text>
+  <rect x="410" y="580" width="115" height="36" class="btn-success"/>
+  <text x="435" y="603" fill="white" font-family="system-ui" font-size="13">Confirmar</text>
+
+  <!-- Watermark -->
+  <text x="300" y="510" font-family="system-ui" font-size="10" fill="#94a3b8" text-anchor="middle">Mockup: supervision-aprobar.png - Sistema de Observaciones REM</text>
+</svg>

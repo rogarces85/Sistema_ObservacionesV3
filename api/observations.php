@@ -8,6 +8,7 @@ header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../models/Observation.php';
 require_once __DIR__ . '/../models/EstablecimientoAsignacion.php';
+require_once __DIR__ . '/../models/Establecimiento.php';
 require_once __DIR__ . '/../includes/csrf.php';
 
 // Función para responder en JSON
@@ -131,6 +132,12 @@ try {
                 }
             }
 
+            // Validar que el establecimiento esté activo
+            $estModel = new Establecimiento();
+            if (!$estModel->estaActivo($data['establecimiento_id'])) {
+                jsonResponse(false, null, 'No se pueden registrar observaciones en un establecimiento inactivo', 400);
+            }
+
             $newId = $observationModel->create($data);
 
             if ($newId) {
@@ -181,6 +188,12 @@ try {
                 $asigModel = new EstablecimientoAsignacion();
                 if (!$asigModel->tieneAsignacionParaMes($userId, $estIdToCheck, $year, $mesToCheck)) {
                     jsonResponse(false, null, 'El establecimiento no está asignado a su usuario para el mes seleccionado', 403);
+                }
+
+                // Validar que el establecimiento esté activo
+                $estModel = new Establecimiento();
+                if (!$estModel->estaActivo($estIdToCheck)) {
+                    jsonResponse(false, null, 'No se pueden registrar observaciones en un establecimiento inactivo', 400);
                 }
             }
 

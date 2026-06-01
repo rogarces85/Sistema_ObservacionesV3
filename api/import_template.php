@@ -1,7 +1,7 @@
 <?php
 /**
- * Generador de Plantilla XLSX para Importación
- * Actualizado con nuevos campos: TIPO, SERIE, REM
+ * Generador de Plantilla XLSX para Importación de Observaciones
+ * Descarga un archivo Excel con encabezados y ejemplos
  */
 
 require_once __DIR__ . '/../config/config.php';
@@ -15,40 +15,43 @@ use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 
 // Verificar autenticación
-if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
+if (!isset($_SESSION['usuario_id']) || $_SESSION['autenticado'] !== true) {
     header('Location: ../index.php');
     exit;
 }
 
-// Crear spreadsheet
-$spreadsheet = new Spreadsheet();
-$sheet = $spreadsheet->getActiveSheet();
-$sheet->setTitle('Observaciones');
+// Solo registradores pueden descargar plantilla
+if (($_SESSION['rol'] ?? '') !== ROL_REGISTRADOR) {
+    header('Location: ../index.php');
+    exit;
+}
 
-// Encabezados - mismos campos que el formulario de nueva observación
-$headers = [
-    'A1' => 'codigo_establecimiento',   // PRIORITARIO - valida por código
-    'B1' => 'establecimiento',          // OPCIONAL - si no hay código, busca por nombre
+$spreadsheet = new Spreadsheet();
+$hoja = $spreadsheet->getActiveSheet();
+$hoja->setTitle('Observaciones');
+
+// Encabezados de la plantilla
+$encabezados = [
+    'A1' => 'codigo_establecimiento',
+    'B1' => 'establecimiento',
     'C1' => 'mes',
-    'D1' => 'tipo',
-    'E1' => 'serie',
-    'F1' => 'rem',
+    'D1' => 'codigo_serie',
+    'E1' => 'codigo_hoja',
+    'F1' => 'tipo_error',
     'G1' => 'detalle_observacion',
-    'H1' => 'plazo_entrega',
-    'I1' => 'usa_validador',
-    'J1' => 'respuesta_establecimiento'
+    'H1' => 'plazo_entrega'
 ];
 
-foreach ($headers as $cell => $value) {
-    $sheet->setCellValue($cell, $value);
+foreach ($encabezados as $celda => $valor) {
+    $hoja->setCellValue($celda, $valor);
 }
 
 // Estilo de encabezados
-$headerStyle = [
+$estiloEncabezado = [
     'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
     'fill' => [
         'fillType' => Fill::FILL_SOLID,
-        'startColor' => ['rgb' => '17a2b8']
+        'startColor' => ['rgb' => '0d6efd']
     ],
     'borders' => [
         'allBorders' => ['borderStyle' => Border::BORDER_THIN]
@@ -58,37 +61,37 @@ $headerStyle = [
         'vertical' => Alignment::VERTICAL_CENTER
     ]
 ];
-$sheet->getStyle('A1:J1')->applyFromArray($headerStyle);
+$hoja->getStyle('A1:H1')->applyFromArray($estiloEncabezado);
 
-// Resaltar columna de código en verde (prioritaria)
-$codeStyle = [
+// Resaltar columna de código DEIS en verde (prioritaria)
+$estiloCodigo = [
     'fill' => [
         'fillType' => Fill::FILL_SOLID,
-        'startColor' => ['rgb' => '28a745']
+        'startColor' => ['rgb' => 'd1e7dd']
     ]
 ];
-$sheet->getStyle('A1')->applyFromArray($codeStyle);
+$hoja->getStyle('A1')->applyFromArray($estiloCodigo);
 
-// Datos de ejemplo con mismos campos que el formulario
+// Datos de ejemplo
 $ejemplos = [
-    [125301, 'CESFAM Dr. Marcelo Lopetegui Adams', 'Enero', 'S/OBSERVACION', 'SERIE A', 'A01', 'Sin observaciones', 'dentro_plazo', 'si', ''],
-    [123130, 'Hospital Base San José de Osorno', 'Febrero', 'ERROR', 'SERIE BM', 'BM18', 'Discrepancia en total', 'dentro_plazo', 'no', 'Se corrigió'],
-    [125310, 'CESFAM Quinta Centenario', 'Marzo', 'REVISAR', 'SERIE D', 'D05', 'Valores a verificar', 'fuera_plazo', 'si', ''],
-    [123131, 'Hospital de Purranque Dr. Juan Hepp Dubiau', 'Abril', 'F/PLAZO', 'SERIE ANEXO', 'Hoja Control', 'Entrega fuera de plazo', 'fuera_plazo', 'no', 'Sin respuesta'],
+    [125301, 'CESFAM Dr. Marcelo Lopetegui Adams', 'Enero', 'SERIE A', 'A01', 'S/OBSERVACION', 'Sin observaciones', 'dentro_plazo'],
+    [123130, 'Hospital Base San José de Osorno', '2', 'SERIE BM', 'BM18', 'ERROR', 'Discrepancia en total de egresos', 'dentro_plazo'],
+    [125310, 'CESFAM Quinta Centenario', 'Marzo', 'SERIE D', 'D15', 'REVISAR', 'Valores de consultas a verificar', 'fuera_plazo'],
+    [123131, 'Hospital de Purranque Dr. Juan Hepp Dubiau', '4', 'SERIE ANEXO', 'Hoja Control', 'F/PLAZO', 'Entrega fuera de plazo regulamentario', 'fuera_plazo'],
 ];
 
-$row = 2;
+$fila = 2;
 foreach ($ejemplos as $ejemplo) {
     $col = 'A';
-    foreach ($ejemplo as $value) {
-        $sheet->setCellValue($col . $row, $value);
+    foreach ($ejemplo as $valor) {
+        $hoja->setCellValue($col . $fila, $valor);
         $col++;
     }
-    $row++;
+    $fila++;
 }
 
 // Estilo de datos
-$dataStyle = [
+$estiloDatos = [
     'borders' => [
         'allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => 'DDDDDD']]
     ],
@@ -97,63 +100,53 @@ $dataStyle = [
         'wrapText' => true
     ]
 ];
-$sheet->getStyle('A2:J5')->applyFromArray($dataStyle);
+$hoja->getStyle('A2:H5')->applyFromArray($estiloDatos);
 
-// Ajustar anchos de columna
-$sheet->getColumnDimension('A')->setWidth(20);  // codigo_establecimiento
-$sheet->getColumnDimension('B')->setWidth(40);  // establecimiento (nombre)
-$sheet->getColumnDimension('C')->setWidth(12);  // mes
-$sheet->getColumnDimension('D')->setWidth(16);  // tipo
-$sheet->getColumnDimension('E')->setWidth(14);  // serie
-$sheet->getColumnDimension('F')->setWidth(14);  // rem (hoja)
-$sheet->getColumnDimension('G')->setWidth(45);  // detalle_observacion
-$sheet->getColumnDimension('H')->setWidth(15);  // plazo_entrega
-$sheet->getColumnDimension('I')->setWidth(14);  // usa_validador
-$sheet->getColumnDimension('J')->setWidth(40);  // respuesta_establecimiento
+// Anchuras de columna
+$hoja->getColumnDimension('A')->setWidth(22);
+$hoja->getColumnDimension('B')->setWidth(42);
+$hoja->getColumnDimension('C')->setWidth(14);
+$hoja->getColumnDimension('D')->setWidth(16);
+$hoja->getColumnDimension('E')->setWidth(16);
+$hoja->getColumnDimension('F')->setWidth(18);
+$hoja->getColumnDimension('G')->setWidth(50);
+$hoja->getColumnDimension('H')->setWidth(16);
 
-// Añadir hoja de instrucciones
+// Hoja de instrucciones
 $instrucciones = $spreadsheet->createSheet();
 $instrucciones->setTitle('Instrucciones');
 
-$instrucciones->setCellValue('A1', 'INSTRUCCIONES DE USO - PLANTILLA OBSERVACIONES REM');
+$instrucciones->setCellValue('A1', 'INSTRUCCIONES - PLANTILLA DE IMPORTACIÓN OBSERVACIONES REM');
 $instrucciones->getStyle('A1')->getFont()->setBold(true)->setSize(14);
 
-$instrucciones->setCellValue('A3', 'IDENTIFICACIÓN DEL ESTABLECIMIENTO (usar una de estas opciones):');
-$instrucciones->getStyle('A3')->getFont()->setBold(true)->setColor(new \PhpOffice\PhpSpreadsheet\Style\Color(\PhpOffice\PhpSpreadsheet\Style\Color::COLOR_RED));
+$instrucciones->setCellValue('A3', 'IDENTIFICACIÓN DEL ESTABLECIMIENTO:');
+$instrucciones->getStyle('A3')->getFont()->setBold(true)->setSize(12);
 
-$instrucciones->setCellValue('A4', '• codigo_establecimiento (RECOMENDADO): Código numérico del establecimiento. Ejemplo: 125301, 123130, etc.');
-$instrucciones->setCellValue('A5', '• establecimiento: Nombre del establecimiento (solo si no conoces el código). DEBE coincidir exactamente con el nombre en el sistema.');
+$instrucciones->setCellValue('A4', '• codigo_establecimiento (RECOMENDADO): Código numérico DEIS. Ej: 125301, 123130');
+$instrucciones->setCellValue('A5', '• establecimiento (OPCIONAL): Nombre del establecimiento. Se usa solo si no hay código.');
+$instrucciones->setCellValue('A6', '  El sistema busca primero por código, luego por nombre como respaldo.');
 
-$instrucciones->setCellValue('A7', 'COLUMNAS OBLIGATORIAS:');
-$instrucciones->getStyle('A7')->getFont()->setBold(true);
+$instrucciones->setCellValue('A8', 'COLUMNAS OBLIGATORIAS:');
+$instrucciones->getStyle('A8')->getFont()->setBold(true)->setSize(12);
 
-$instrucciones->setCellValue('A8', '• mes: Nombre del mes (Enero, Febrero, Marzo, etc.)');
-$instrucciones->setCellValue('A9', '• tipo: Tipo de registro. Valores válidos: S/OBSERVACION, ERROR, REVISAR, F/PLAZO');
+$instrucciones->setCellValue('A9', '• mes: Número (1-12) o nombre en español (Enero, Febrero, etc.)');
+$instrucciones->setCellValue('A10', '• tipo_error: S/OBSERVACION, ERROR, REVISAR, F/PLAZO');
 
-$instrucciones->setCellValue('A11', 'COLUMNAS OPCIONALES (pueden dejarse vacías):');
-$instrucciones->getStyle('A11')->getFont()->setBold(true);
+$instrucciones->setCellValue('A12', 'COLUMNAS OPCIONALES:');
+$instrucciones->getStyle('A12')->getFont()->setBold(true)->setSize(12);
 
-$instrucciones->setCellValue('A12', '• serie: Serie REM. Valores válidos: SERIE A, SERIE BM, SERIE BS, SERIE D, SERIE ANEXO, SERIE P');
-$instrucciones->setCellValue('A13', '• rem: Nombre/código de la hoja REM (ejemplo: A01, BM18, D05, Hoja Control, etc.)');
-$instrucciones->setCellValue('A14', '• detalle_observacion: Descripción detallada de la observación');
-$instrucciones->setCellValue('A15', '• plazo_entrega: Valores válidos: dentro_plazo, fuera_plazo');
-$instrucciones->setCellValue('A16', '• usa_validador: Valores válidos: si, no');
-$instrucciones->setCellValue('A17', '• respuesta_establecimiento: Respuesta recibida del establecimiento');
+$instrucciones->setCellValue('A13', '• codigo_serie: SERIE A, SERIE BM, SERIE BS, SERIE D, SERIE ANEXO, SERIE P');
+$instrucciones->setCellValue('A14', '• codigo_hoja: Código de hoja (ej: A01, BM18, D15, Hoja Control, etc.)');
+$instrucciones->setCellValue('A15', '• detalle_observacion: Descripción de la observación');
+$instrucciones->setCellValue('A16', '• plazo_entrega: dentro_plazo, fuera_plazo');
 
-$instrucciones->setCellValue('A18', 'VALORES VÁLIDOS PARA TIPO:');
-$instrucciones->getStyle('A18')->getFont()->setBold(true);
-$instrucciones->setCellValue('A19', '• S/OBSERVACION - Sin observaciones');
-$instrucciones->setCellValue('A20', '• ERROR - Error detectado');
-$instrucciones->setCellValue('A21', '• REVISAR - Requiere revisión');
-$instrucciones->setCellValue('A22', '• F/PLAZO - Fuera de plazo');
+$instrucciones->setCellValue('A18', 'NOTAS IMPORTANTES:');
+$instrucciones->getStyle('A18')->getFont()->setBold(true)->setSize(12);
 
-$instrucciones->setCellValue('A24', 'VALORES VÁLIDOS PARA SERIE:');
-$instrucciones->getStyle('A24')->getFont()->setBold(true);
-$instrucciones->setCellValue('A25', '• SERIE A');
-$instrucciones->setCellValue('A26', '• SERIE BM');
-$instrucciones->setCellValue('A27', '• SERIE D');
-$instrucciones->setCellValue('A28', '• SERIE ANEXO');
-$instrucciones->setCellValue('A29', '• SERIE P');
+$instrucciones->setCellValue('A19', '• El año se toma del selector del formulario, NO del archivo Excel');
+$instrucciones->setCellValue('A20', '• Las filas con errores se muestran en la vista previa pero NO se importan');
+$instrucciones->setCellValue('A21', '• Los duplicados se detectan y se muestran; usted decide si importarlos');
+$instrucciones->setCellValue('A22', '• Si un establecimiento no se encuentra, la fila se marca como error');
 
 $instrucciones->getColumnDimension('A')->setWidth(90);
 
@@ -161,11 +154,11 @@ $instrucciones->getColumnDimension('A')->setWidth(90);
 $spreadsheet->setActiveSheetIndex(0);
 
 // Nombre del archivo
-$filename = 'plantilla_observaciones_' . date('Y-m-d') . '.xlsx';
+$nombreArchivo = 'plantilla_observaciones_' . date('Y-m-d') . '.xlsx';
 
 // Headers para descarga
 header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-header('Content-Disposition: attachment; filename="' . $filename . '"');
+header('Content-Disposition: attachment; filename="' . $nombreArchivo . '"');
 header('Cache-Control: max-age=0');
 
 // Generar y descargar

@@ -25,7 +25,6 @@
     <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.45.2"></script>
     <script src="assets/js/toasts.js"></script>
     <script src="assets/js/charts-apex.js"></script>
-    <script src="assets/js/dashboard-features.js"></script>
     <script src="assets/js/app.js"></script>
 </body>
 </html>

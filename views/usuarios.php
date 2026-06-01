@@ -1,103 +1,89 @@
 <?php
 /**
- * Vista de Administración de Usuarios
+ * Vista de Gestión de Usuarios
  * Solo accesible para supervisores
+ * Sistema de Observaciones REM - Servicio de Salud Osorno
  */
 
 if ($_SESSION['rol'] !== ROL_SUPERVISOR) {
     echo '<div class="empty"><div class="empty-header text-danger">403</div><p class="empty-title">Acceso Denegado</p><p class="empty-subtitle text-secondary">Solo los supervisores pueden acceder a esta sección.</p></div>';
     return;
 }
-
-require_once 'models/User.php';
-
-$userModel = new User();
-$usuarios = $userModel->getAll();
 ?>
 
-<div class="row row-cards">
+<div class="page-header d-print-none">
+    <div class="container-xl">
+        <div class="row g-2 align-items-center">
+            <div class="col">
+                <div class="page-pretitle">Administración del sistema</div>
+                <h2 class="page-title">Gestión de Usuarios</h2>
+            </div>
+            <div class="col-auto ms-auto">
+                <button type="button" class="btn btn-primary" id="btnNuevoUsuario">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 5l0 14" /><path d="M5 12l14 0" /></svg>
+                    Nuevo Usuario
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
-                <div class="col-12">
-                    <div class="page-header d-flex justify-content-between align-items-center">
-                        <div>
-                            <div class="page-pretitle">Administración completa del sistema</div>
-                            <h2 class="page-title">Gestión de Usuarios</h2>
-                        </div>
-                        <button onclick="openCreateUserModal()" class="btn btn-primary">
-                            Nuevo Usuario
-                        </button>
+<div class="page-body">
+    <div class="container-xl">
+        <div class="row row-cards">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Lista de Usuarios</h3>
                     </div>
-                </div>
-
-                <div class="col-12">
-                    <div class="card">
-                        <div class="table-responsive">
-                            <table class="table table-vcenter card-table">
-                                <thead>
-                                    <tr>
-                                        <th>Usuario</th>
-                                        <th>Nombre Completo</th>
-                                        <th>Rol</th>
-                                        <th>Estado</th>
-                                        <th>Fecha Creación</th>
-                                        <th class="text-end">Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php foreach ($usuarios as $usuario): ?>
-                                        <tr>
-                                            <td>
-                                                <span class="text-muted font-mono"><?php echo htmlspecialchars($usuario['username']); ?></span>
-                                            </td>
-                                            <td class="fw-semibold"><?php echo htmlspecialchars($usuario['nombre_completo']); ?></td>
-                                            <td>
-                                                <span class="badge <?php echo $usuario['rol'] === ROL_SUPERVISOR ? 'bg-blue text-blue-fg' : 'bg-azure text-azure-fg'; ?>">
-                                                    <?php echo ucfirst($usuario['rol']); ?>
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <span class="badge <?php echo $usuario['activo'] ? 'bg-green text-green-fg' : 'bg-secondary text-secondary-fg'; ?>">
-                                                    <?php echo $usuario['activo'] ? 'Activo' : 'Inactivo'; ?>
-                                                </span>
-                                            </td>
-                                            <td class="text-secondary"><?php echo date('d/m/Y', strtotime($usuario['fecha_creacion'])); ?></td>
-                                            <td>
-                                                <div class="btn-list justify-content-end">
-                                                    <button onclick="editUser(<?php echo htmlspecialchars(json_encode($usuario)); ?>)"
-                                                        class="btn btn-ghost-secondary btn-icon" title="Editar" data-bs-toggle="tooltip">
-                                                        <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-edit"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M7 7h-1a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-1" /><path d="M20.385 6.585a2.1 2.1 0 0 0 -2.97 -2.97l-8.415 8.385v3h3l8.385 -8.415z" /><path d="M16 5l3 3" /></svg>
-                                                    </button>
-                                                    <button
-                                                        onclick="toggleUserStatus(<?php echo $usuario['id']; ?>, <?php echo $usuario['activo'] ? 'false' : 'true'; ?>)"
-                                                        class="btn btn-ghost-secondary btn-icon"
-                                                        title="<?php echo $usuario['activo'] ? 'Desactivar' : 'Activar'; ?>" data-bs-toggle="tooltip">
-                                                        <?php if ($usuario['activo']): ?>
-                                                            <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-lock"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 13a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v6a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2v-6z" /><path d="M11 16a1 1 0 1 0 2 0a1 1 0 0 0 -2 0" /><path d="M8 11v-4a4 4 0 1 1 8 0v4" /></svg>
-                                                        <?php else: ?>
-                                                            <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-lock-open"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 13a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v6a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2v-6z" /><path d="M11 16a1 1 0 1 0 2 0a1 1 0 0 0 -2 0" /><path d="M8 11v-4a4 4 0 0 1 6.832 -2.615" /></svg>
-                                                        <?php endif; ?>
-                                                    </button>
-                                                    <?php if ($usuario['id'] != $_SESSION['user_id']): ?>
-                                                        <button
-                                                            onclick="resetPassword(<?php echo $usuario['id']; ?>, '<?php echo htmlspecialchars($usuario['username']); ?>')"
-                                                            class="btn btn-ghost-warning btn-icon"
-                                                            title="Restablecer contraseña" data-bs-toggle="tooltip">
-                                                            <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-key"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M16.555 3.843l3.602 3.602a2.877 2.877 0 0 1 0 4.069l-2.643 2.643a2.877 2.877 0 0 1 -4.069 0l-.301 -.301l-6.895 6.895a2 2 0 0 1 -1.414 .586h-2.17a1 1 0 0 1 -1 -1v-2.172a2 2 0 0 1 .586 -1.414l6.895 -6.895l-.301 -.301a2.877 2.877 0 0 1 0 -4.069l2.643 -2.643a2.877 2.877 0 0 1 4.069 0z" /><path d="M15 9h.01" /></svg>
-                                                        </button>
-                                                        <button
-                                                            onclick="deleteUser(<?php echo $usuario['id']; ?>, '<?php echo htmlspecialchars($usuario['username']); ?>')"
-                                                            class="btn btn-ghost-danger btn-icon"
-                                                            title="Eliminar" data-bs-toggle="tooltip">
-                                                            <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-trash"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 7l16 0" /><path d="M10 11l0 6" /><path d="M14 11l0 6" /><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12" /><path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3" /></svg>
-                                                        </button>
-                                                    <?php endif; ?>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    <?php endforeach; ?>
-                                </tbody>
-                            </table>
+                    <div class="card-body border-bottom py-3">
+                        <div class="d-flex">
+                            <div class="text-secondary">
+                                Mostrar
+                                <div class="mx-2 d-inline-block">
+                                    <select id="porPagina" class="form-select form-select-sm">
+                                        <option value="10" selected>10</option>
+                                        <option value="25">25</option>
+                                        <option value="50">50</option>
+                                    </select>
+                                </div>
+                                usuarios
+                            </div>
+                            <div class="ms-auto text-secondary">
+                                Buscar:
+                                <div class="ms-2 d-inline-block">
+                                    <input type="text" id="buscarUsuario" class="form-control form-control-sm" placeholder="Buscar por nombre o username..." autocomplete="off">
+                                </div>
+                            </div>
                         </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-vcenter card-table" id="tablaUsuarios">
+                            <thead>
+                                <tr>
+                                    <th>Usuario</th>
+                                    <th>Nombre Completo</th>
+                                    <th>Rol</th>
+                                    <th>Estado</th>
+                                    <th>Reset Requerido</th>
+                                    <th>Fecha Creación</th>
+                                    <th class="w-1 text-end">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="cuerpoTablaUsuarios">
+                                <tr>
+                                    <td colspan="7" class="text-center py-5">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">Cargando...</span>
+                                        </div>
+                                        <p class="mt-2 text-secondary">Cargando usuarios...</p>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="card-footer d-flex align-items-center">
+                        <p class="m-0 text-secondary">Total: <span id="totalUsuarios">0</span> usuarios</p>
                     </div>
                 </div>
             </div>
@@ -105,198 +91,196 @@ $usuarios = $userModel->getAll();
     </div>
 </div>
 
-<!-- Modal Crear/Editar Usuario (Bootstrap) -->
-<div id="modalUser" class="modal fade" tabindex="-1">
+<!-- ID de usuario de sesión para JavaScript -->
+<input type="hidden" id="usuarioIdSesion" value="<?php echo (int)$_SESSION['usuario_id']; ?>">
+
+<!-- Modal Crear Usuario -->
+<div class="modal fade" id="modalCrearUsuario" tabindex="-1" aria-labelledby="modalCrearTitulo" aria-hidden="true" data-bs-backdrop="static">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
-            <div class="modal-header">
-                <div>
-                    <h5 class="modal-title" id="modalUserTitle">Nuevo Usuario</h5>
-                    <div class="text-secondary">Complete los datos del usuario</div>
+            <form id="formCrearUsuario" novalidate>
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalCrearTitulo">Crear Nuevo Usuario</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                 </div>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form id="formUser" onsubmit="saveUser(event)">
-                    <input type="hidden" id="userId" value="">
+                <div class="modal-body">
                     <div class="mb-3">
-                        <label class="form-label required">Usuario (username)</label>
-                        <input type="text" id="username" name="username" class="form-control" required pattern="[a-zA-Z0-9_]{3,20}"
-                            title="3-20 caracteres, solo letras, números y guión bajo">
-                    </div>
-                    <div class="mb-3" id="passwordField">
-                        <label class="form-label required">Contraseña</label>
-                        <input type="password" id="password" name="password" class="form-control" minlength="6"
-                            placeholder="Mínimo 6 caracteres">
-                        <div class="form-hint">Deje en blanco para mantener la contraseña actual (solo al editar)</div>
+                        <label class="form-label required">Nombre de Usuario</label>
+                        <input type="text" class="form-control" id="crearUsername" name="username" required
+                               pattern="[a-z0-9_]{4,50}" minlength="4" maxlength="50"
+                               placeholder="ej: juan_perez" autocomplete="off">
+                        <div class="form-text">Solo letras minúsculas, números y guión bajo. Entre 4 y 50 caracteres.</div>
+                        <div class="invalid-feedback">Ingrese un nombre de usuario válido.</div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label required">Nombre Completo</label>
-                        <input type="text" id="nombreCompleto" name="nombre_completo" class="form-control" required>
+                        <input type="text" class="form-control" id="crearNombreCompleto" name="nombre_completo" required
+                               placeholder="ej: Juan Pérez González">
+                        <div class="invalid-feedback">Ingrese el nombre completo.</div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label required">Rol</label>
-                        <select id="rol" name="rol" class="form-select" required>
+                        <select class="form-select" id="crearRol" name="rol" required>
                             <option value="registrador">Registrador</option>
                             <option value="supervisor">Supervisor</option>
                         </select>
                     </div>
-                </form>
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="crearGenerarPassword" name="generar_password" checked>
+                            <label class="form-check-label" for="crearGenerarPassword">
+                                Generar contraseña aleatoria (12 caracteres)
+                            </label>
+                        </div>
+                    </div>
+                    <div id="crearPasswordManual" class="mb-3" style="display:none;">
+                        <label class="form-label required">Contraseña</label>
+                        <input type="password" class="form-control" id="crearPassword" name="password"
+                               minlength="8" placeholder="Mínimo 8 caracteres, 1 mayúscula, 1 número">
+                        <div class="form-text">Mínimo 8 caracteres, al menos una mayúscula y un número.</div>
+                        <div class="invalid-feedback">La contraseña no cumple con la política requerida.</div>
+                    </div>
+                    <div id="crearPasswordGenerada" class="mb-3" style="display:none;">
+                        <div class="alert alert-info">
+                            <h4 class="alert-title">Contraseña generada</h4>
+                            <div class="d-flex align-items-center">
+                                <code id="passwordGeneradaTexto" class="fs-3 fw-bold me-2"></code>
+                                <button type="button" class="btn btn-sm btn-ghost-primary" id="btnCopiarPassword" title="Copiar al portapapeles">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 5h-2a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-12a2 2 0 0 0 -2 -2h-2" /><path d="M9 3m0 2a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v0a2 2 0 0 1 -2 2h-2a2 2 0 0 1 -2 -2z" /></svg>
+                                    Copiar
+                                </button>
+                            </div>
+                            <p class="mb-0 mt-2 text-muted">El usuario deberá cambiar esta contraseña en su próximo inicio de sesión.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" id="btnGuardarUsuario">Crear Usuario</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Editar Usuario -->
+<div class="modal fade" id="modalEditarUsuario" tabindex="-1" aria-labelledby="modalEditarTitulo" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <form id="formEditarUsuario" novalidate>
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalEditarTitulo">Editar Usuario</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="editarId">
+                    <div class="mb-3">
+                        <label class="form-label">Nombre de Usuario</label>
+                        <input type="text" class="form-control" id="editarUsername" readonly>
+                        <div class="form-text">El nombre de usuario no se puede modificar.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label required">Nombre Completo</label>
+                        <input type="text" class="form-control" id="editarNombreCompleto" required>
+                        <div class="invalid-feedback">Ingrese el nombre completo.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label required">Rol</label>
+                        <select class="form-select" id="editarRol" required>
+                            <option value="registrador">Registrador</option>
+                            <option value="supervisor">Supervisor</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" id="btnActualizarUsuario">Guardar Cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Cambiar Contraseña (propia) -->
+<div class="modal fade" id="modalCambiarPassword" tabindex="-1" aria-labelledby="modalCambiarTitulo" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form id="formCambiarPassword" novalidate>
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalCambiarTitulo">Cambiar Mi Contraseña</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label required">Contraseña Actual</label>
+                        <input type="password" class="form-control" id="cambiarPasswordActual" required>
+                        <div class="invalid-feedback">Ingrese su contraseña actual.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label required">Nueva Contraseña</label>
+                        <input type="password" class="form-control" id="cambiarPasswordNuevo" required minlength="8">
+                        <div class="form-text">Mínimo 8 caracteres, al menos una mayúscula y un número.</div>
+                        <div class="invalid-feedback">La contraseña no cumple con la política requerida.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label required">Confirmar Nueva Contraseña</label>
+                        <input type="password" class="form-control" id="cambiarPasswordConfirmacion" required>
+                        <div class="invalid-feedback">Las contraseñas no coinciden.</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Cambiar Contraseña</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Reset Contraseña (supervisor) -->
+<div class="modal fade" id="modalResetPassword" tabindex="-1" aria-labelledby="modalResetTitulo" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalResetTitulo">Restablecer Contraseña</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <h4 class="alert-title">¿Está seguro?</h4>
+                    <p class="mb-0">La contraseña del usuario <strong id="resetUsername"></strong> será restablecida a <code>admin123</code>. El usuario deberá cambiarla en su próximo inicio de sesión.</p>
+                </div>
+                <input type="hidden" id="resetUserId">
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-primary ms-auto" onclick="saveUser(event)">Guardar</button>
+                <button type="button" class="btn btn-warning" id="btnConfirmarReset">Restablecer Contraseña</button>
             </div>
+        </div>
+    </div>
+</div>
 
-<script>
-    const modalUser = new bootstrap.Modal(document.getElementById('modalUser'));
+<!-- Modal Confirmar Eliminación -->
+<div class="modal fade" id="modalEliminar" tabindex="-1" aria-labelledby="modalEliminarTitulo" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalEliminarTitulo">Eliminar Usuario</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-danger">
+                    <h4 class="alert-title">¿Está seguro de eliminar este usuario?</h4>
+                    <p class="mb-0">Se eliminará al usuario <strong id="eliminarUsername"></strong>. Esta acción no se puede deshacer.</p>
+                </div>
+                <input type="hidden" id="eliminarUserId">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger" id="btnConfirmarEliminar">Eliminar Usuario</button>
+            </div>
+        </div>
+    </div>
+</div>
 
-    function openCreateUserModal() {
-        document.getElementById('userId').value = '';
-        document.getElementById('formUser').reset();
-        document.getElementById('modalUserTitle').textContent = 'Nuevo Usuario';
-        document.getElementById('username').readOnly = false;
-        document.getElementById('password').required = true;
-        modalUser.show();
-    }
-
-    function editUser(user) {
-        document.getElementById('userId').value = user.id;
-        document.getElementById('username').value = user.username;
-        document.getElementById('username').readOnly = true;
-        document.getElementById('password').value = '';
-        document.getElementById('password').required = false;
-        document.getElementById('nombreCompleto').value = user.nombre_completo;
-        document.getElementById('rol').value = user.rol;
-        document.getElementById('modalUserTitle').textContent = 'Editar Usuario';
-        modalUser.show();
-    }
-
-    async function saveUser(event) {
-        event.preventDefault();
-        const form = document.getElementById('formUser');
-        if (!form.checkValidity()) { form.classList.add('was-validated'); return; }
-
-        const userId = document.getElementById('userId').value;
-        const isEdit = userId !== '';
-
-        const userData = {
-            username: document.getElementById('username').value,
-            nombre_completo: document.getElementById('nombreCompleto').value,
-            rol: document.getElementById('rol').value
-        };
-
-        const password = document.getElementById('password').value;
-        if (!isEdit || password) {
-            userData.password = password;
-        }
-
-        try {
-            showLoading();
-            let response;
-            if (isEdit) {
-                response = await fetchAPI(`users.php?id=${userId}`, {
-                    method: 'PUT',
-                    body: JSON.stringify(userData)
-                });
-            } else {
-                response = await fetchAPI('users.php', {
-                    method: 'POST',
-                    body: JSON.stringify(userData)
-                });
-            }
-            hideLoading();
-            if (response.success) {
-                showMessage(isEdit ? 'Usuario actualizado' : 'Usuario creado', 'success');
-                modalUser.hide();
-                setTimeout(() => location.reload(), 1000);
-            }
-        } catch (error) {
-            hideLoading();
-            showMessage(error.message, 'error');
-        }
-    }
-
-    // Activar/Desactivar usuario
-    async function toggleUserStatus(userId, activate) {
-        const action = activate ? 'activar' : 'desactivar';
-
-        if (!confirm(`¿Está seguro de ${action} este usuario?`)) {
-            return;
-        }
-
-        try {
-            showLoading();
-
-            const response = await fetchAPI(`users.php?id=${userId}`, {
-                method: 'PUT',
-                body: JSON.stringify({
-                    action: 'toggle',
-                    activo: activate
-                })
-            });
-
-            hideLoading();
-
-            if (response.success) {
-                showMessage(`Usuario ${action}do exitosamente`, 'success');
-                setTimeout(() => location.reload(), 1000);
-            }
-        } catch (error) {
-            hideLoading();
-            showMessage(error.message, 'error');
-        }
-    }
-
-    // Eliminar usuario
-    async function deleteUser(userId, username) {
-        if (!confirm(`¿Está seguro de eliminar al usuario "${username}"?\n\nEsta acción no se puede deshacer.`)) {
-            return;
-        }
-
-        try {
-            showLoading();
-
-            const response = await fetchAPI(`users.php?id=${userId}`, {
-                method: 'DELETE'
-            });
-
-            hideLoading();
-
-            if (response.success) {
-                showMessage('Usuario eliminado exitosamente', 'success');
-                setTimeout(() => location.reload(), 1000);
-            }
-        } catch (error) {
-            hideLoading();
-            showMessage(error.message, 'error');
-        }
-    }
-
-    // Restablecer contraseña
-    async function resetPassword(userId, username) {
-        if (!confirm(`¿Restablecer la contraseña del usuario "${username}"?\n\nLa contraseña volverá a: admin123`)) {
-            return;
-        }
-
-        try {
-            showLoading();
-
-            const response = await fetchAPI(`users.php?id=${userId}`, {
-                method: 'PUT',
-                body: JSON.stringify({
-                    action: 'reset_password'
-                })
-            });
-
-            hideLoading();
-
-            if (response.success) {
-                showMessage(`Contraseña de "${username}" restablecida a: admin123`, 'success');
-            }
-        } catch (error) {
-            hideLoading();
-            showMessage(error.message, 'error');
-        }
-    }
-</script>
+<script src="assets/js/usuarios.js"></script>

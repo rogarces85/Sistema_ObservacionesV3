@@ -1,55 +1,73 @@
 <?php
 /**
- * Punto de entrada del sistema
- * Determina si mostrar login o la aplicación principal
+ * Router principal - Sistema de Observaciones REM
+ * Verifica autenticación, enruta páginas y valida permisos
  */
 
-require_once 'config/config.php';
-require_once 'config/constants.php';
+require_once __DIR__ . '/config/config.php';
+require_once __DIR__ . '/config/constants.php';
 
 // Si no hay sesión activa, mostrar login
-if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
-    include 'views/login.php';
+if (!isset($_SESSION['usuario_id']) || $_SESSION['autenticado'] !== true) {
+    require_once __DIR__ . '/views/auth/login.php';
     exit;
 }
 
-// Usuario autenticado - mostrar la aplicación
-$page = $_GET['page'] ?? 'dashboard';
-$allowedPages = ['dashboard', 'observaciones', 'supervision', 'reportes', 'usuarios', 'perfil', 'asignaciones', 'eliminadas', 'establecimientos'];
+// Usuario autenticado - determinar página
+$pagina = $_GET['pagina'] ?? 'dashboard';
+$paginasPermitidas = [
+    'dashboard',
+    'observaciones',
+    'supervision',
+    'reportes',
+    'usuarios',
+    'perfil',
+    'asignaciones',
+    'eliminadas',
+    'establecimientos',
+    'importacion'
+];
 
-// Validar que la página existe
-if (!in_array($page, $allowedPages)) {
-    $page = 'dashboard';
+// Validar que la página existe en la lista permitida
+if (!in_array($pagina, $paginasPermitidas)) {
+    $pagina = 'dashboard';
 }
 
 // Verificar permisos por rol
-$userRole = $_SESSION['rol'] ?? '';
-if ($page === 'supervision' && $userRole !== ROL_SUPERVISOR) {
-    $page = 'dashboard'; // Redirigir si no tiene permisos
+$rolUsuario = $_SESSION['rol'] ?? '';
+
+if ($pagina === 'supervision' && $rolUsuario !== ROL_SUPERVISOR) {
+    $pagina = 'dashboard';
 }
-if ($page === 'usuarios' && $userRole !== ROL_SUPERVISOR) {
-    $page = 'dashboard'; // Solo supervisores pueden gestionar usuarios
+if ($pagina === 'usuarios' && $rolUsuario !== ROL_SUPERVISOR) {
+    $pagina = 'dashboard';
 }
-if ($page === 'asignaciones' && $userRole !== ROL_SUPERVISOR) {
-    $page = 'dashboard'; // Solo supervisores pueden gestionar asignaciones
+if ($pagina === 'asignaciones' && $rolUsuario !== ROL_SUPERVISOR) {
+    $pagina = 'dashboard';
 }
-if ($page === 'eliminadas' && $userRole !== ROL_SUPERVISOR) {
-    $page = 'dashboard'; // Solo supervisores pueden ver eliminadas
+if ($pagina === 'eliminadas' && $rolUsuario !== ROL_SUPERVISOR) {
+    $pagina = 'dashboard';
 }
-if ($page === 'establecimientos' && $userRole !== ROL_SUPERVISOR) {
-    $page = 'dashboard'; // Solo supervisores pueden gestionar establecimientos
+if ($pagina === 'establecimientos' && $rolUsuario !== ROL_SUPERVISOR) {
+    $pagina = 'dashboard';
+}
+if ($pagina === 'importacion' && $rolUsuario !== ROL_REGISTRADOR) {
+    $pagina = 'dashboard';
 }
 
 // Incluir header
-include 'includes/header.php';
+require_once __DIR__ . '/includes/header.php';
 
 // Incluir la vista correspondiente
-$viewFile = "views/{$page}.php";
-if (file_exists($viewFile)) {
-    include $viewFile;
+$archivoVista = __DIR__ . "/views/{$pagina}.php";
+if ($pagina === 'eliminadas') {
+    $archivoVista = __DIR__ . '/views/papelera.php';
+}
+if (file_exists($archivoVista)) {
+    require_once $archivoVista;
 } else {
     echo '<div class="p-6"><h2 class="text-xl font-bold text-slate-800">Página no encontrada</h2></div>';
 }
 
 // Incluir footer
-include 'includes/footer.php';
+require_once __DIR__ . '/includes/footer.php';

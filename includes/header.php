@@ -20,7 +20,8 @@ $pageTitles = [
     'usuarios' => 'Gestión de Usuarios',
     'asignaciones' => 'Asignación de Establecimientos',
     'eliminadas' => 'Observaciones Eliminadas',
-    'perfil' => 'Mi Perfil'
+    'perfil' => 'Mi Perfil',
+    'importacion' => 'Importar desde Excel'
 ];
 ?><!DOCTYPE html>
 <html lang="es">
