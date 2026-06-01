@@ -59,9 +59,11 @@ $usuarios = $userModel->getAll();
                                                 </span>
                                             </td>
                                             <td>
-                                                <span class="badge <?php echo $usuario['activo'] ? 'bg-green text-green-fg' : 'bg-secondary text-secondary-fg'; ?>">
-                                                    <?php echo $usuario['activo'] ? 'Activo' : 'Inactivo'; ?>
-                                                </span>
+                                                <label class="form-check form-switch">
+                                                    <input type="checkbox" class="form-check-input" <?php echo $usuario['activo'] ? 'checked' : ''; ?>
+                                                        onchange="toggleUserStatus(<?php echo $usuario['id']; ?>, this.checked)">
+                                                    <span class="form-check-label"><?php echo $usuario['activo'] ? 'Activo' : 'Inactivo'; ?></span>
+                                                </label>
                                             </td>
                                             <td class="text-secondary"><?php echo date('d/m/Y', strtotime($usuario['fecha_creacion'])); ?></td>
                                             <td>
@@ -69,16 +71,6 @@ $usuarios = $userModel->getAll();
                                                     <button onclick="editUser(<?php echo htmlspecialchars(json_encode($usuario)); ?>)"
                                                         class="btn btn-ghost-secondary btn-icon" title="Editar" data-bs-toggle="tooltip">
                                                         <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-edit"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M7 7h-1a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-1" /><path d="M20.385 6.585a2.1 2.1 0 0 0 -2.97 -2.97l-8.415 8.385v3h3l8.385 -8.415z" /><path d="M16 5l3 3" /></svg>
-                                                    </button>
-                                                    <button
-                                                        onclick="toggleUserStatus(<?php echo $usuario['id']; ?>, <?php echo $usuario['activo'] ? 'false' : 'true'; ?>)"
-                                                        class="btn btn-ghost-secondary btn-icon"
-                                                        title="<?php echo $usuario['activo'] ? 'Desactivar' : 'Activar'; ?>" data-bs-toggle="tooltip">
-                                                        <?php if ($usuario['activo']): ?>
-                                                            <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-lock"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 13a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v6a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2v-6z" /><path d="M11 16a1 1 0 1 0 2 0a1 1 0 0 0 -2 0" /><path d="M8 11v-4a4 4 0 1 1 8 0v4" /></svg>
-                                                        <?php else: ?>
-                                                            <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-lock-open"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 13a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v6a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2v-6z" /><path d="M11 16a1 1 0 1 0 2 0a1 1 0 0 0 -2 0" /><path d="M8 11v-4a4 4 0 0 1 6.832 -2.615" /></svg>
-                                                        <?php endif; ?>
                                                     </button>
                                                     <?php if ($usuario['id'] != $_SESSION['user_id']): ?>
                                                         <button
@@ -223,17 +215,8 @@ $usuarios = $userModel->getAll();
         }
     }
 
-    // Activar/Desactivar usuario
     async function toggleUserStatus(userId, activate) {
-        const action = activate ? 'activar' : 'desactivar';
-
-        if (!confirm(`¿Está seguro de ${action} este usuario?`)) {
-            return;
-        }
-
         try {
-            showLoading();
-
             const response = await fetchAPI(`users.php?id=${userId}`, {
                 method: 'PUT',
                 body: JSON.stringify({
@@ -242,15 +225,13 @@ $usuarios = $userModel->getAll();
                 })
             });
 
-            hideLoading();
-
             if (response.success) {
-                showMessage(`Usuario ${action}do exitosamente`, 'success');
+                showMessage(`Usuario ${activate ? 'activado' : 'desactivado'} exitosamente`, 'success');
                 setTimeout(() => location.reload(), 1000);
             }
         } catch (error) {
-            hideLoading();
             showMessage(error.message, 'error');
+            location.reload();
         }
     }
 

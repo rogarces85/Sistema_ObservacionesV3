@@ -109,11 +109,11 @@ $establecimientos = $locationModel->getAllEstablecimientosConInactivos();
                                             <td class="text-secondary"><?php echo htmlspecialchars($est['nombre_corto']); ?></td>
                                             <td class="text-secondary"><?php echo htmlspecialchars($est['comuna_nombre']); ?></td>
                                             <td class="text-center">
-                                                <?php if ($est['activo']): ?>
-                                                    <span class="badge bg-green text-green-fg">Activo</span>
-                                                <?php else: ?>
-                                                    <span class="badge bg-secondary text-secondary-fg">Inactivo</span>
-                                                <?php endif; ?>
+                                                <label class="form-check form-switch mb-0">
+                                                    <input type="checkbox" class="form-check-input" <?php echo $est['activo'] ? 'checked' : ''; ?>
+                                                        onchange="toggleEstablecimiento(<?php echo $est['id']; ?>, this.checked ? 1 : 0)">
+                                                    <span class="form-check-label"><?php echo $est['activo'] ? 'Activo' : 'Inactivo'; ?></span>
+                                                </label>
                                             </td>
                                             <td class="text-center">
                                                 <div class="btn-list justify-content-center">
@@ -121,16 +121,6 @@ $establecimientos = $locationModel->getAllEstablecimientosConInactivos();
                                                             class="btn btn-ghost-secondary btn-icon" title="Editar"
                                                             data-bs-toggle="tooltip">
                                                         <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-edit"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M7 7h-1a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-1" /><path d="M20.385 6.585a2.1 2.1 0 0 0 -2.97 -2.97l-8.415 8.385v3h3l8.385 -8.415z" /><path d="M16 5l3 3" /></svg>
-                                                    </button>
-                                                    <button onclick="toggleEstablecimiento(<?php echo $est['id']; ?>, <?php echo $est['activo'] ? 0 : 1; ?>)" 
-                                                            class="btn btn-ghost-secondary btn-icon"
-                                                            title="<?php echo $est['activo'] ? 'Desactivar' : 'Activar'; ?>"
-                                                            data-bs-toggle="tooltip">
-                                                        <?php if ($est['activo']): ?>
-                                                            <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-player-pause"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M6 5m0 1a1 1 0 0 1 1 -1h2a1 1 0 0 1 1 1v12a1 1 0 0 1 -1 1h-2a1 1 0 0 1 -1 -1z" /><path d="M14 5m0 1a1 1 0 0 1 1 -1h2a1 1 0 0 1 1 1v12a1 1 0 0 1 -1 1h-2a1 1 0 0 1 -1 -1z" /></svg>
-                                                        <?php else: ?>
-                                                            <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-player-play"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M7 4v16l13 -8z" /></svg>
-                                                        <?php endif; ?>
                                                     </button>
                                                 </div>
                                             </td>
@@ -249,27 +239,23 @@ $establecimientos = $locationModel->getAllEstablecimientosConInactivos();
     }
 
     async function toggleEstablecimiento(id, nuevoEstado) {
-        const accion = nuevoEstado ? 'activar' : 'desactivar';
-        if (!confirm(`¿Está seguro de ${accion} este establecimiento?`)) return;
-
         try {
-            showLoading();
             const response = await fetch('api/locations.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': getCsrfToken() },
                 body: JSON.stringify({ action: 'toggle', id: id, activo: nuevoEstado })
             });
             const result = await response.json();
-            hideLoading();
             if (result.success) {
                 showSuccess(result.message);
                 setTimeout(() => location.reload(), 800);
             } else {
                 showError(result.message);
+                location.reload();
             }
         } catch (error) {
-            hideLoading();
             showError('Error de conexión');
+            location.reload();
         }
     }
 

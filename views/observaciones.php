@@ -36,19 +36,19 @@ if ($userRole === ROL_REGISTRADOR) {
 global $TIPOS_ERROR, $MESES;
 ?>
 
-<div class="space-y-6">
+<div class="d-flex flex-column gap-3">
     <!-- Header -->
-    <div class="flex flex-wrap justify-between items-center gap-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
         <div>
-            <h2 class="text-2xl font-bold text-slate-800">Listado de Observaciones</h2>
-            <p class="text-slate-600">Gestiona y realiza seguimiento de tus registros REM</p>
+            <h2 class="mb-1 fw-bold text-primary">Listado de Observaciones</h2>
+            <p class="text-secondary mb-0">Gestiona y realiza seguimiento de tus registros REM</p>
         </div>
-        <div class="flex gap-2">
+        <div class="d-flex gap-2">
             <?php if ($userRole === ROL_REGISTRADOR): ?>
                 <?php if (!$tieneAsignaciones): ?>
                     <!-- Sin botones de acción si no tiene asignaciones -->
                 <?php else: ?>
-                    <button onclick="openImportModal()" class="btn btn-secondary">
+                    <button onclick="openImportModal()" class="btn btn-outline-secondary">
                         📥 Importar
                     </button>
                     <button onclick="openCreateModal()" class="btn btn-primary">
@@ -74,28 +74,34 @@ global $TIPOS_ERROR, $MESES;
     <?php endif; ?>
 
     <!-- Filtros -->
-    <div class="card p-4">
-        <div class="flex flex-wrap gap-4 items-center">
-            <div class="flex-1" style="min-width: 250px;">
-                <input type="text" id="searchInput" placeholder="🔍 Buscar por establecimiento o detalle..."
-                    class="w-full" oninput="filterTable()">
+    <div class="card">
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-12 col-md-4">
+                    <input type="text" id="searchInput" placeholder="🔍 Buscar por establecimiento o detalle..."
+                        class="form-control" oninput="filterTable()">
+                </div>
+                <div class="col-6 col-md-3">
+                    <select id="filterEstado" class="form-select" onchange="filterTable()">
+                        <option value="">Todos los estados</option>
+                        <option value="pendiente">🟡 Pendiente</option>
+                        <option value="aprobado">🟢 Aprobado</option>
+                        <option value="rechazado">🔴 Rechazado</option>
+                        <option value="error">⚠️ Error</option>
+                        <option value="justificado">🔵 Justificado</option>
+                    </select>
+                </div>
+                <div class="col-6 col-md-3">
+                    <select id="filterMes" class="form-select" onchange="filterTable()">
+                        <option value="">Todos los meses</option>
+                        <?php foreach ($MESES as $mes): ?>
+                            <option value="<?php echo $mes; ?>">
+                                <?php echo $mes; ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
             </div>
-            <select id="filterEstado" class="px-4 py-3" style="min-width: 160px;" onchange="filterTable()">
-                <option value="">Todos los estados</option>
-                <option value="pendiente">🟡 Pendiente</option>
-                <option value="aprobado">🟢 Aprobado</option>
-                <option value="rechazado">🔴 Rechazado</option>
-                <option value="error">⚠️ Error</option>
-                <option value="justificado">🔵 Justificado</option>
-            </select>
-            <select id="filterMes" class="px-4 py-3" style="min-width: 140px;" onchange="filterTable()">
-                <option value="">Todos los meses</option>
-                <?php foreach ($MESES as $mes): ?>
-                    <option value="<?php echo $mes; ?>">
-                        <?php echo $mes; ?>
-                    </option>
-                <?php endforeach; ?>
-            </select>
         </div>
     </div>
 
@@ -153,20 +159,27 @@ global $TIPOS_ERROR, $MESES;
                                 </div>
                             </td>
                             <td class="text-end">
-                                <button onclick="viewObservation(<?php echo $obs['id']; ?>)"
-                                    class="btn btn-ghost-secondary btn-icon" title="Ver detalle" data-bs-toggle="tooltip">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><circle cx="12" cy="12" r="2"/><path d="M22 12c-2.667 4.667-6 7-10 7s-7.333-2.333-10-7c2.667-4.667 6-7 10-7s7.333 2.333 10 7z"/></svg>
-                                </button>
-                                <?php
-                                $canEdit = ($userRole === ROL_SUPERVISOR) ||
-                                    ($userRole === ROL_REGISTRADOR && $obs['usuario_registro_id'] == $userId && $obs['estado_actual'] === ESTADO_PENDIENTE);
-                                if ($canEdit):
-                                    ?>
-                                    <button onclick="editObservation(<?php echo $obs['id']; ?>)"
-                                        class="btn btn-ghost-secondary btn-icon" title="Editar" data-bs-toggle="tooltip">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path d="M15.232 5.232l3.536 3.536M9 11l-3 3v3h3l8.232-8.232a2.5 2.5 0 00-3.536-3.536L9 11z"/></svg>
+                                <div class="dropdown">
+                                    <button class="btn btn-ghost-secondary btn-icon dropdown-toggle" data-bs-toggle="dropdown" aria-label="Acciones">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/><circle cx="12" cy="5" r="1"/></svg>
                                     </button>
-                                <?php endif; ?>
+                                    <div class="dropdown-menu dropdown-menu-end">
+                                        <a class="dropdown-item" href="#" onclick="viewObservation(<?php echo $obs['id']; ?>); return false;">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon me-2"><circle cx="12" cy="12" r="2"/><path d="M22 12c-2.667 4.667-6 7-10 7s-7.333-2.333-10-7c2.667-4.667 6-7 10-7s7.333 2.333 10 7z"/></svg>
+                                            Ver detalle
+                                        </a>
+                                        <?php
+                                        $canEdit = ($userRole === ROL_SUPERVISOR) ||
+                                            ($userRole === ROL_REGISTRADOR && $obs['usuario_registro_id'] == $userId && $obs['estado_actual'] === ESTADO_PENDIENTE);
+                                        if ($canEdit):
+                                            ?>
+                                            <a class="dropdown-item" href="#" onclick="editObservation(<?php echo $obs['id']; ?>); return false;">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon me-2"><path d="M15.232 5.232l3.536 3.536M9 11l-3 3v3h3l8.232-8.232a2.5 2.5 0 00-3.536-3.536L9 11z"/></svg>
+                                                Editar
+                                            </a>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
                             </td>
                         </tr>
                     <?php endforeach; ?>
@@ -344,6 +357,22 @@ global $TIPOS_ERROR, $MESES;
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
+                <!-- Stepper -->
+                <div class="steps steps-counter mb-4">
+                    <div class="step-item active" id="stepperStep1">
+                        <span class="step">1</span>
+                        <span class="step-title">Archivo</span>
+                    </div>
+                    <div class="step-item" id="stepperStep2">
+                        <span class="step">2</span>
+                        <span class="step-title">Vista previa</span>
+                    </div>
+                    <div class="step-item" id="stepperStep3">
+                        <span class="step">3</span>
+                        <span class="step-title">Confirmar</span>
+                    </div>
+                </div>
+
                 <!-- Paso 1 -->
                 <div id="importStep1">
                     <div class="text-center p-6 border-2 border-dashed rounded mb-4">
@@ -419,7 +448,14 @@ global $TIPOS_ERROR, $MESES;
                         </div>
                     </div>
 
-                    <div class="d-flex gap-3">
+                    <div id="importProgress" class="d-none mb-3">
+                        <div class="progress">
+                            <div class="progress-bar progress-bar-indeterminate bg-primary" role="progressbar"></div>
+                        </div>
+                        <p class="text-secondary small mt-2 text-center">Importando observaciones...</p>
+                    </div>
+
+                    <div class="d-flex gap-3" id="importActions">
                         <button onclick="confirmImport()" class="btn btn-primary flex-fill" id="confirmImportBtn">
                             Confirmar Importación
                         </button>
@@ -852,6 +888,9 @@ global $TIPOS_ERROR, $MESES;
         document.getElementById('importStep2').classList.add('hidden');
         document.getElementById('csvFile').value = '';
         importPreviewData = null;
+        document.getElementById('stepperStep1').classList.add('active');
+        document.getElementById('stepperStep2').classList.remove('active');
+        document.getElementById('stepperStep3').classList.remove('active');
     }
 
     async function previewImport() {
@@ -890,6 +929,8 @@ global $TIPOS_ERROR, $MESES;
     function showImportPreview(data) {
         document.getElementById('importStep1').classList.add('hidden');
         document.getElementById('importStep2').classList.remove('hidden');
+        document.getElementById('stepperStep2').classList.add('active');
+        document.getElementById('stepperStep3').classList.add('active');
 
         document.getElementById('totalRows').textContent = data.total;
         document.getElementById('validRows').textContent = data.valid;
@@ -956,7 +997,8 @@ global $TIPOS_ERROR, $MESES;
         formData.append('year', <?php echo $currentYear; ?>);
 
         try {
-            showLoading();
+            document.getElementById('importProgress').classList.remove('d-none');
+            document.getElementById('importActions').classList.add('d-none');
 
             const response = await fetch('api/import.php', {
                 method: 'POST',
@@ -964,7 +1006,8 @@ global $TIPOS_ERROR, $MESES;
             });
 
             const data = await response.json();
-            hideLoading();
+            document.getElementById('importProgress').classList.add('d-none');
+            document.getElementById('importActions').classList.remove('d-none');
 
             if (data.success) {
                 showSuccess(`Se importaron ${data.imported} observaciones correctamente`);

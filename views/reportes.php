@@ -16,10 +16,7 @@ $comunas = $locationModel->getComunas();
 $mesesList = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 ?>
 
-<div class="page-wrapper">
-    <div class="page-body">
-        <div class="container-xl">
-            <div class="row row-cards">
+<div class="row row-cards">
 
                 <!-- Header -->
                 <div class="col-12">
@@ -135,7 +132,7 @@ $mesesList = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto',
                                 <div class="relative" id="chart1Container" style="height: 400px;">
                                     <canvas id="chartErroresEst"></canvas>
                                 </div>
-                                <div class="mt-3 overflow-x-auto">
+                                <div class="table-responsive">
                                     <table class="table table-vcenter card-table table-hover">
                                         <thead><tr><th>Establecimiento</th><th class="text-end">Errores</th></tr></thead>
                                         <tbody id="tableErroresEst"></tbody>
@@ -148,7 +145,7 @@ $mesesList = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto',
                                 <div class="relative" id="chart2Container" style="height: 400px;">
                                     <canvas id="chartPlazoAgregado"></canvas>
                                 </div>
-                                <div class="mt-3 overflow-x-auto">
+                                <div class="table-responsive">
                                     <table class="table table-vcenter card-table table-hover">
                                         <thead><tr><th>Establecimiento</th><th class="text-end">Dentro plazo</th><th class="text-end">Fuera plazo</th><th class="text-end">Total meses</th></tr></thead>
                                         <tbody id="tablePlazoResumen"></tbody>
@@ -161,7 +158,7 @@ $mesesList = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto',
                                 <div class="relative" id="chart3Container" style="height: 400px;">
                                     <canvas id="chartValidadorAgregado"></canvas>
                                 </div>
-                                <div class="mt-3 overflow-x-auto">
+                                <div class="table-responsive">
                                     <table class="table table-vcenter card-table table-hover">
                                         <thead><tr><th>Establecimiento</th><th class="text-end">Usa validador</th><th class="text-end">No usa validador</th><th class="text-end">Total meses</th></tr></thead>
                                         <tbody id="tableValidadorResumen"></tbody>
@@ -174,7 +171,7 @@ $mesesList = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto',
                                 <div class="relative" id="chart4Container" style="height: 400px;">
                                     <canvas id="chartErroresSerie"></canvas>
                                 </div>
-                                <div class="mt-3 overflow-x-auto">
+                                <div class="table-responsive">
                                     <table class="table table-vcenter card-table table-hover">
                                         <thead><tr><th>Serie REM</th><th class="text-end">Errores</th></tr></thead>
                                         <tbody id="tableErroresSerie"></tbody>
@@ -187,7 +184,7 @@ $mesesList = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto',
                                 <div class="relative" id="chart5Container" style="height: 400px;">
                                     <canvas id="chartErroresHoja"></canvas>
                                 </div>
-                                <div class="mt-3 overflow-x-auto">
+                                <div class="table-responsive">
                                     <table class="table table-vcenter card-table table-hover">
                                         <thead><tr><th>Hoja REM</th><th class="text-end">Errores</th></tr></thead>
                                         <tbody id="tableErroresHoja"></tbody>
@@ -200,7 +197,6 @@ $mesesList = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto',
             </div>
         </div>
     </div>
-</div>
 
 <script>
 let errorCharts = {};

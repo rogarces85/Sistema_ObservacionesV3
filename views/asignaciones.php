@@ -113,9 +113,10 @@ $registradores = $asignacionModel->getEstadisticasAsignaciones($anioSeleccionado
                             <div class="card-subtitle">Establecimientos reasignados temporalmente para <?php echo $anioSeleccionado; ?></div>
                         </div>
                         <div class="card-body" id="reasignacionesTemporalesContainer">
-                            <div class="text-center py-8">
-                                <div class="spinner-border text-warning" role="status"><span class="visually-hidden">Cargando...</span></div>
-                                <p class="mt-2 text-secondary">Cargando reasignaciones...</p>
+                            <div class="placeholder-glow">
+                                <span class="placeholder col-12 mb-2"></span>
+                                <span class="placeholder col-10 mb-2"></span>
+                                <span class="placeholder col-11"></span>
                             </div>
                         </div>
                     </div>
@@ -282,7 +283,7 @@ $registradores = $asignacionModel->getEstadisticasAsignaciones($anioSeleccionado
 
     async function cargarEstablecimientosAsignados(registradorId) {
         const container = document.getElementById('establecimientosContainer');
-        container.innerHTML = '<div class="text-center py-8"><div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-sky-500"></div><p class="mt-2 text-slate-500">Cargando...</p></div>';
+        container.innerHTML = '<div class="placeholder-glow p-3"><span class="placeholder col-12 mb-2"></span><span class="placeholder col-10 mb-2"></span><span class="placeholder col-8"></span></div>';
 
         try {
             const response = await fetchAPI(`assignments.php?action=asignados&registrador_id=${registradorId}&anio=${anioActual}`);
@@ -377,7 +378,7 @@ $registradores = $asignacionModel->getEstadisticasAsignaciones($anioSeleccionado
             const response = await fetchAPI(`assignments.php?action=referentes&establecimiento_id=${establecimientoId}`);
             
             if (response.success && response.data.length > 0) {
-                let html = '<table class="table table-vcenter table-hover"><thead><tr><th>Cargo</th><th>Nombre</th><th>Teléfono</th><th>Email</th></tr></thead><tbody>';
+                let html = '<div class="table-responsive"><table class="table table-vcenter table-hover"><thead><tr><th>Cargo</th><th>Nombre</th><th>Teléfono</th><th>Email</th></tr></thead><tbody>';
                 
                 response.data.forEach(ref => {
                     html += `
@@ -390,7 +391,7 @@ $registradores = $asignacionModel->getEstadisticasAsignaciones($anioSeleccionado
                     `;
                 });
                 
-                html += '</tbody></table>';
+                html += '</tbody></table></div>';
                 container.innerHTML = html;
             } else {
                 container.innerHTML = '<div class="p-3 text-xs text-slate-400 italic">Sin contactos registrados</div>';

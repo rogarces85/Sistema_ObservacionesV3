@@ -65,9 +65,8 @@ function hideLoading(containerId = 'loading-overlay') {
     }
 }
 
-// Mostrar mensajes de éxito/error - usando sistema de toast
+// Mostrar mensajes de éxito/error - usando toasts nativos de Bootstrap 5
 function showMessage(message, type = 'success') {
-    // Delegamos al sistema de toast global
     if (type === 'success') {
         showSuccess(message);
     } else if (type === 'error') {
@@ -78,6 +77,45 @@ function showMessage(message, type = 'success') {
         showInfo(message);
     }
 }
+
+function _showToast(message, type) {
+    const config = {
+        success: { bg: 'bg-success', icon: '✓' },
+        error: { bg: 'bg-danger', icon: '✕' },
+        warning: { bg: 'bg-warning', icon: '⚠' },
+        info: { bg: 'bg-info', icon: 'ℹ' }
+    };
+    const c = config[type] || config.info;
+    const autohide = type !== 'error';
+    const delay = type === 'error' ? 0 : 4000;
+
+    const container = document.getElementById('toastContainer');
+    if (!container) return;
+
+    const toastEl = document.createElement('div');
+    toastEl.className = `toast align-items-center text-white ${c.bg} border-0`;
+    toastEl.setAttribute('role', 'alert');
+    toastEl.setAttribute('aria-live', 'assertive');
+    toastEl.setAttribute('aria-atomic', 'true');
+    toastEl.innerHTML = `
+        <div class="d-flex">
+            <div class="toast-body d-flex align-items-center gap-2">
+                <span class="fw-bold">${c.icon}</span>
+                <span>${message}</span>
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Cerrar"></button>
+        </div>`;
+
+    container.appendChild(toastEl);
+    const toast = new bootstrap.Toast(toastEl, { autohide, delay });
+    toast.show();
+    toastEl.addEventListener('hidden.bs.toast', () => toastEl.remove());
+}
+
+function showSuccess(message) { _showToast(message, 'success'); }
+function showError(message) { _showToast(message, 'error'); }
+function showWarning(message) { _showToast(message, 'warning'); }
+function showInfo(message) { _showToast(message, 'info'); }
 
 // Formatear fecha
 function formatDate(dateString) {
@@ -162,31 +200,10 @@ function validateForm(formId) {
     return isValid;
 }
 
-// Agregar animaciones CSS necesarias
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes slideIn {
-        from { transform: translateX(100%); opacity: 0; }
-        to { transform: translateX(0); opacity: 1; }
-    }
-    
-    @keyframes slideOut {
-        from { transform: translateX(0); opacity: 1; }
-        to { transform: translateX(100%); opacity: 0; }
-    }
-`;
-document.head.appendChild(style);
-
-// Sidebar toggle para móviles
-function toggleSidebar() {
-    const sidebar = document.querySelector('.sidebar');
-    if (sidebar) {
-        sidebar.classList.toggle('open');
-    }
-}
-
 // Inicializar tooltips y otros componentes al cargar
 document.addEventListener('DOMContentLoaded', function () {
-    // Agregar event listeners globales aquí si es necesario
-    console.log('Sistema REM cargado correctamente');
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function (el) {
+        return new bootstrap.Tooltip(el);
+    });
 });

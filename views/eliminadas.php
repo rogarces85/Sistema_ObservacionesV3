@@ -126,9 +126,30 @@ $comunas = $locationModel->getComunas();
                                 </label>
                             </div>
                         </div>
-                        <div id="loadingIndicator" class="card-body text-center py-8 text-secondary">
-                            <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Cargando...</span></div>
-                            <p class="mt-2">Cargando observaciones eliminadas...</p>
+                        <div id="loadingIndicator" class="table-responsive">
+                            <table class="table table-vcenter card-table">
+                                <thead>
+                                    <tr>
+                                        <th class="w-1"></th>
+                                        <th>ID Original</th>
+                                        <th>Fecha Eliminación</th>
+                                        <th>Establecimiento</th>
+                                        <th>Mes</th>
+                                        <th>Tipo Error</th>
+                                        <th>Estado Original</th>
+                                        <th>Registrador</th>
+                                        <th>Motivo</th>
+                                        <th class="text-end">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td colspan="10"><div class="placeholder-glow"><span class="placeholder col-12"></span></div></td></tr>
+                                    <tr><td colspan="10"><div class="placeholder-glow"><span class="placeholder col-10"></span></div></td></tr>
+                                    <tr><td colspan="10"><div class="placeholder-glow"><span class="placeholder col-11"></span></div></td></tr>
+                                    <tr><td colspan="10"><div class="placeholder-glow"><span class="placeholder col-9"></span></div></td></tr>
+                                    <tr><td colspan="10"><div class="placeholder-glow"><span class="placeholder col-12"></span></div></td></tr>
+                                </tbody>
+                            </table>
                         </div>
                         <div id="observationsTable" class="d-none table-responsive">
                             <table class="table table-vcenter card-table table-hover">

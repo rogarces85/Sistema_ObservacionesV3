@@ -34,10 +34,8 @@ $pageTitles = [
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.4.0/dist/css/tabler.min.css">
-    <link rel="stylesheet" href="assets/css/tabler-override.css">
     <link rel="stylesheet" href="assets/css/styles.css">
-
-    <script src="assets/js/notifications.js"></script>
+    <link rel="stylesheet" href="assets/css/tabler-override.css">
 </head>
 <body>
     <div class="page">

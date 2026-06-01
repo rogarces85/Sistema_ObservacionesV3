@@ -56,11 +56,11 @@ $maxValue = !empty($mesesData) ? max(array_values($mesesData)) : 1;
 $statsJson = json_encode($stats);
 ?>
 
-<div class="mb-4">
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+<div class="d-flex flex-column gap-3 mt-2">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
         <div>
-            <h2 class="mb-1 fw-bold text-primary">Panel de Control <?php echo $currentYear; ?></h2>
-            <p class="text-secondary mb-0">Resumen estadístico del sistema de observaciones REM</p>
+            <h2 class="mb-1 fw-bold text-primary fs-2">Panel de Control <?php echo $currentYear; ?></h2>
+            <p class="text-secondary mb-0 small">Resumen estadístico del sistema de observaciones REM</p>
         </div>
         <div class="d-flex gap-2">
             <?php if ($userRole === ROL_REGISTRADOR): ?>

@@ -24,34 +24,43 @@ $registradores = $userModel->getByRole(ROL_REGISTRADOR);
 $comunas = $locationModel->getComunas();
 ?>
 
-<div class="space-y-6">
+<div class="d-flex flex-column gap-3">
     <!-- Header -->
-    <div class="flex items-center justify-between">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
         <div>
-            <h2 class="text-2xl font-bold text-slate-800">Panel de Supervisión</h2>
-            <p class="text-slate-600">Revise y gestione las observaciones registradas</p>
+            <h2 class="mb-1 fw-bold text-primary">Panel de Supervisión</h2>
+            <p class="text-secondary mb-0">Revise y gestione las observaciones registradas</p>
         </div>
-        <div class="flex gap-3 items-center">
-            <span id="selectedCount" class="text-sm text-slate-500 hidden">
-                <span class="font-medium text-primary-600">0</span> seleccionadas
+        <div class="d-flex gap-2 align-items-center flex-wrap">
+            <span id="selectedCount" class="small text-secondary d-none">
+                <span class="fw-semibold text-primary">0</span> seleccionadas
             </span>
             <button id="btnApproveSelected" class="btn btn-primary" disabled>
                 ✓ Aprobar
             </button>
-            <button id="btnCancelSelected" class="btn btn-secondary" disabled style="background-color: #f59e0b; color: white;">
+            <button id="btnCancelSelected" class="btn btn-warning" disabled>
                 ⏸ Cancelar
             </button>
-            <button id="btnDeleteSelected" class="btn btn-secondary" disabled style="background-color: #ef4444; color: white;">
+            <button id="btnDeleteSelected" class="btn btn-danger" disabled>
                 🗑 Eliminar
             </button>
         </div>
     </div>
 
+    <!-- Progress bar for bulk actions -->
+    <div id="bulkProgress" class="d-none">
+        <div class="progress">
+            <div class="progress-bar progress-bar-indeterminate bg-primary" role="progressbar"></div>
+        </div>
+        <p class="text-secondary small mt-1" id="bulkProgressText">Procesando...</p>
+    </div>
+
     <!-- Filtros -->
-    <div class="card p-6">
-        <h3 class="text-lg font-bold text-slate-800 mb-4">🔍 Filtros</h3>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div>
+    <div class="card">
+        <div class="card-body">
+            <h3 class="card-title mb-3">🔍 Filtros</h3>
+            <div class="row g-3">
+            <div class="col-md-6 col-lg-3">
                 <label class="form-label">Estado</label>
                 <select id="filterEstado" class="form-select">
                     <option value="">Todos</option>
@@ -63,7 +72,7 @@ $comunas = $locationModel->getComunas();
                 </select>
             </div>
 
-            <div>
+            <div class="col-md-6 col-lg-3">
                 <label class="form-label">Mes</label>
                 <select id="filterMes" class="form-select">
                     <option value="">Todos</option>
@@ -82,7 +91,7 @@ $comunas = $locationModel->getComunas();
                 </select>
             </div>
 
-            <div>
+            <div class="col-md-6 col-lg-3">
                 <label class="form-label">Comuna</label>
                 <select id="filterComuna" class="form-select">
                     <option value="">Todas</option>
@@ -94,14 +103,14 @@ $comunas = $locationModel->getComunas();
                 </select>
             </div>
 
-            <div>
+            <div class="col-md-6 col-lg-3">
                 <label class="form-label">Establecimiento</label>
                 <select id="filterEstablecimiento" class="form-select" disabled>
                     <option value="">Todos</option>
                 </select>
             </div>
 
-            <div>
+            <div class="col-md-6 col-lg-3">
                 <label class="form-label">Registrador</label>
                 <select id="filterRegistrador" class="form-select">
                     <option value="">Todos</option>
@@ -113,40 +122,65 @@ $comunas = $locationModel->getComunas();
                 </select>
             </div>
 
-            <div>
+            <div class="col-md-6 col-lg-3">
                 <label class="form-label">Búsqueda</label>
                 <input type="text" id="filterBusqueda" class="form-control" placeholder="Buscar en detalles..." />
             </div>
 
-            <div class="lg:col-span-2 flex items-end gap-3">
-                <button id="btnApplyFilters" class="btn btn-primary">
-                    Aplicar Filtros
-                </button>
-                <button id="btnClearFilters" class="btn btn-secondary">
-                    Limpiar
-                </button>
+            <div class="col-12">
+                <div class="btn-list">
+                    <button id="btnApplyFilters" class="btn btn-primary">
+                        Aplicar Filtros
+                    </button>
+                    <button id="btnClearFilters" class="btn btn-outline-secondary">
+                        Limpiar
+                    </button>
+                </div>
+            </div>
             </div>
         </div>
     </div>
 
     <!-- Tabla de Observaciones -->
-    <div class="card p-6">
-        <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-bold text-slate-800">
-                Observaciones <span id="obsCount" class="text-slate-500"></span>
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">
+                Observaciones <span id="obsCount" class="text-secondary"></span>
             </h3>
-            <div class="flex items-center gap-2">
-                <input type="checkbox" id="selectAll" class="form-checkbox">
-                <label for="selectAll" class="text-sm text-slate-600">Seleccionar Todas</label>
+            <div class="card-actions">
+                <label class="form-check">
+                    <input type="checkbox" class="form-check-input" id="selectAll">
+                    <span class="form-check-label">Seleccionar Todas</span>
+                </label>
             </div>
         </div>
 
-        <div id="loadingIndicator" class="text-center py-8 text-slate-500">
-            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-            <p class="mt-2">Cargando observaciones...</p>
+        <div id="loadingIndicator" class="table-responsive">
+            <table class="table table-vcenter card-table">
+                <thead>
+                    <tr>
+                        <th class="w-1"></th>
+                        <th>ID</th>
+                        <th>Fecha</th>
+                        <th>Establecimiento</th>
+                        <th>Mes</th>
+                        <th>Tipo Error</th>
+                        <th>Estado</th>
+                        <th>Registrador</th>
+                        <th class="text-end">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td colspan="9"><div class="placeholder-glow"><span class="placeholder col-12"></span></div></td></tr>
+                    <tr><td colspan="9"><div class="placeholder-glow"><span class="placeholder col-10"></span></div></td></tr>
+                    <tr><td colspan="9"><div class="placeholder-glow"><span class="placeholder col-11"></span></div></td></tr>
+                    <tr><td colspan="9"><div class="placeholder-glow"><span class="placeholder col-9"></span></div></td></tr>
+                    <tr><td colspan="9"><div class="placeholder-glow"><span class="placeholder col-12"></span></div></td></tr>
+                </tbody>
+            </table>
         </div>
 
-        <div id="observationsTable" class="hidden table-responsive">
+        <div id="observationsTable" class="d-none table-responsive">
             <table class="table table-vcenter card-table table-hover">
                 <thead>
                     <tr>
@@ -167,72 +201,79 @@ $comunas = $locationModel->getComunas();
             </table>
         </div>
 
-        <div id="emptyState" class="hidden text-center py-8 text-slate-500">
+        <div id="emptyState" class="d-none card-body text-center py-8 text-secondary">
             <p>📋 No se encontraron observaciones con los filtros aplicados.</p>
         </div>
     </div>
 </div>
 
-<!-- Modal de Detalle -->
-<div id="detailModal" class="modal hidden">
-    <div class="modal-content max-w-4xl">
-        <div class="modal-header">
-            <h3 class="text-xl font-bold">Detalle de Observación</h3>
-            <button class="modal-close" onclick="closeDetailModal()">&times;</button>
-        </div>
-        <div class="modal-body" id="detailContent">
-            <!-- Se llenará dinámicamente -->
+<!-- Modal de Detalle (Tabler) -->
+<div id="detailModal" class="modal fade" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title">Detalle de Observación</h5>
+                    <div class="text-secondary">Resumen completo del registro</div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body" id="detailContent">
+            </div>
         </div>
     </div>
 </div>
 
-<!-- Modal de Confirmación -->
-<div id="confirmModal" class="modal hidden">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3 class="text-xl font-bold" id="confirmTitle">Confirmar Acción</h3>
-            <button class="modal-close" onclick="closeConfirmModal()">&times;</button>
-        </div>
-        <div class="modal-body">
-            <p id="confirmMessage"></p>
-            <div class="mt-4">
-                <label class="form-label">Comentario (opcional)</label>
-                <textarea id="confirmComment" class="form-textarea" rows="3"></textarea>
-            </div>
-            <!-- Campos de clasificación y detalle - solo visibles al aprobar -->
-            <div id="approveExtraFields" class="hidden mt-4 space-y-4">
+<!-- Modal de Confirmación (Tabler) -->
+<div id="confirmModal" class="modal fade" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
                 <div>
-                    <label class="form-label">Clasificación de Respuesta *</label>
-                    <div class="mt-2 space-x-6">
-                        <label class="inline-flex items-center cursor-pointer">
-                            <input type="radio" name="estadoResultante" value="sin_observacion" class="form-radio">
-                            <span class="ml-2">Sin Observación</span>
-                        </label>
-                        <label class="inline-flex items-center cursor-pointer">
-                            <input type="radio" name="estadoResultante" value="error" class="form-radio">
-                            <span class="ml-2">Error</span>
-                        </label>
+                    <h5 class="modal-title" id="confirmTitle">Confirmar Acción</h5>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <p id="confirmMessage"></p>
+                <div class="mt-4">
+                    <label class="form-label">Comentario (opcional)</label>
+                    <textarea id="confirmComment" class="form-control" rows="3"></textarea>
+                </div>
+                <div id="approveExtraFields" class="d-none mt-4">
+                    <div class="mb-3">
+                        <label class="form-label">Clasificación de Respuesta *</label>
+                        <div class="mt-2">
+                            <label class="form-check me-4">
+                                <input type="radio" name="estadoResultante" value="sin_observacion" class="form-check-input">
+                                <span class="form-check-label">Sin Observación</span>
+                            </label>
+                            <label class="form-check">
+                                <input type="radio" name="estadoResultante" value="error" class="form-check-input">
+                                <span class="form-check-label">Error</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Clasificación</label>
+                        <select id="approveClasificacion" class="form-select">
+                            <option value="">Sin clasificar</option>
+                            <option value="corregido">Corregido</option>
+                            <option value="error">Error</option>
+                            <option value="sin_respuesta">Sin respuesta del Establecimiento</option>
+                            <option value="respuesta_incorrecta">Respuesta incorrecta de Establecimiento</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Detalle Error</label>
+                        <input type="text" id="approveDetalleError" class="form-control" placeholder="Descripción del error si aplica...">
                     </div>
                 </div>
-                <div>
-                    <label class="form-label">Clasificación</label>
-                    <select id="approveClasificacion" class="form-select">
-                        <option value="">Sin clasificar</option>
-                        <option value="corregido">Corregido</option>
-                        <option value="error">Error</option>
-                        <option value="sin_respuesta">Sin respuesta del Establecimiento</option>
-                        <option value="respuesta_incorrecta">Respuesta incorrecta de Establecimiento</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="form-label">Detalle Error</label>
-                    <input type="text" id="approveDetalleError" class="form-control" placeholder="Descripción del error si aplica...">
-                </div>
             </div>
-        </div>
-        <div class="modal-footer">
-            <button class="btn btn-secondary" onclick="closeConfirmModal()">Cancelar</button>
-            <button class="btn btn-primary" id="confirmActionBtn">Confirmar</button>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="confirmActionBtn">Confirmar</button>
+            </div>
         </div>
     </div>
 </div>
@@ -274,9 +315,9 @@ $comunas = $locationModel->getComunas();
         const observationsTable = document.getElementById('observationsTable');
         const emptyState = document.getElementById('emptyState');
 
-        loadingIndicator.classList.remove('hidden');
-        observationsTable.classList.add('hidden');
-        emptyState.classList.add('hidden');
+        loadingIndicator.classList.remove('d-none');
+        observationsTable.classList.add('d-none');
+        emptyState.classList.add('d-none');
 
         const filters = {
             anio: <?php echo $currentYear; ?>,
@@ -297,9 +338,9 @@ $comunas = $locationModel->getComunas();
                 document.getElementById('obsCount').textContent = `(${currentObservations.length})`;
 
                 if (currentObservations.length > 0) {
-                    observationsTable.classList.remove('hidden');
+                    observationsTable.classList.remove('d-none');
                 } else {
-                    emptyState.classList.remove('hidden');
+                    emptyState.classList.remove('d-none');
                 }
             } else {
                 throw new Error(data.message);
@@ -308,7 +349,7 @@ $comunas = $locationModel->getComunas();
             console.error('Error al cargar observaciones:', error);
             showError('Error al cargar observaciones: ' + error.message);
         } finally {
-            loadingIndicator.classList.add('hidden');
+            loadingIndicator.classList.add('d-none');
         }
     }
 
@@ -320,34 +361,44 @@ $comunas = $locationModel->getComunas();
             const tr = document.createElement('tr');
             tr.innerHTML = `
             <td>
-                <input type="checkbox" class="form-checkbox obs-checkbox" value="${obs.id}">
+                <input type="checkbox" class="form-check-input obs-checkbox" value="${obs.id}">
             </td>
             <td>#${obs.id}</td>
             <td>${formatDate(obs.fecha_registro)}</td>
             <td>
-                <div class="font-medium">${escapeHtml(obs.nombre_corto)}</div>
-                <div class="text-xs text-slate-500">${escapeHtml(obs.comuna)}</div>
+                <div class="fw-semibold">${escapeHtml(obs.nombre_corto)}</div>
+                <div class="small text-secondary">${escapeHtml(obs.comuna)}</div>
             </td>
             <td>${escapeHtml(obs.mes)}</td>
-            <td><span class="text-xs">${escapeHtml(obs.tipo_error)}</span></td>
+            <td><span class="small">${escapeHtml(obs.tipo_error)}</span></td>
             <td>${getEstadoBadge(obs.estado_actual)}</td>
-            <td class="text-sm">${escapeHtml(obs.nombre_registro)}</td>
+            <td class="small">${escapeHtml(obs.nombre_registro)}</td>
             <td class="text-end">
-                <div class="d-flex justify-content-end gap-2">
-                    <button class="btn-icon" onclick="viewDetail(${obs.id})" title="Ver Detalle">
-                        👁️
+                <div class="dropdown">
+                    <button class="btn btn-ghost-secondary btn-icon dropdown-toggle" data-bs-toggle="dropdown">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/><circle cx="12" cy="5" r="1"/></svg>
                     </button>
-                    ${obs.estado_actual === '<?php echo ESTADO_PENDIENTE; ?>' ? `
-                        <button class="btn-icon text-green-600" onclick="approveSingle(${obs.id})" title="Aprobar">
-                            ✓
-                        </button>
-                        <button class="btn-icon text-amber-600" onclick="cancelSingle(${obs.id})" title="Cancelar">
-                            ⏸
-                        </button>
-                        <button class="btn-icon text-rose-600" onclick="deleteSingle(${obs.id})" title="Eliminar">
-                            🗑
-                        </button>
-                    ` : ''}
+                    <div class="dropdown-menu dropdown-menu-end">
+                        <a class="dropdown-item" href="#" onclick="viewDetail(${obs.id}); return false;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon me-2"><circle cx="12" cy="12" r="2"/><path d="M22 12c-2.667 4.667-6 7-10 7s-7.333-2.333-10-7c2.667-4.667 6-7 10-7s7.333 2.333 10 7z"/></svg>
+                            Ver detalle
+                        </a>
+                        ${obs.estado_actual === '<?php echo ESTADO_PENDIENTE; ?>' ? `
+                            <div class="dropdown-divider"></div>
+                            <a class="dropdown-item text-success" href="#" onclick="approveSingle(${obs.id}); return false;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon me-2"><path d="M5 12l5 5l10 -10"/></svg>
+                                Aprobar
+                            </a>
+                            <a class="dropdown-item text-warning" href="#" onclick="cancelSingle(${obs.id}); return false;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon me-2"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+                                Cancelar
+                            </a>
+                            <a class="dropdown-item text-danger" href="#" onclick="deleteSingle(${obs.id}); return false;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon me-2"><path d="M4 7l16 0"/><path d="M10 11l0 6"/><path d="M14 11l0 6"/><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12"/><path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3"/></svg>
+                                Eliminar
+                            </a>
+                        ` : ''}
+                    </div>
                 </div>
             </td>
         `;
@@ -374,10 +425,10 @@ $comunas = $locationModel->getComunas();
 
         // Mostrar/ocultar contador de seleccionadas
         if (hasSelection) {
-            countDisplay.classList.remove('hidden');
+            countDisplay.classList.remove('d-none');
             countDisplay.querySelector('.font-medium').textContent = selectedIds.length;
         } else {
-            countDisplay.classList.add('hidden');
+            countDisplay.classList.add('d-none');
         }
     }
 
@@ -407,96 +458,108 @@ $comunas = $locationModel->getComunas();
     function showDetailModal(obs, historial) {
         const content = document.getElementById('detailContent');
         content.innerHTML = `
-        <div class="grid grid-cols-2 gap-4 mb-6">
-            <div>
-                <p class="text-sm text-slate-600">Establecimiento</p>
-                <p class="font-bold">${escapeHtml(obs.establecimiento)}</p>
-                ${obs.codigo_establecimiento ? `<p class="text-xs text-slate-400">Código: ${escapeHtml(obs.codigo_establecimiento)}</p>` : ''}
+        <div class="row g-3 mb-4">
+            <div class="col-md-6">
+                <p class="small text-secondary mb-1">Establecimiento</p>
+                <p class="fw-bold mb-0">${escapeHtml(obs.establecimiento)}</p>
+                ${obs.codigo_establecimiento ? `<p class="small text-secondary mb-0">Código: ${escapeHtml(obs.codigo_establecimiento)}</p>` : ''}
             </div>
-            <div>
-                <p class="text-sm text-slate-600">Estado</p>
-                <p>${getEstadoBadge(obs.estado_actual)}</p>
+            <div class="col-md-6">
+                <p class="small text-secondary mb-1">Estado</p>
+                <p class="mb-0">${getEstadoBadge(obs.estado_actual)}</p>
             </div>
-            <div>
-                <p class="text-sm text-slate-600">Año/Mes</p>
-                <p>${obs.anio} - ${escapeHtml(obs.mes)}</p>
+            <div class="col-md-6">
+                <p class="small text-secondary mb-1">Año/Mes</p>
+                <p class="mb-0">${obs.anio} - ${escapeHtml(obs.mes)}</p>
             </div>
-            <div>
-                <p class="text-sm text-slate-600">Registrador</p>
-                <p>${escapeHtml(obs.nombre_registro)}</p>
+            <div class="col-md-6">
+                <p class="small text-secondary mb-1">Registrador</p>
+                <p class="mb-0">${escapeHtml(obs.nombre_registro)}</p>
             </div>
-            <div class="col-span-2">
-                <p class="text-sm text-slate-600">Tipo de Error</p>
-                <p>${escapeHtml(obs.tipo_error)}</p>
+            <div class="col-12">
+                <p class="small text-secondary mb-1">Tipo de Error</p>
+                <p class="mb-0">${escapeHtml(obs.tipo_error)}</p>
             </div>
-            <div>
-                <p class="text-sm text-slate-600">Plazo Entrega</p>
-                <p>${obs.plazo_entrega ? escapeHtml(obs.plazo_entrega.replace('_', ' ')) : '-'}</p>
+            <div class="col-md-6">
+                <p class="small text-secondary mb-1">Plazo Entrega</p>
+                <p class="mb-0">${obs.plazo_entrega ? escapeHtml(obs.plazo_entrega.replace('_', ' ')) : '-'}</p>
             </div>
-            <div>
-                <p class="text-sm text-slate-600">Usa Validador</p>
-                <p>${obs.usa_validador ? escapeHtml(obs.usa_validador) : '-'}</p>
+            <div class="col-md-6">
+                <p class="small text-secondary mb-1">Usa Validador</p>
+                <p class="mb-0">${obs.usa_validador ? escapeHtml(obs.usa_validador) : '-'}</p>
             </div>
-            <div>
-                <p class="text-sm text-slate-600">Serie REM</p>
-                <p>${obs.codigo_serie ? escapeHtml(obs.codigo_serie) : '-'}</p>
+            <div class="col-md-6">
+                <p class="small text-secondary mb-1">Serie REM</p>
+                <p class="mb-0">${obs.codigo_serie ? escapeHtml(obs.codigo_serie) : '-'}</p>
             </div>
-            <div>
-                <p class="text-sm text-slate-600">Hoja REM</p>
-                <p>${obs.codigo_hoja ? escapeHtml(obs.codigo_hoja) : '-'}</p>
+            <div class="col-md-6">
+                <p class="small text-secondary mb-1">Hoja REM</p>
+                <p class="mb-0">${obs.codigo_hoja ? escapeHtml(obs.codigo_hoja) : '-'}</p>
             </div>
-            <div class="col-span-2">
-                <p class="text-sm text-slate-600">Detalle de Observación</p>
-                <p class="whitespace-pre-wrap">${escapeHtml(obs.detalle_observacion)}</p>
+            <div class="col-12">
+                <p class="small text-secondary mb-1">Detalle de Observación</p>
+                <p class="mb-0" style="white-space: pre-wrap;">${escapeHtml(obs.detalle_observacion)}</p>
             </div>
             ${obs.respuesta_establecimiento ? `
-            <div class="col-span-2">
-                <p class="text-sm text-slate-600">Respuesta del Establecimiento</p>
-                <p class="whitespace-pre-wrap">${escapeHtml(obs.respuesta_establecimiento)}</p>
+            <div class="col-12">
+                <p class="small text-secondary mb-1">Respuesta del Establecimiento</p>
+                <p class="mb-0" style="white-space: pre-wrap;">${escapeHtml(obs.respuesta_establecimiento)}</p>
             </div>
             ` : ''}
             ${obs.clasificacion ? `
-            <div class="col-span-2 p-3 bg-sky-50 rounded border border-sky-200">
-                <p class="text-sm text-sky-700 font-semibold">Clasificación de Respuesta</p>
-                <p class="text-sm text-sky-900">${escapeHtml(obs.clasificacion)}</p>
+            <div class="col-12">
+                <div class="p-3 bg-primary-lt rounded-3">
+                    <p class="small fw-semibold text-primary mb-1">Clasificación de Respuesta</p>
+                    <p class="mb-0">${escapeHtml(obs.clasificacion)}</p>
+                </div>
             </div>
             ` : ''}
             ${obs.detalle_error ? `
-            <div class="col-span-2 p-3 bg-sky-50 rounded border border-sky-200">
-                <p class="text-sm text-sky-700 font-semibold">Detalle Error</p>
-                <p class="text-sm text-sky-900">${escapeHtml(obs.detalle_error)}</p>
+            <div class="col-12">
+                <div class="p-3 bg-primary-lt rounded-3">
+                    <p class="small fw-semibold text-primary mb-1">Detalle Error</p>
+                    <p class="mb-0">${escapeHtml(obs.detalle_error)}</p>
+                </div>
             </div>
             ` : ''}
             ${obs.fecha_actualizacion ? `
-            <div class="col-span-2 text-xs text-slate-400 text-right border-t pt-2 mt-2">
-                Última modificación: ${formatDate(obs.fecha_actualizacion)}
+            <div class="col-12">
+                <hr class="my-2">
+                <p class="small text-secondary text-end mb-0">Última modificación: ${formatDate(obs.fecha_actualizacion)}</p>
             </div>
             ` : ''}
         </div>
 
-        <h4 class="font-bold mb-3">Historial de Cambios</h4>
-        <div class="space-y-2">
+        <h4 class="fw-bold mb-3">Historial de Cambios</h4>
+        <div class="timeline">
             ${historial.map(h => `
-                <div class="p-3 bg-slate-50 rounded border border-slate-200">
-                    <div class="flex justify-between text-sm">
-                        <span class="font-medium">${escapeHtml(h.usuario_nombre)}</span>
-                        <span class="text-slate-500">${formatDate(h.fecha_cambio)}</span>
+                <div class="timeline-event">
+                    <div class="timeline-event-badge bg-primary"></div>
+                    <div class="timeline-event-card card">
+                        <div class="card-body p-3">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="fw-semibold">${escapeHtml(h.usuario_nombre)}</span>
+                                <span class="text-secondary small">${formatDate(h.fecha_cambio)}</span>
+                            </div>
+                            <p class="mb-1 small">
+                                ${h.estado_anterior ? escapeHtml(h.estado_anterior) : '<em>inicial</em>'}
+                                → <strong>${escapeHtml(h.estado_nuevo)}</strong>
+                            </p>
+                            ${h.comentario ? `<p class="mb-0 text-secondary small">${escapeHtml(h.comentario)}</p>` : ''}
+                        </div>
                     </div>
-                    <p class="text-sm mt-1">
-                        ${h.estado_anterior ? escapeHtml(h.estado_anterior) : '<em>inicial</em>'} 
-                        → <strong>${escapeHtml(h.estado_nuevo)}</strong>
-                    </p>
-                    ${h.comentario ? `<p class="text-sm text-slate-600 mt-1">${escapeHtml(h.comentario)}</p>` : ''}
                 </div>
             `).join('')}
         </div>
     `;
 
-        document.getElementById('detailModal').classList.remove('hidden');
+        const detailModal = new bootstrap.Modal(document.getElementById('detailModal'));
+    detailModal.show();
     }
 
     function closeDetailModal() {
-        document.getElementById('detailModal').classList.add('hidden');
+        const modal = bootstrap.Modal.getInstance(document.getElementById('detailModal'));
+        if (modal) modal.hide();
     }
 
     function approveSingle(id) {
@@ -532,16 +595,17 @@ $comunas = $locationModel->getComunas();
         // Mostrar/ocultar campos de clasificación solo al aprobar
         const extraFields = document.getElementById('approveExtraFields');
         if (action === 'approve') {
-            extraFields.classList.remove('hidden');
+            extraFields.classList.remove('d-none');
             document.getElementById('approveClasificacion').value = '';
             document.getElementById('approveDetalleError').value = '';
             const radios = document.querySelectorAll('input[name="estadoResultante"]');
             radios.forEach(r => r.checked = false);
         } else {
-            extraFields.classList.add('hidden');
+            extraFields.classList.add('d-none');
         }
 
-        document.getElementById('confirmModal').classList.remove('hidden');
+        const confirmModal = new bootstrap.Modal(document.getElementById('confirmModal'));
+        confirmModal.show();
 
         document.getElementById('confirmActionBtn').onclick = async () => {
             const comment = document.getElementById('confirmComment').value;
@@ -564,6 +628,11 @@ $comunas = $locationModel->getComunas();
     }
 
     async function executeAction(action, ids, comment, clasificacion = '', detalleError = '', estadoResultante = '') {
+        const progressEl = document.getElementById('bulkProgress');
+        const progressText = document.getElementById('bulkProgressText');
+        progressEl.classList.remove('d-none');
+        progressText.textContent = `Procesando ${ids.length} observación(es)...`;
+
         try {
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
 
@@ -591,6 +660,7 @@ $comunas = $locationModel->getComunas();
             });
 
             const data = await response.json();
+            progressEl.classList.add('d-none');
 
             if (data.success) {
                 const actionTexts = {
@@ -606,12 +676,14 @@ $comunas = $locationModel->getComunas();
                 throw new Error(data.message);
             }
         } catch (error) {
+            progressEl.classList.add('d-none');
             showError('Error: ' + error.message);
         }
     }
 
     function closeConfirmModal() {
-        document.getElementById('confirmModal').classList.add('hidden');
+        const modal = bootstrap.Modal.getInstance(document.getElementById('confirmModal'));
+        if (modal) modal.hide();
     }
 
     function clearFilters() {
@@ -675,65 +747,6 @@ $comunas = $locationModel->getComunas();
 </script>
 
 <style>
-    .modal {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.5);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 1000;
-    }
-
-    .modal.hidden {
-        display: none;
-    }
-
-    .modal-content {
-        background: white;
-        border-radius: 0.5rem;
-        max-width: 32rem;
-        width: 90%;
-        max-height: 90vh;
-        overflow-y: auto;
-    }
-
-    .modal-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 1.5rem;
-        border-bottom: 1px solid #e2e8f0;
-    }
-
-    .modal-body {
-        padding: 1.5rem;
-    }
-
-    .modal-footer {
-        display: flex;
-        justify-content: flex-end;
-        gap: 0.75rem;
-        padding: 1.5rem;
-        border-top: 1px solid #e2e8f0;
-    }
-
-    .modal-close {
-        font-size: 1.5rem;
-        font-weight: bold;
-        color: #64748b;
-        background: none;
-        border: none;
-        cursor: pointer;
-    }
-
-    .modal-close:hover {
-        color: #334155;
-    }
-
     .btn-icon {
         padding: 0.25rem 0.5rem;
         border: none;
