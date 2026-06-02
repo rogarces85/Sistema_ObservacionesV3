@@ -15,7 +15,7 @@ require_once 'models/Location.php';
 
 $userModel = new User();
 $locationModel = new Location();
-$anioActual = $_SESSION['year'] ?? date('Y');
+$anioActual = $_SESSION['anio_trabajo'] ?? date('Y');
 
 $registradores = $userModel->getByRole(ROL_REGISTRADOR);
 $comunas = $locationModel->getComunas();

@@ -22,7 +22,7 @@ class Usuario
      */
     public function obtenerTodos()
     {
-        $sql = "SELECT id, username, nombre_completo, rol, activo, password_reset_required, fecha_creacion, fecha_actualizacion
+        $sql = "SELECT id, username, nombre_completo, rol, activo, fecha_creacion, fecha_actualizacion
                 FROM usuarios ORDER BY nombre_completo ASC";
         return $this->db->consultar($sql);
     }
@@ -32,7 +32,7 @@ class Usuario
      */
     public function obtenerPorId($id)
     {
-        $sql = "SELECT id, username, nombre_completo, rol, activo, password_reset_required, fecha_creacion, fecha_actualizacion
+        $sql = "SELECT id, username, nombre_completo, rol, activo, fecha_creacion, fecha_actualizacion
                 FROM usuarios WHERE id = :id LIMIT 1";
         return $this->db->consultarUno($sql, ['id' => $id]);
     }
@@ -132,8 +132,8 @@ class Usuario
     {
         $passwordHash = password_hash($password, PASSWORD_BCRYPT);
 
-        $sql = "INSERT INTO usuarios (username, password_hash, nombre_completo, rol, activo, password_reset_required, fecha_creacion, fecha_actualizacion)
-                VALUES (:username, :password_hash, :nombre_completo, :rol, 1, 1, NOW(), NOW())";
+        $sql = "INSERT INTO usuarios (username, password_hash, nombre_completo, rol, activo, fecha_creacion, fecha_actualizacion)
+                VALUES (:username, :password_hash, :nombre_completo, :rol, 1, NOW(), NOW())";
 
         try {
             $this->db->ejecutar($sql, [
@@ -184,7 +184,7 @@ class Usuario
         }
 
         $passwordHash = password_hash($passwordNuevo, PASSWORD_BCRYPT);
-        $sql = "UPDATE usuarios SET password_hash = :password_hash, password_reset_required = 0, fecha_actualizacion = NOW()
+        $sql = "UPDATE usuarios SET password_hash = :password_hash, fecha_actualizacion = NOW()
                 WHERE id = :id";
 
         try {
@@ -202,7 +202,7 @@ class Usuario
     public function resetearPassword($id, $passwordDefecto = 'admin123')
     {
         $passwordHash = password_hash($passwordDefecto, PASSWORD_BCRYPT);
-        $sql = "UPDATE usuarios SET password_hash = :password_hash, password_reset_required = 1, fecha_actualizacion = NOW()
+        $sql = "UPDATE usuarios SET password_hash = :password_hash, fecha_actualizacion = NOW()
                 WHERE id = :id";
 
         try {

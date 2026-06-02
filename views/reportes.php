@@ -7,7 +7,7 @@
 
 require_once 'models/Location.php';
 
-$anioActual = $_SESSION['year'] ?? date('Y');
+$anioActual = $_SESSION['anio_trabajo'] ?? date('Y');
 $rolUsuario = $_SESSION['rol'];
 
 $modeloUbicacion = new Location();

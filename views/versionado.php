@@ -11,7 +11,7 @@ if ($_SESSION['rol'] !== ROL_SUPERVISOR) {
 }
 
 $usuarioId = $_SESSION['usuario_id'];
-$anioActual = $_SESSION['year'] ?? date('Y');
+$anioActual = $_SESSION['anio_trabajo'] ?? date('Y');
 ?>
 
 <div class="space-y-6">

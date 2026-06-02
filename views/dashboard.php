@@ -6,7 +6,7 @@
 
 $usuarioId = $_SESSION['user_id'] ?? 0;
 $rol = $_SESSION['rol'] ?? '';
-$anio = $_SESSION['year'] ?? date('Y');
+$anio = $_SESSION['anio_trabajo'] ?? date('Y');
 $nombreUsuario = $_SESSION['nombre_completo'] ?? 'Usuario';
 ?>
 
@@ -17,13 +17,13 @@ $nombreUsuario = $_SESSION['nombre_completo'] ?? 'Usuario';
     </div>
     <div class="btn-list">
         <?php if ($rol === ROL_REGISTRADOR): ?>
-            <a href="?page=observaciones&year=<?php echo $anio; ?>" class="btn btn-primary">
+            <a href="?pagina=observaciones&anio=<?php echo $anio; ?>" class="btn btn-primary">
                 <?php echo tablerIcon('plus'); ?>
                 Nueva Observación
             </a>
         <?php endif; ?>
         <?php if ($rol === ROL_SUPERVISOR): ?>
-            <a href="?page=supervision&year=<?php echo $anio; ?>" class="btn btn-outline-secondary">
+            <a href="?pagina=supervision&anio=<?php echo $anio; ?>" class="btn btn-outline-secondary">
                 <?php echo tablerIcon('eye'); ?>
                 Supervisar
             </a>
@@ -194,7 +194,7 @@ $nombreUsuario = $_SESSION['nombre_completo'] ?? 'Usuario';
         <div class="card mt-3">
             <div class="card-header">
                 <h3 class="card-title"><?php echo tablerIcon('list'); ?> Últimas Observaciones</h3>
-                <a href="?page=observaciones&year=<?php echo $anio; ?>" class="btn btn-ghost-primary btn-sm ms-auto">Ver todas</a>
+                <a href="?pagina=observaciones&anio=<?php echo $anio; ?>" class="btn btn-ghost-primary btn-sm ms-auto">Ver todas</a>
             </div>
             <div class="card-body p-0">
                 <div id="recientes-container" class="table-responsive">

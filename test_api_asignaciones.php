@@ -11,10 +11,10 @@ echo "PRUEBA: API de Asignaciones\n";
 echo "========================================\n\n";
 
 // Simular sesión de supervisor
-$_SESSION['logged_in'] = true;
+$_SESSION['autenticado'] = true;
 $_SESSION['user_id'] = 1;
 $_SESSION['rol'] = 'supervisor';
-$_SESSION['year'] = 2026;
+$_SESSION['anio_trabajo'] = 2026;
 
 // Helper para hacer requests
 function apiRequest($action, $data = null) {

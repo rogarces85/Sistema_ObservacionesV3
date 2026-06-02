@@ -1,5 +1,5 @@
 <?php
-if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
+if (!isset($_SESSION['autenticado']) || $_SESSION['autenticado'] !== true) {
     header('Location: index.php');
     exit;
 }
@@ -7,7 +7,7 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
 require_once 'includes/icons.php';
 
 $currentPage = $_GET['page'] ?? 'dashboard';
-$currentYear = $_SESSION['year'] ?? date('Y');
+$currentYear = $_SESSION['anio_trabajo'] ?? date('Y');
 $userName = $_SESSION['nombre_completo'] ?? 'Usuario';
 $userRole = $_SESSION['rol'] ?? '';
 $userInitials = strtoupper(substr($userName, 0, 2));
@@ -53,7 +53,7 @@ $pageTitles = [
                         <span class="navbar-toggler-icon"></span>
                     </button>
                     <div class="navbar-brand navbar-brand-autodark d-md-none">
-                        <a href="?page=dashboard" class="text-white text-decoration-none fs-5 fw-bold">Sistema REM</a>
+                        <a href="?pagina=dashboard" class="text-white text-decoration-none fs-5 fw-bold">Sistema REM</a>
                     </div>
                     <div class="navbar-nav flex-row order-md-last ms-auto">
                         <div class="nav-item dropdown d-none d-md-flex me-2">
@@ -70,7 +70,7 @@ $pageTitles = [
                                 </span>
                             </a>
                             <div class="dropdown-menu dropdown-menu-end dropdown-menu-arrow">
-                                <a class="dropdown-item" href="?page=perfil&year=<?php echo $currentYear; ?>">
+                                <a class="dropdown-item" href="?pagina=perfil&anio=<?php echo $currentYear; ?>">
                                     <?php echo tablerIcon('user'); ?>
                                     Mi Perfil
                                 </a>

@@ -330,14 +330,15 @@ try {
 
             // Registrar en historial
             $accionHistorial = $activo ? 'ACTIVACION' : 'DESACTIVACION';
+            $detalleAccion = 'Usuario ' . ($activo ? 'activado' : 'desactivado');
             $modeloHistorial->registrar(
                 $usuarioIdSesion,
                 $id,
                 $accionHistorial,
-                "Usuario {$activo ? 'activado' : 'desactivado'}"
+                $detalleAccion
             );
 
-            responderJson(true, null, "Usuario " . ($activo ? 'activado' : 'desactivado') . " exitosamente", 200);
+            responderJson(true, null, $detalleAccion . ' exitosamente', 200);
             break;
 
         // ===== ELIMINAR USUARIO =====

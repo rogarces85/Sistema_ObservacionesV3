@@ -24,14 +24,14 @@ function jsonResponse($success, $data = null, $message = '', $statusCode = 200)
 }
 
 // Verificar autenticación
-if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
+if (!isset($_SESSION['autenticado']) || $_SESSION['autenticado'] !== true) {
     jsonResponse(false, null, 'No autorizado', 401);
 }
 
 $method = $_SERVER['REQUEST_METHOD'];
 $action = $_GET['action'] ?? '';
 $id = $_GET['id'] ?? null;
-$year = $_GET['year'] ?? $_SESSION['year'] ?? date('Y');
+$year = $_GET['year'] ?? $_SESSION['anio_trabajo'] ?? date('Y');
 
 try {
     $observationModel = new Observation();

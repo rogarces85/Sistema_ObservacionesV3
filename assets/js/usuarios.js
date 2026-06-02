@@ -129,10 +129,6 @@ class GestorUsuarios {
             ? '<span class="badge bg-green-lt">Activo</span>'
             : '<span class="badge bg-secondary-lt">Inactivo</span>';
 
-        const resetBadge = parseInt(usuario.password_reset_required) === 1
-            ? '<span class="badge bg-yellow-lt">Sí</span>'
-            : '<span class="badge bg-secondary-lt">No</span>';
-
         const fechaCreacion = this.formatearFecha(usuario.fecha_creacion);
 
         let acciones = `
@@ -168,7 +164,6 @@ class GestorUsuarios {
                 <td class="fw-semibold">${this.escapeHtml(usuario.nombre_completo)}</td>
                 <td>${rolBadge}</td>
                 <td>${estadoBadge}</td>
-                <td>${resetBadge}</td>
                 <td class="text-secondary">${fechaCreacion}</td>
                 <td class="text-end">${acciones}</td>
             </tr>

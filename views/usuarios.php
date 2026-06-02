@@ -65,7 +65,6 @@ if ($_SESSION['rol'] !== ROL_SUPERVISOR) {
                                     <th>Nombre Completo</th>
                                     <th>Rol</th>
                                     <th>Estado</th>
-                                    <th>Reset Requerido</th>
                                     <th>Fecha Creación</th>
                                     <th class="w-1 text-end">Acciones</th>
                                 </tr>

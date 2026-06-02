@@ -8,7 +8,7 @@ require_once 'config/constants.php';
 
 $usuarioId = $_SESSION['usuario_id'];
 $rol = $_SESSION['rol'];
-$anioActual = $_SESSION['year'] ?? date('Y');
+$anioActual = $_SESSION['anio_trabajo'] ?? date('Y');
 
 global $TIPOS_ERROR, $MESES, $SERIES_REM, $HOJAS_POR_SERIE;
 ?>

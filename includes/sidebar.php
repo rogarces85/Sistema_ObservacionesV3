@@ -1,7 +1,7 @@
 <?php
 $currentPage = $_GET['page'] ?? 'dashboard';
 $userRole = $_SESSION['rol'] ?? '';
-$currentYear = $_SESSION['year'] ?? date('Y');
+$currentYear = $_SESSION['anio_trabajo'] ?? date('Y');
 
 $navGroups = [
     [
@@ -93,7 +93,7 @@ $navGroups = [
             <span class="navbar-toggler-icon"></span>
         </button>
         <div class="navbar-brand navbar-brand-autodark">
-            <a href="?page=dashboard" class="text-white text-decoration-none">
+            <a href="?pagina=dashboard" class="text-white text-decoration-none">
                 <span class="fs-4 fw-bold">Sistema REM</span>
                 <small class="d-block text-secondary">Servicio de Salud</small>
             </a>
@@ -120,7 +120,7 @@ $navGroups = [
                         <?php if (in_array($userRole, $item['roles'])): ?>
                             <li class="nav-item">
                                 <a class="nav-link <?php echo ($currentPage === $item['id']) ? 'active' : ''; ?>"
-                                    href="?page=<?php echo $item['id']; ?>&year=<?php echo $currentYear; ?>">
+                                    href="?pagina=<?php echo $item['id']; ?>&anio=<?php echo $currentYear; ?>">
                                     <span class="nav-link-icon"><?php echo tablerIcon($item['icon']); ?></span>
                                     <span class="nav-link-title"><?php echo $item['title']; ?></span>
                                 </a>

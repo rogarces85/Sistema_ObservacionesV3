@@ -21,13 +21,13 @@ function jsonResponse($success, $data = null, $message = '', $statusCode = 200)
     exit;
 }
 
-if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
+if (!isset($_SESSION['autenticado']) || $_SESSION['autenticado'] !== true) {
     jsonResponse(false, null, 'No autorizado', 401);
 }
 
 $userId = $_SESSION['user_id'];
 $userRole = $_SESSION['rol'];
-$year = $_GET['year'] ?? $_SESSION['year'] ?? date('Y');
+$year = $_GET['year'] ?? $_SESSION['anio_trabajo'] ?? date('Y');
 $report = $_GET['report'] ?? 'all';
 
 try {

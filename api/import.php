@@ -57,7 +57,7 @@ try {
                 'detalle_observacion' => 'Descripción de la observación',
                 'plazo_entrega' => 'dentro_plazo o fuera_plazo'
             ],
-            'anio_seleccionado' => $_SESSION['year'] ?? date('Y')
+            'anio_seleccionado' => $_SESSION['anio_trabajo'] ?? date('Y')
         ]);
     }
 
@@ -75,7 +75,7 @@ try {
         }
 
         $archivo = $_FILES['archivo'];
-        $anio = $_POST['anio'] ?? ($_SESSION['year'] ?? date('Y'));
+        $anio = $_POST['anio'] ?? ($_SESSION['anio_trabajo'] ?? date('Y'));
         $extension = strtolower(pathinfo($archivo['name'], PATHINFO_EXTENSION));
 
         if (!in_array($extension, ['xlsx', 'xls'])) {

@@ -20,7 +20,7 @@ function jsonResponse($success, $data = null, $message = '', $statusCode = 200)
     exit;
 }
 
-if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
+if (!isset($_SESSION['autenticado']) || $_SESSION['autenticado'] !== true) {
     jsonResponse(false, null, 'No autenticado', 401);
 }
 
@@ -33,7 +33,7 @@ if ($userRole !== ROL_SUPERVISOR) {
 
 $method = $_SERVER['REQUEST_METHOD'];
 $action = $_GET['action'] ?? '';
-$currentYear = $_SESSION['year'] ?? date('Y');
+$currentYear = $_SESSION['anio_trabajo'] ?? date('Y');
 
 try {
     $asignacionModel = new EstablecimientoAsignacion();

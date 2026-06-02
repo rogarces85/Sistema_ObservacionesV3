@@ -291,40 +291,40 @@
 **Dependencias**: Ninguna | **Prioridad**: P2
 
 ### T-036: API de versionado
-- [ ] Crear `models/VersionSistema.php` — listar, detalle, crear, restaurar
-- [ ] Crear `api/versiones.php` — acciones: listar, detalle, crear, restaurar
-- [ ] Crear snapshot: copiar archivos (excluyendo node_modules/, .git/, uploads/, vendor/, *.log, *.tmp, assets/cache/, .env)
-- [ ] Generar manifiesto MD5 con rutas relativas
-- [ ] Versión auto-incremental: v001, v002... v999
-- [ ] Restaurar: copiar archivos de vuelta, crear nuevo registro de versión
-- [ ] Advertencia en rollback: "Si hay cambios de esquema BD, ejecutar migraciones manualmente"
+- [x] Crear `models/VersionSistema.php` — listar, detalle, crear, restaurar
+- [x] Crear `api/versiones.php` — acciones: listar, detalle, crear, restaurar
+- [x] Crear snapshot: copiar archivos (excluyendo node_modules/, .git/, uploads/, vendor/, *.log, *.tmp, assets/cache/, .env)
+- [x] Generar manifiesto MD5 con rutas relativas
+- [x] Versión auto-incremental: v001, v002... v999
+- [x] Restaurar: copiar archivos de vuelta, crear nuevo registro de versión
+- [x] Advertencia en rollback: "Si hay cambios de esquema BD, ejecutar migraciones manualmente"
 
 ### T-037: Vista de versionado
-- [ ] Crear `views/versionado.php` — lista cronológica de snapshots
-- [ ] Crear `assets/js/versionado.js` — crear snapshot, ver detalle, restaurar
-- [ ] Modal de creación con campo descripción (obligatorio)
-- [ ] Modal de confirmación para restauración
-- [ ] Mockup: `docs/manuales/versionado-lista.png`
-- [ ] Mockup: `docs/manuales/versionado-crear.png`
+- [x] Crear `views/versionado.php` — lista cronológica de snapshots
+- [x] Crear `assets/js/versionado.js` — crear snapshot, ver detalle, restaurar
+- [x] Modal de creación con campo descripción (obligatorio)
+- [x] Modal de confirmación para restauración
+- [x] Mockup: `docs/manuales/versionado-lista.png`
+- [x] Mockup: `docs/manuales/versionado-crear.png`
 
 ### T-038: Manual de usuario
-- [ ] Crear `docs/manuales/versionado.md` con flujo de creación y restauración
+- [x] Crear `docs/manuales/versionado.md` con flujo de creación y restauración
 
 ---
 
 ## Tareas Transversales
 
 ### T-039: Assets comunes
-- [ ] Configurar Tabler Core 1.4, Tabler Icons y ApexCharts 3.45 via CDN en layout principal
-- [ ] Crear layout base en `index.php` con sidebar, header, y carga de assets
-- [ ] Implementar sistema de toasts/notificaciones global
+- [x] Configurar Tabler Core 1.4, Tabler Icons y ApexCharts 3.45 via CDN en layout principal
+- [x] Crear layout base en `index.php` con sidebar, header, y carga de assets
+- [x] Implementar sistema de toasts/notificaciones global
 
 ### T-040: Seguridad global
-- [ ] Verificar CSRF en todos los endpoints POST/PUT/DELETE
-- [ ] Verificar verificación de rol (supervisor/registrador) en todos los endpoints
-- [ ] Verificar consultas preparadas PDO en todos los modelos
-- [ ] Verificar rutas dinámicas (sin hardcode)
+- [x] Verificar CSRF en todos los endpoints POST/PUT/DELETE
+- [x] Verificar verificación de rol (supervisor/registrador) en todos los endpoints
+- [x] Verificar consultas preparadas PDO en todos los modelos
+- [x] Verificar rutas dinámicas (sin hardcode)
 
 ### T-041: Directorios de manuales
-- [ ] Crear carpeta `docs/manuales/`
-- [ ] Verificar que todos los mockups sean accesibles desde la UI
+- [x] Crear carpeta `docs/manuales/`
+- [x] Verificar que todos los mockups sean accesibles desde la UI

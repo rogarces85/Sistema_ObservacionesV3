@@ -50,47 +50,42 @@ function validarCsrfToken()
 }
 
 // Protección contra fuerza bruta: 5 intentos → bloqueo 30s por IP
-function obtenerIntentosLogin()
+function obtenerClaveIntentos()
 {
-    $ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
-    $clave = 'login_intentos_' . $ip;
-
-    if (!isset($_SESSION[$clave])) {
-        $_SESSION[$clave] = ['intentos' => 0, 'bloqueado_hasta' => 0];
-    }
-
-    return &$_SESSION[$clave];
+    return 'login_intentos_' . ($_SERVER['REMOTE_ADDR'] ?? '0.0.0.0');
 }
 
 function registrarIntentoFallido()
 {
-    $registro = &obtenerIntentosLogin();
-    $registro['intentos']++;
-
-    if ($registro['intentos'] >= 5) {
-        $registro['bloqueado_hasta'] = time() + 30;
+    $clave = obtenerClaveIntentos();
+    if (!isset($_SESSION[$clave])) {
+        $_SESSION[$clave] = ['intentos' => 0, 'bloqueado_hasta' => 0];
+    }
+    $_SESSION[$clave]['intentos']++;
+    if ($_SESSION[$clave]['intentos'] >= 5) {
+        $_SESSION[$clave]['bloqueado_hasta'] = time() + 30;
     }
 }
 
 function verificarBloqueoFuerzaBruta()
 {
-    $registro = &obtenerIntentosLogin();
+    $clave = obtenerClaveIntentos();
+    if (!isset($_SESSION[$clave])) return;
 
+    $registro = $_SESSION[$clave];
     if ($registro['bloqueado_hasta'] > time()) {
         $tiempoRestante = $registro['bloqueado_hasta'] - time();
         responderJson(false, null, "Demasiados intentos. Intente nuevamente en {$tiempoRestante} segundos", 429);
     }
 
     if ($registro['bloqueado_hasta'] > 0 && $registro['bloqueado_hasta'] <= time()) {
-        $registro['intentos'] = 0;
-        $registro['bloqueado_hasta'] = 0;
+        $_SESSION[$clave] = ['intentos' => 0, 'bloqueado_hasta' => 0];
     }
 }
 
 function limpiarIntentosLogin()
 {
-    $ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
-    $clave = 'login_intentos_' . $ip;
+    $clave = obtenerClaveIntentos();
     unset($_SESSION[$clave]);
 }
 
@@ -118,7 +113,7 @@ try {
             }
 
             // Buscar usuario en la base de datos
-            $sql = "SELECT id, username, password_hash, nombre_completo, rol, activo, password_reset_required
+            $sql = "SELECT id, username, password_hash, nombre_completo, rol, activo
                     FROM usuarios WHERE username = :username LIMIT 1";
             $usuario = $db->consultarUno($sql, ['username' => $nombreUsuario]);
 
@@ -149,8 +144,7 @@ try {
                     'id' => (int)$usuario['id'],
                     'username' => $usuario['username'],
                     'nombre_completo' => $usuario['nombre_completo'],
-                    'rol' => $usuario['rol'],
-                    'password_reset_required' => (int)$usuario['password_reset_required']
+                    'rol' => $usuario['rol']
                 ],
                 'anio_trabajo' => $_SESSION['anio_trabajo'],
                 'csrf_token' => $tokenCsrf

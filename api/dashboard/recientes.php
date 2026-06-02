@@ -20,13 +20,13 @@ function responder($success, $data = null, $error = null, $codigo = 200)
     exit;
 }
 
-if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
+if (!isset($_SESSION['autenticado']) || $_SESSION['autenticado'] !== true) {
     responder(false, null, 'No autorizado', 401);
 }
 
 $usuarioId = (int) ($_SESSION['user_id'] ?? 0);
 $rol = $_SESSION['rol'] ?? '';
-$anio = (int) ($_GET['anio'] ?? $_SESSION['year'] ?? date('Y'));
+$anio = (int) ($_GET['anio'] ?? $_SESSION['anio_trabajo'] ?? date('Y'));
 $limite = (int) ($_GET['limite'] ?? 5);
 
 try {

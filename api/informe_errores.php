@@ -42,7 +42,7 @@ $metodo = $_SERVER['REQUEST_METHOD'];
 if ($metodo === 'GET') {
     $tipo = $_GET['tipo'] ?? '';
     $trimestre = isset($_GET['trimestre']) ? (int)$_GET['trimestre'] : null;
-    $anio = (int)($_GET['anio'] ?? $_SESSION['year'] ?? date('Y'));
+    $anio = (int)($_GET['anio'] ?? $_SESSION['anio_trabajo'] ?? date('Y'));
     $formato = $_GET['formato'] ?? 'json';
 
     if (!in_array($tipo, ['trimestral', 'anual'])) {
@@ -107,7 +107,7 @@ if ($metodo === 'POST') {
 
     $tipo = $cuerpo['tipo'] ?? '';
     $trimestre = isset($cuerpo['trimestre']) ? (int)$cuerpo['trimestre'] : null;
-    $anio = (int)($cuerpo['anio'] ?? $_SESSION['year'] ?? date('Y'));
+    $anio = (int)($cuerpo['anio'] ?? $_SESSION['anio_trabajo'] ?? date('Y'));
 
     if (!in_array($tipo, ['trimestral', 'anual'])) {
         responder(false, null, 'El parámetro tipo debe ser "trimestral" o "anual"', 400);

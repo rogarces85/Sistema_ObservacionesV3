@@ -39,7 +39,7 @@ try {
     $user = $this->db->queryOne($userSql, [$userId]);
     $userRole = $user['rol'];
     
-    $year = $parametros['year'] ?? date('Y');
+    $year = $parametros['anio'] ?? date('Y');
     $filename = "Reporte_{$report['tipo_reporte']}_{$report['id']}_" . date('Y-m-d_His') . ".{$report['formato']}";
     $outputPath = __DIR__ . '/uploads/reportes/' . $filename;
 

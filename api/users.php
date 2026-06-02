@@ -40,7 +40,7 @@ function validatePasswordPolicy($password) {
 }
 
 // Verificar autenticación
-if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
+if (!isset($_SESSION['autenticado']) || $_SESSION['autenticado'] !== true) {
     jsonResponse(false, null, 'No autenticado', 401);
 }
 

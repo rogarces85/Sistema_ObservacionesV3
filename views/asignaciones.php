@@ -9,7 +9,7 @@ if ($_SESSION['rol'] !== ROL_SUPERVISOR) {
     return;
 }
 
-$anioSeleccionado = $_SESSION['year'] ?? date('Y');
+$anioSeleccionado = $_SESSION['anio_trabajo'] ?? date('Y');
 ?>
 
 <div class="row row-cards">

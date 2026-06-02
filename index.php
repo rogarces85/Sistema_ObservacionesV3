@@ -25,7 +25,8 @@ $paginasPermitidas = [
     'asignaciones',
     'eliminadas',
     'establecimientos',
-    'importacion'
+    'importacion',
+    'versionado'
 ];
 
 // Validar que la página existe en la lista permitida
@@ -52,6 +53,9 @@ if ($pagina === 'establecimientos' && $rolUsuario !== ROL_SUPERVISOR) {
     $pagina = 'dashboard';
 }
 if ($pagina === 'importacion' && $rolUsuario !== ROL_REGISTRADOR) {
+    $pagina = 'dashboard';
+}
+if ($pagina === 'versionado' && $rolUsuario !== ROL_SUPERVISOR) {
     $pagina = 'dashboard';
 }
 

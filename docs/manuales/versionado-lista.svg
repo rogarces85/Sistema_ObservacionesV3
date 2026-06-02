@@ -1,0 +1,141 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" font-family="Inter, system-ui, sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f8fafc"/>
+      <stop offset="100%" stop-color="#e2e8f0"/>
+    </linearGradient>
+    <filter id="shadow" x="-2%" y="-2%" width="104%" height="104%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-opacity="0.1"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="500" fill="url(#bg)" rx="8"/>
+
+  <!-- Header -->
+  <rect width="800" height="60" fill="#1e293b" rx="8"/>
+  <rect y="52" width="800" height="8" fill="#1e293b"/>
+  <text x="20" y="35" fill="#fff" font-size="14" font-weight="600">Sistema REM - Versionado del Sistema</text>
+  <text x="20" y="50" fill="#94a3b8" font-size="10">Gestión de versiones y snapshots del sistema</text>
+  <rect x="620" y="15" width="160" height="30" rx="4" fill="#2563eb"/>
+  <text x="640" y="34" fill="#fff" font-size="11" font-weight="500">+ Crear Snapshot</text>
+
+  <!-- Stats -->
+  <g transform="translate(20, 75)">
+    <rect width="180" height="55" fill="#fff" rx="6" filter="url(#shadow)"/>
+    <rect x="12" y="12" width="32" height="32" rx="6" fill="#3b82f6"/>
+    <text x="28" y="33" fill="#fff" font-size="16">5</text>
+    <text x="55" y="25" fill="#334155" font-size="12" font-weight="600">5</text>
+    <text x="55" y="40" fill="#64748b" font-size="9">Total Versiones</text>
+
+    <rect x="195" width="180" height="55" fill="#fff" rx="6" filter="url(#shadow)"/>
+    <rect x="207" y="12" width="32" height="32" rx="6" fill="#22c55e"/>
+    <text x="220" y="33" fill="#fff" font-size="12">v</text>
+    <text x="250" y="25" fill="#334155" font-size="12" font-weight="600">v005</text>
+    <text x="250" y="40" fill="#64748b" font-size="9">Última Versión</text>
+
+    <rect x="390" width="180" height="55" fill="#fff" rx="6" filter="url(#shadow)"/>
+    <rect x="402" y="12" width="32" height="32" rx="6" fill="#0ea5e9"/>
+    <text x="414" y="33" fill="#fff" font-size="14">142</text>
+    <text x="445" y="25" fill="#334155" font-size="12" font-weight="600">142 archivos</text>
+    <text x="445" y="40" fill="#64748b" font-size="9">Archivos en Última</text>
+
+    <rect x="585" width="195" height="55" fill="#fff" rx="6" filter="url(#shadow)"/>
+    <rect x="597" y="12" width="32" height="32" rx="6" fill="#eab308"/>
+    <text x="610" y="33" fill="#fff" font-size="14">⚠</text>
+    <text x="640" y="25" fill="#334155" font-size="12" font-weight="600">Solo código</text>
+    <text x="640" y="40" fill="#64748b" font-size="9">Excluye uploads, vendor, .git</text>
+  </g>
+
+  <!-- Info Alert -->
+  <g transform="translate(20, 145)">
+    <rect width="760" height="50" fill="#eff6ff" rx="6" stroke="#bfdbfe" stroke-width="1"/>
+    <text x="15" y="20" fill="#1e40af" font-size="11" font-weight="600">ℹ Información importante</text>
+    <text x="15" y="35" fill="#3b82f6" font-size="9">Snapshots incluyen solo código fuente (.php, .js, .css, .sql, .json, .md). Rollback solo restaura archivos.</text>
+  </g>
+
+  <!-- Table -->
+  <g transform="translate(20, 210)">
+    <rect width="760" height="270" fill="#fff" rx="6" filter="url(#shadow)"/>
+
+    <!-- Table header -->
+    <rect width="760" height="35" fill="#f8fafc" rx="6"/>
+    <text x="15" y="22" fill="#475569" font-size="11" font-weight="600">Historial de Versiones</text>
+
+    <!-- Column headers -->
+    <rect y="35" width="760" height="28" fill="#f1f5f9"/>
+    <text x="20" y="53" fill="#64748b" font-size="9" font-weight="600">Versión</text>
+    <text x="100" y="53" fill="#64748b" font-size="9" font-weight="600">Descripción</text>
+    <text x="350" y="53" fill="#64748b" font-size="9" font-weight="600">Autor</text>
+    <text x="480" y="53" fill="#64748b" font-size="9" font-weight="600">Archivos</text>
+    <text x="580" y="53" fill="#64748b" font-size="9" font-weight="600">Fecha</text>
+    <text x="680" y="53" fill="#64748b" font-size="9" font-weight="600">Acciones</text>
+
+    <!-- Row 1 -->
+    <rect y="63" width="760" height="36" fill="#fff"/>
+    <rect x="20" y="70" width="50" height="20" rx="10" fill="#dbeafe"/>
+    <text x="28" y="84" fill="#2563eb" font-size="9" font-weight="600">v005</text>
+    <text x="100" y="84" fill="#334155" font-size="10">Fix validaciones REM Serie A</text>
+    <text x="350" y="84" fill="#64748b" font-size="10">Juan Pérez</text>
+    <text x="480" y="84" fill="#64748b" font-size="10">142 archivos</text>
+    <text x="580" y="84" fill="#94a3b8" font-size="10">02/06/2026 14:30</text>
+    <circle cx="695" cy="81" r="10" fill="#f1f5f9"/>
+    <text x="690" y="85" fill="#64748b" font-size="10">👁</text>
+    <circle cx="725" cy="81" r="10" fill="#fef3c7"/>
+    <text x="720" y="85" fill="#d97706" font-size="10">↩</text>
+
+    <!-- Row 2 -->
+    <rect y="99" width="760" height="36" fill="#f8fafc"/>
+    <rect x="20" y="106" width="50" height="20" rx="10" fill="#fef3c7"/>
+    <text x="28" y="120" fill="#d97706" font-size="9" font-weight="600">v004</text>
+    <rect x="75" y="106" width="50" height="20" rx="10" fill="#fef3c7"/>
+    <text x="80" y="120" fill="#d97706" font-size="8">Rollback</text>
+    <text x="135" y="120" fill="#334155" font-size="10">Rollback desde versión v002</text>
+    <text x="350" y="120" fill="#64748b" font-size="10">Juan Pérez</text>
+    <text x="480" y="120" fill="#64748b" font-size="10">138 archivos</text>
+    <text x="580" y="120" fill="#94a3b8" font-size="10">01/06/2026 10:15</text>
+    <circle cx="695" cy="117" r="10" fill="#f1f5f9"/>
+    <text x="690" y="121" fill="#64748b" font-size="10">👁</text>
+    <circle cx="725" cy="117" r="10" fill="#fef3c7"/>
+    <text x="720" y="121" fill="#d97706" font-size="10">↩</text>
+
+    <!-- Row 3 -->
+    <rect y="135" width="760" height="36" fill="#fff"/>
+    <rect x="20" y="142" width="50" height="20" rx="10" fill="#dbeafe"/>
+    <text x="28" y="156" fill="#2563eb" font-size="9" font-weight="600">v003</text>
+    <text x="100" y="156" fill="#334155" font-size="10">Módulo reportes mejorado</text>
+    <text x="350" y="156" fill="#64748b" font-size="10">Juan Pérez</text>
+    <text x="480" y="156" fill="#64748b" font-size="10">140 archivos</text>
+    <text x="580" y="156" fill="#94a3b8" font-size="10">30/05/2026 16:45</text>
+    <circle cx="695" cy="153" r="10" fill="#f1f5f9"/>
+    <text x="690" y="157" fill="#64748b" font-size="10">👁</text>
+    <circle cx="725" cy="153" r="10" fill="#fef3c7"/>
+    <text x="720" y="157" fill="#d97706" font-size="10">↩</text>
+
+    <!-- Row 4 -->
+    <rect y="171" width="760" height="36" fill="#f8fafc"/>
+    <rect x="20" y="178" width="50" height="20" rx="10" fill="#dbeafe"/>
+    <text x="28" y="192" fill="#2563eb" font-size="9" font-weight="600">v002</text>
+    <text x="100" y="192" fill="#334155" font-size="10">Importación desde Excel</text>
+    <text x="350" y="192" fill="#64748b" font-size="10">Juan Pérez</text>
+    <text x="480" y="192" fill="#64748b" font-size="10">135 archivos</text>
+    <text x="580" y="192" fill="#94a3b8" font-size="10">28/05/2026 09:20</text>
+    <circle cx="695" cy="189" r="10" fill="#f1f5f9"/>
+    <text x="690" y="193" fill="#64748b" font-size="10">👁</text>
+    <circle cx="725" cy="189" r="10" fill="#fef3c7"/>
+    <text x="720" y="193" fill="#d97706" font-size="10">↩</text>
+
+    <!-- Row 5 -->
+    <rect y="207" width="760" height="36" fill="#fff"/>
+    <rect x="20" y="214" width="50" height="20" rx="10" fill="#dbeafe"/>
+    <text x="28" y="228" fill="#2563eb" font-size="9" font-weight="600">v001</text>
+    <text x="100" y="228" fill="#334155" font-size="10">Snapshot inicial del sistema</text>
+    <text x="350" y="228" fill="#64748b" font-size="10">Juan Pérez</text>
+    <text x="480" y="228" fill="#64748b" font-size="10">130 archivos</text>
+    <text x="580" y="228" fill="#94a3b8" font-size="10">25/05/2026 11:00</text>
+    <circle cx="695" cy="225" r="10" fill="#f1f5f9"/>
+    <text x="690" y="229" fill="#64748b" font-size="10">👁</text>
+    <circle cx="725" cy="225" r="10" fill="#fef3c7"/>
+    <text x="720" y="229" fill="#d97706" font-size="10">↩</text>
+  </g>
+</svg>

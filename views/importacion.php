@@ -5,11 +5,11 @@
  */
 
 if (($_SESSION['rol'] ?? '') !== ROL_REGISTRADOR) {
-    header('Location: ?page=dashboard&year=' . ($_SESSION['year'] ?? date('Y')));
+    header('Location: ?pagina=dashboard&anio=' . ($_SESSION['anio_trabajo'] ?? date('Y')));
     exit;
 }
 
-$anioActual = $_SESSION['year'] ?? date('Y');
+$anioActual = $_SESSION['anio_trabajo'] ?? date('Y');
 ?>
 
 <div class="space-y-6">

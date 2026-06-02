@@ -14,7 +14,7 @@ require_once 'config/constants.php';
 require_once 'config/database.php';
 
 $usuarioId = $_SESSION['usuario_id'];
-$anioActual = $_SESSION['year'] ?? date('Y');
+$anioActual = $_SESSION['anio_trabajo'] ?? date('Y');
 
 global $TIPOS_ERROR, $MESES;
 
