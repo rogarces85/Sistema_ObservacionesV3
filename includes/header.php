@@ -6,7 +6,7 @@ if (!isset($_SESSION['autenticado']) || $_SESSION['autenticado'] !== true) {
 
 require_once 'includes/icons.php';
 
-$currentPage = $_GET['page'] ?? 'dashboard';
+$currentPage = $_GET['pagina'] ?? 'dashboard';
 $currentYear = $_SESSION['anio_trabajo'] ?? date('Y');
 $userName = $_SESSION['nombre_completo'] ?? 'Usuario';
 $userRole = $_SESSION['rol'] ?? '';

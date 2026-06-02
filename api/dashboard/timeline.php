@@ -24,7 +24,7 @@ if (!isset($_SESSION['autenticado']) || $_SESSION['autenticado'] !== true) {
     responder(false, null, 'No autorizado', 401);
 }
 
-$usuarioId = (int) ($_SESSION['user_id'] ?? 0);
+$usuarioId = (int) ($_SESSION['usuario_id'] ?? 0);
 $rol = $_SESSION['rol'] ?? '';
 $anio = (int) ($_GET['anio'] ?? $_SESSION['anio_trabajo'] ?? date('Y'));
 $limite = (int) ($_GET['limite'] ?? 15);

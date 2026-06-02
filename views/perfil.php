@@ -4,11 +4,11 @@
  * Accesible para todos los usuarios
  */
 
-require_once 'models/User.php';
+require_once 'models/Usuario.php';
 
-$userModel = new User();
-$userId = $_SESSION['user_id'];
-$userInfo = $userModel->getById($userId);
+$modeloUsuario = new Usuario();
+$userId = $_SESSION['usuario_id'];
+$userInfo = $modeloUsuario->obtenerPorId($userId);
 ?>
 
 <div class="row row-cards">
@@ -114,13 +114,13 @@ $userInfo = $userModel->getById($userId);
         try {
             showLoading();
 
-            const response = await fetchAPI('users.php?id=<?php echo $userId; ?>', {
+            const response = await fetchAPI('api/usuarios.php?action=password', {
                 method: 'PUT',
                 body: JSON.stringify({
-                    action: 'password',
-                    current_password: currentPassword,
-                    new_password: newPassword,
-                    confirm_password: confirmPassword
+                    id: <?php echo $userId; ?>,
+                    password_actual: currentPassword,
+                    password_nuevo: newPassword,
+                    password_confirmacion: confirmPassword
                 })
             });
 

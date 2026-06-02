@@ -23,7 +23,7 @@ if (!isset($_SESSION['autenticado']) || $_SESSION['autenticado'] !== true) {
     jsonResponse(false, null, 'No autorizado', 401);
 }
 
-$userId = $_SESSION['user_id'];
+$userId = $_SESSION['usuario_id'];
 $userRole = $_SESSION['rol'];
 $currentYear = $_SESSION['anio_trabajo'] ?? date('Y');
 

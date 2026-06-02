@@ -4,7 +4,7 @@
  * Sistema de Observaciones REM
  */
 
-$usuarioId = $_SESSION['user_id'] ?? 0;
+$usuarioId = $_SESSION['usuario_id'] ?? 0;
 $rol = $_SESSION['rol'] ?? '';
 $anio = $_SESSION['anio_trabajo'] ?? date('Y');
 $nombreUsuario = $_SESSION['nombre_completo'] ?? 'Usuario';

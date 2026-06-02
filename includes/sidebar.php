@@ -1,5 +1,5 @@
 <?php
-$currentPage = $_GET['page'] ?? 'dashboard';
+$currentPage = $_GET['pagina'] ?? 'dashboard';
 $userRole = $_SESSION['rol'] ?? '';
 $currentYear = $_SESSION['anio_trabajo'] ?? date('Y');
 

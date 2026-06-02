@@ -56,16 +56,17 @@ if (!isset($_SESSION['autenticado']) || $_SESSION['autenticado'] !== true) {
     responderJson(false, null, 'No hay sesión activa', 401);
 }
 
-/**
- * Verificar rol supervisor (403 para registrador)
- */
-if ($_SESSION['rol'] !== ROL_SUPERVISOR) {
-    responderJson(false, null, 'Acceso denegado. Solo supervisores pueden gestionar usuarios', 403);
-}
-
 $usuarioIdSesion = (int)$_SESSION['usuario_id'];
 $metodo = $_SERVER['REQUEST_METHOD'];
 $accion = $_GET['action'] ?? '';
+
+/**
+ * Verificar rol supervisor (403 para registrador)
+ * Excepción: acción 'password' está permitida para cualquier usuario autenticado
+ */
+if ($accion !== 'password' && $_SESSION['rol'] !== ROL_SUPERVISOR) {
+    responderJson(false, null, 'Acceso denegado. Solo supervisores pueden gestionar usuarios', 403);
+}
 
 try {
     $modeloUsuario = new Usuario();
