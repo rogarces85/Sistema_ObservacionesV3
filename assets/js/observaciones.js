@@ -237,6 +237,7 @@ const ObservacionesApp = (() => {
             document.getElementById('frmDetalle').value = obs.detalle_observacion || '';
             document.getElementById('frmPlazo').value = obs.plazo_entrega || '';
             document.getElementById('frmClasificacion').value = obs.clasificacion || '';
+            document.getElementById('frmUsaValidador').value = obs.usa_validador || '';
 
             limpiarErrores();
             modalFormulario.show();
@@ -277,7 +278,8 @@ const ObservacionesApp = (() => {
             codigo_hoja: tipoError === 'S/OBSERVACION' ? null : document.getElementById('frmHoja').value,
             detalle_observacion: document.getElementById('frmDetalle').value,
             plazo_entrega: document.getElementById('frmPlazo').value || null,
-            clasificacion: document.getElementById('frmClasificacion').value || null
+            clasificacion: document.getElementById('frmClasificacion').value || null,
+            usa_validador: document.getElementById('frmUsaValidador').value || null
         };
 
         const fechaOriginal = document.getElementById('obsFechaActualizacion').value;
@@ -350,7 +352,7 @@ const ObservacionesApp = (() => {
             document.getElementById('detPlazo').textContent = obs.plazo_entrega ? capitalizar(obs.plazo_entrega.replace('_', ' ')) : '-';
             document.getElementById('detClasificacion').textContent = obs.clasificacion || '-';
             document.getElementById('detRegistradoPor').textContent = obs.usuario_registro_nombre || '-';
-            document.getElementById('detFechaCreacion').textContent = formatearFechaHora(obs.fecha_creacion);
+            document.getElementById('detFechaCreacion').textContent = formatearFechaHora(obs.fecha_registro || obs.fecha_creacion);
             document.getElementById('detFechaActualizacion').textContent = formatearFechaHora(obs.fecha_actualizacion);
 
             const historial = histResp.success ? (histResp.data || []) : [];

@@ -143,4 +143,80 @@ class Database
     {
         throw new Exception("No se puede deserializar un singleton.");
     }
+
+    // ============================================================
+    // Alias en español para compatibilidad con config/database.php
+    // ============================================================
+
+    /**
+     * Alias de getInstance()
+     */
+    public static function obtenerInstancia()
+    {
+        return self::getInstance();
+    }
+
+    /**
+     * Alias de getConnection()
+     */
+    public function obtenerConexion()
+    {
+        return $this->getConnection();
+    }
+
+    /**
+     * Alias de query()
+     */
+    public function consultar($sql, $params = [])
+    {
+        return $this->query($sql, $params);
+    }
+
+    /**
+     * Alias de queryOne()
+     */
+    public function consultarUno($sql, $params = [])
+    {
+        return $this->queryOne($sql, $params);
+    }
+
+    /**
+     * Alias de execute()
+     */
+    public function ejecutar($sql, $params = [])
+    {
+        return $this->execute($sql, $params);
+    }
+
+    /**
+     * Alias de lastInsertId()
+     */
+    public function ultimoIdInsertado()
+    {
+        return $this->lastInsertId();
+    }
+
+    /**
+     * Alias de beginTransaction()
+     */
+    public function iniciarTransaccion()
+    {
+        return $this->beginTransaction();
+    }
+
+    /**
+     * Alias de commit()
+     */
+    public function confirmarTransaccion()
+    {
+        return $this->commit();
+    }
+
+    /**
+     * Alias de rollback()
+     */
+    public function revertirTransaccion()
+    {
+        return $this->rollBack();
+    }
 }

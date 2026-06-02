@@ -205,6 +205,112 @@ $nombreUsuario = $_SESSION['nombre_completo'] ?? 'Usuario';
                 </div>
             </div>
         </div>
+
+        <!-- Widget 13: Alertas Inteligentes -->
+        <div id="widget-alertas-inteligentes" class="row g-3 mt-2"></div>
+
+        <!-- Widgets Grid -->
+        <div class="row g-3 mt-2">
+            <div class="col-lg-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title"><?php echo tablerIcon('eye'); ?> Carga del Supervisor</h3>
+                    </div>
+                    <div class="card-body">
+                        <div id="chart-carga-supervisor" style="height:260px">
+                            <div class="text-center py-5 text-secondary">
+                                <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                                Cargando...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title"><?php echo tablerIcon('calendar-stats'); ?> Cumplimiento de Plazo</h3>
+                    </div>
+                    <div class="card-body">
+                        <div id="chart-cumplimiento-plazo" style="height:260px">
+                            <div class="text-center py-5 text-secondary">
+                                <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                                Cargando...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-3 mt-2">
+            <div class="col-lg-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title"><?php echo tablerIcon('building-community'); ?> Distribución por Comuna</h3>
+                    </div>
+                    <div class="card-body">
+                        <div id="chart-mapa-comunas" style="height:260px">
+                            <div class="text-center py-5 text-secondary">
+                                <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                                Cargando...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title"><?php echo tablerIcon('trending-up'); ?> Estacionalidad</h3>
+                    </div>
+                    <div class="card-body">
+                        <div id="chart-estacionalidad" style="height:260px">
+                            <div class="text-center py-5 text-secondary">
+                                <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                                Cargando...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-3 mt-2">
+            <div class="col-lg-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title"><?php echo tablerIcon('table'); ?> Heatmap Serie × Hoja</h3>
+                    </div>
+                    <div class="card-body">
+                        <div id="chart-heatmap" style="height:260px">
+                            <div class="text-center py-5 text-secondary">
+                                <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                                Cargando...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title"><?php echo tablerIcon('chart-arrows'); ?> Comparativa Interanual</h3>
+                        <div class="card-actions">
+                            <small class="text-secondary"><?php echo $anio - 1; ?> vs <?php echo $anio; ?></small>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div id="chart-comparativa" style="height:260px">
+                            <div class="text-center py-5 text-secondary">
+                                <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                                Cargando...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Pestaña Kanban -->

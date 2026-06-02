@@ -36,7 +36,8 @@ try {
     
     // Obtener rol del usuario para filtrar datos
     $userSql = "SELECT rol FROM usuarios WHERE id = ?";
-    $user = $this->db->queryOne($userSql, [$userId]);
+    $db = Database::getInstance();
+    $user = $db->queryOne($userSql, [$userId]);
     $userRole = $user['rol'];
     
     $year = $parametros['anio'] ?? date('Y');

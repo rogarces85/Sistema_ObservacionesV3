@@ -79,7 +79,7 @@ class Observacion
             $params[] = $termino;
         }
 
-        $sql .= " ORDER BY o.fecha_creacion DESC";
+        $sql .= " ORDER BY o.fecha_registro DESC";
 
         $sqlConteo = preg_replace('/SELECT.*?FROM/s', 'SELECT COUNT(*) as total FROM', $sql);
         $sqlConteo = preg_replace('/ORDER BY.*$/', '', $sqlConteo);
@@ -150,18 +150,15 @@ class Observacion
         }
 
         $sql = "INSERT INTO observaciones 
-                (usuario_registro_id, establecimiento_id, comuna_id, anio, mes, 
+                (usuario_registro_id, establecimiento_id, anio, mes, 
                  codigo_serie, codigo_hoja, tipo_error, detalle_observacion, 
-                 plazo_entrega, anio_rem, mes_rem, estado_actual, clasificacion, 
-                 fecha_creacion, fecha_actualizacion)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())";
-
-        $comunaId = $this->obtenerComunaEstablecimiento($establecimientoId);
+                 plazo_entrega, usa_validador, estado_actual, clasificacion, 
+                 fecha_registro, fecha_actualizacion)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())";
 
         $params = [
             $usuarioId,
             $establecimientoId,
-            $comunaId,
             $anio,
             $mes,
             $datos['codigo_serie'] ?? null,
@@ -169,10 +166,9 @@ class Observacion
             $datos['tipo_error'],
             $datos['detalle_observacion'] ?? '',
             $datos['plazo_entrega'] ?? null,
-            $datos['anio_rem'] ?? $anio,
-            $datos['mes_rem'] ?? $mes,
+            $datos['usa_validador'] ?? null,
             ESTADO_PENDIENTE,
-            $datos['clasificacion'] ?? null
+            $datos['clasificacion'] ?? '',
         ];
 
         $this->db->ejecutar($sql, $params);
@@ -220,9 +216,9 @@ class Observacion
         $params = [];
 
         $camposPermitidos = [
-            'mes', 'establecimiento_id', 'comuna_id', 'anio', 'codigo_serie',
+            'mes', 'establecimiento_id', 'anio', 'codigo_serie',
             'codigo_hoja', 'tipo_error', 'detalle_observacion', 'plazo_entrega',
-            'anio_rem', 'mes_rem', 'estado_actual', 'clasificacion'
+            'usa_validador', 'estado_actual', 'clasificacion'
         ];
 
         foreach ($camposPermitidos as $campo) {
@@ -379,7 +375,7 @@ class Observacion
                     o.clasificacion,
                     o.detalle_error,
                     o.estado_actual,
-                    o.fecha_creacion
+                    o.fecha_registro
                 FROM observaciones o
                 INNER JOIN establecimientos e ON o.establecimiento_id = e.id
                 INNER JOIN comunas c ON e.comuna_id = c.id

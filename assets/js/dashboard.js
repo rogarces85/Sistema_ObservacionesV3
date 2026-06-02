@@ -53,7 +53,8 @@ class Dashboard {
             alertas: this.obtenerJSON(`api/dashboard/alertas.php?anio=${anio}`),
             sparklines: this.obtenerJSON(`api/dashboard/sparklines.php?anio=${anio}`),
             timeline: this.obtenerJSON(`api/dashboard/timeline.php?anio=${anio}`),
-            kanban: this.obtenerJSON(`api/dashboard/kanban.php?anio=${anio}`)
+            kanban: this.obtenerJSON(`api/dashboard/kanban.php?anio=${anio}`),
+            widgets: this.obtenerJSON(`api/dashboard/widgets.php?anio=${anio}`)
         };
 
         const resultados = await Promise.allSettled(Object.values(promesas));
@@ -93,6 +94,9 @@ class Dashboard {
                 break;
             case 'timeline':
                 this.renderizarTimeline(datos.eventos || []);
+                break;
+            case 'widgets':
+                this.renderizarWidgets(datos);
                 break;
             case 'kanban':
                 this.renderizarKanban(datos);
@@ -469,6 +473,257 @@ class Dashboard {
             showError('Error de conexión al actualizar estado');
             this.cargarDatos();
         }
+    }
+
+    renderizarWidgets(datos) {
+        this.renderizarAlertasInteligentes(datos.alertas_inteligentes || []);
+        this.renderizarCargaSupervisor(datos.carga_supervisor || []);
+        this.renderizarCumplimientoPlazo(datos.cumplimiento_plazo || []);
+        this.renderizarMapaComunas(datos.mapa_comunas || []);
+        this.renderizarEstacionalidad(datos.estacionalidad || []);
+        this.renderizarHeatmap(datos.heatmap || []);
+        this.renderizarComparativa(datos.comparativa || []);
+    }
+
+    renderizarAlertasInteligentes(alertas) {
+        const contenedor = document.getElementById('widget-alertas-inteligentes');
+        if (!contenedor) return;
+
+        if (alertas.length === 0) {
+            contenedor.innerHTML = '';
+            return;
+        }
+
+        const mapaColor = { danger: 'red', warning: 'yellow', info: 'blue' };
+
+        let html = '';
+        alertas.forEach(a => {
+            const color = mapaColor[a.tipo] || 'secondary';
+            html += `<div class="col-sm-6 col-lg-3">
+                <div class="card card-sm">
+                    <div class="card-status-top bg-${color}"></div>
+                    <div class="card-body">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="avatar avatar-md bg-${color}-lt">
+                                <i class="ti ti-${a.icono}"></i>
+                            </div>
+                            <div>
+                                <div class="fw-semibold">${this.escapeHtml(a.titulo)}</div>
+                                <div class="text-secondary small">${this.escapeHtml(a.mensaje)}</div>
+                                ${a.enlace ? `<a href="${a.enlace}" class="btn btn-ghost-${color} btn-sm mt-1">${this.escapeHtml(a.texto_enlace)}</a>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+        });
+
+        contenedor.innerHTML = html;
+    }
+
+    renderizarCargaSupervisor(datos) {
+        const contenedor = document.getElementById('chart-carga-supervisor');
+        if (!contenedor) return;
+
+        if (datos.length === 0) {
+            contenedor.innerHTML = '<div class="text-center py-5 text-secondary">Sin datos de supervisión</div>';
+            return;
+        }
+
+        const etiquetas = datos.map(d => d.nombre_completo);
+        const valores = datos.map(d => parseInt(d.pendientes));
+        const colores = ['#f59e0b', '#0ea5e9', '#8b5cf6', '#10b981', '#f97316'];
+
+        if (this.charts.cargaSupervisor) this.charts.cargaSupervisor.destroy();
+
+        this.charts.cargaSupervisor = new ApexCharts(contenedor, {
+            chart: { type: 'bar', height: 260, fontFamily: "'Inter', sans-serif", toolbar: { show: false } },
+            series: [{ name: 'Pendientes', data: valores }],
+            colors: colores.slice(0, valores.length),
+            plotOptions: { bar: { horizontal: true, borderRadius: 4, dataLabels: { position: 'top' } } },
+            dataLabels: { enabled: true, style: { fontSize: '11px', fontWeight: 700 }, offsetX: -8 },
+            xaxis: { categories: etiquetas, labels: { style: { fontSize: '11px' } } },
+            yaxis: { labels: { style: { fontSize: '12px', fontWeight: 600 } } },
+            tooltip: { y: { formatter: (val) => `${val} pendientes` } }
+        });
+
+        this.charts.cargaSupervisor.render();
+    }
+
+    renderizarCumplimientoPlazo(datos) {
+        const contenedor = document.getElementById('chart-cumplimiento-plazo');
+        if (!contenedor) return;
+
+        if (datos.length === 0) {
+            contenedor.innerHTML = '<div class="text-center py-5 text-secondary">Sin datos de plazo</div>';
+            return;
+        }
+
+        const labels = { 'dentro_plazo': 'Dentro de Plazo', 'fuera_plazo': 'Fuera de Plazo' };
+        const etiquetas = datos.map(d => labels[d.plazo_entrega] || d.plazo_entrega);
+        const valores = datos.map(d => parseInt(d.total));
+        const colores = ['#059669', '#dc2626'];
+
+        if (this.charts.cumplimientoPlazo) this.charts.cumplimientoPlazo.destroy();
+
+        this.charts.cumplimientoPlazo = new ApexCharts(contenedor, {
+            chart: { type: 'donut', height: 260, fontFamily: "'Inter', sans-serif" },
+            series: valores,
+            labels: etiquetas,
+            colors: colores,
+            legend: { position: 'bottom', fontSize: '12px' },
+            dataLabels: { enabled: true, style: { fontSize: '12px', fontWeight: 600 } },
+            tooltip: { y: { formatter: (val) => `${val} observaciones` } },
+            plotOptions: {
+                pie: {
+                    donut: {
+                        size: '65%',
+                        labels: {
+                            show: true,
+                            name: { fontSize: '14px' },
+                            value: { fontSize: '20px', fontWeight: 700 },
+                            total: { show: true, label: 'Total', fontSize: '14px', formatter: () => valores.reduce((a, b) => a + b, 0).toLocaleString('es-CL') }
+                        }
+                    }
+                }
+            }
+        });
+
+        this.charts.cumplimientoPlazo.render();
+    }
+
+    renderizarMapaComunas(datos) {
+        const contenedor = document.getElementById('chart-mapa-comunas');
+        if (!contenedor) return;
+
+        if (datos.length === 0) {
+            contenedor.innerHTML = '<div class="text-center py-5 text-secondary">Sin datos por comuna</div>';
+            return;
+        }
+
+        const etiquetas = datos.map(d => d.nombre);
+        const valores = datos.map(d => parseInt(d.total));
+
+        if (this.charts.mapaComunas) this.charts.mapaComunas.destroy();
+
+        this.charts.mapaComunas = new ApexCharts(contenedor, {
+            chart: { type: 'bar', height: 260, fontFamily: "'Inter', sans-serif", toolbar: { show: false } },
+            series: [{ name: 'Observaciones', data: valores }],
+            colors: ['#0ea5e9'],
+            plotOptions: { bar: { horizontal: false, borderRadius: 4, columnWidth: '55%' } },
+            dataLabels: { enabled: true, style: { fontSize: '11px', fontWeight: 700 } },
+            xaxis: { categories: etiquetas, labels: { style: { fontSize: '11px' } } },
+            yaxis: { labels: { style: { fontSize: '11px' } } },
+            tooltip: { y: { formatter: (val) => `${val} observaciones` } }
+        });
+
+        this.charts.mapaComunas.render();
+    }
+
+    renderizarEstacionalidad(datos) {
+        const contenedor = document.getElementById('chart-estacionalidad');
+        if (!contenedor) return;
+
+        if (datos.length === 0) {
+            contenedor.innerHTML = '<div class="text-center py-5 text-secondary">Sin datos históricos</div>';
+            return;
+        }
+
+        const etiquetas = datos.map(d => d.mes.substring(0, 3));
+        const actual = datos.map(d => d.actual);
+        const promedio = datos.map(d => d.promedio);
+
+        if (this.charts.estacionalidad) this.charts.estacionalidad.destroy();
+
+        this.charts.estacionalidad = new ApexCharts(contenedor, {
+            chart: { type: 'line', height: 260, fontFamily: "'Inter', sans-serif", toolbar: { show: false } },
+            series: [
+                { name: 'Año Actual', data: actual },
+                { name: 'Promedio Histórico', data: promedio }
+            ],
+            colors: ['#0ea5e9', '#94a3b8'],
+            stroke: { width: [3, 2], curve: 'smooth', dashArray: [0, 5] },
+            markers: { size: [5, 0] },
+            dataLabels: { enabled: false },
+            xaxis: { categories: etiquetas, labels: { style: { fontSize: '11px' } } },
+            yaxis: { labels: { style: { fontSize: '11px' } } },
+            tooltip: { y: { formatter: (val) => `${val} observaciones` } },
+            legend: { position: 'bottom', fontSize: '12px', markers: { width: 10, height: 10 } }
+        });
+
+        this.charts.estacionalidad.render();
+    }
+
+    renderizarHeatmap(datos) {
+        const contenedor = document.getElementById('chart-heatmap');
+        if (!contenedor) return;
+
+        if (datos.length === 0) {
+            contenedor.innerHTML = '<div class="text-center py-5 text-secondary">Sin datos de series</div>';
+            return;
+        }
+
+        const maxVal = Math.max(...datos.map(d => parseInt(d.total)));
+        const intensidad = (val) => {
+            const pct = val / maxVal;
+            if (pct > 0.7) return 'bg-red text-white';
+            if (pct > 0.4) return 'bg-yellow text-white';
+            if (pct > 0.15) return 'bg-blue-lt';
+            return 'bg-secondary-lt text-secondary';
+        };
+
+        let html = '<div class="table-responsive" style="max-height:220px;overflow-y:auto">';
+        html += '<table class="table table-sm table-vcenter card-table mb-0">';
+        html += '<thead><tr><th>Serie</th><th>Hoja</th><th class="text-end">Cantidad</th></tr></thead><tbody>';
+
+        datos.forEach(d => {
+            html += `<tr>
+                <td><span class="fw-semibold small">${this.escapeHtml(d.codigo_serie)}</span></td>
+                <td class="text-secondary">${this.escapeHtml(d.codigo_hoja)}</td>
+                <td class="text-end"><span class="badge ${intensidad(parseInt(d.total))}">${parseInt(d.total)}</span></td>
+            </tr>`;
+        });
+
+        html += '</tbody></table></div>';
+        contenedor.innerHTML = html;
+    }
+
+    renderizarComparativa(datos) {
+        const contenedor = document.getElementById('chart-comparativa');
+        if (!contenedor) return;
+
+        if (datos.length === 0) {
+            contenedor.innerHTML = '<div class="text-center py-5 text-secondary">Sin datos comparativos</div>';
+            return;
+        }
+
+        const anios = [...new Set(datos.map(d => parseInt(d.anio)))].sort();
+        const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+        const etiquetas = meses.map(m => m.substring(0, 3));
+
+        const series = anios.map(anio => {
+            const valores = meses.map(mes => {
+                const item = datos.find(d => d.mes === mes && parseInt(d.anio) === anio);
+                return item ? parseInt(item.total) : 0;
+            });
+            return { name: `Año ${anio}`, data: valores };
+        });
+
+        if (this.charts.comparativa) this.charts.comparativa.destroy();
+
+        this.charts.comparativa = new ApexCharts(contenedor, {
+            chart: { type: 'bar', height: 260, fontFamily: "'Inter', sans-serif", toolbar: { show: false }, stacked: false },
+            series: series,
+            colors: ['#0ea5e9', '#f59e0b'],
+            plotOptions: { bar: { horizontal: false, borderRadius: 4, columnWidth: '45%' } },
+            dataLabels: { enabled: false },
+            xaxis: { categories: etiquetas, labels: { style: { fontSize: '11px' } } },
+            yaxis: { labels: { style: { fontSize: '11px' } } },
+            tooltip: { y: { formatter: (val) => `${val} observaciones` } },
+            legend: { position: 'bottom', fontSize: '12px' }
+        });
+
+        this.charts.comparativa.render();
     }
 
     configurarAutoRefresh() {

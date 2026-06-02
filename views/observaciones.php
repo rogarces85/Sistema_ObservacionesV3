@@ -216,12 +216,6 @@ global $TIPOS_ERROR, $MESES, $SERIES_REM, $HOJAS_POR_SERIE;
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Plazo de Entrega</label>
-                            <select id="frmPlazo" class="form-select">
-                                <option value="">Seleccione...</option>
-                                <option value="dentro_plazo">Dentro de Plazo</option>
-                                <option value="fuera_plazo">Fuera de Plazo</option>
-                            </select>
                         </div>
                     </div>
 
@@ -234,6 +228,22 @@ global $TIPOS_ERROR, $MESES, $SERIES_REM, $HOJAS_POR_SERIE;
                         <div class="col-md-6">
                             <label class="form-label">Clasificación</label>
                             <input type="text" id="frmClasificacion" class="form-control" placeholder="Clasificación de respuesta">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Usa Validador</label>
+                            <select id="frmUsaValidador" class="form-select">
+                                <option value="">Seleccione...</option>
+                                <option value="si">Sí</option>
+                                <option value="no">No</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Plazo de Entrega</label>
+                            <select id="frmPlazo" class="form-select">
+                                <option value="">Seleccione...</option>
+                                <option value="dentro_plazo">Dentro de Plazo</option>
+                                <option value="fuera_plazo">Fuera de Plazo</option>
+                            </select>
                         </div>
                     </div>
                 </div>
