@@ -112,176 +112,127 @@ $anioActual = $_SESSION['anio_trabajo'] ?? date('Y');
     </div>
 </div>
 
-<!-- Modal de Creación de Snapshot -->
-<div class="modal fade" id="modalCrearVersion" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title"><?php echo tablerIcon('camera-plus'); ?> Crear Nuevo Snapshot</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <form id="formCrearVersion">
-                <div class="modal-body">
-                    <div class="alert alert-warning">
-                        <strong>Se creará un snapshot completo</strong> del código fuente actual del sistema.
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label required">Descripción del cambio</label>
-                        <textarea id="crearDescripcion" class="form-control" rows="3"
-                                  placeholder="Describa los cambios incluidos en esta versión..." required></textarea>
-                        <small class="form-hint">Este campo es obligatorio para identificar la versión</small>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Archivos incluidos</label>
-                        <div class="small text-secondary">
-                            <span class="badge bg-green-lt">.php</span>
-                            <span class="badge bg-green-lt">.js</span>
-                            <span class="badge bg-green-lt">.css</span>
-                            <span class="badge bg-green-lt">.sql</span>
-                            <span class="badge bg-green-lt">.json</span>
-                            <span class="badge bg-green-lt">.md</span>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Archivos excluidos</label>
-                        <div class="small text-secondary">
-                            <span class="badge bg-red-lt">node_modules/</span>
-                            <span class="badge bg-red-lt">.git/</span>
-                            <span class="badge bg-red-lt">uploads/</span>
-                            <span class="badge bg-red-lt">vendor/</span>
-                            <span class="badge bg-red-lt">*.log</span>
-                            <span class="badge bg-red-lt">*.tmp</span>
-                            <span class="badge bg-red-lt">.env</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary" id="btnConfirmarCrear">
-                        <span class="spinner-border spinner-border-sm me-2 d-none" id="btnCrearSpinner"></span>
-                        <?php echo tablerIcon('camera'); ?>
-                        Crear Snapshot
-                    </button>
-                </div>
-            </form>
+<div class="modal-backdrop" id="modalCrearVersionBackdrop" onclick="if(event.target===this)VersionApp.cerrarModal('CrearVersion')"></div>
+<div class="modal-container" id="modalCrearVersion">
+    <div class="modal">
+        <div class="modal-header modal-header-primary">
+            <h3><?php echo tablerIcon('camera-plus'); ?> Crear Nuevo Snapshot</h3>
+            <button onclick="VersionApp.cerrarModal('CrearVersion')" class="modal-close"><?php echo tablerIcon('x'); ?></button>
         </div>
+        <form id="formCrearVersion">
+            <div class="modal-body">
+                <div class="modal-alert modal-alert-warning">
+                    <div class="modal-alert-icon"><?php echo tablerIcon('alert-triangle', 20); ?></div>
+                    <div class="modal-alert-content">Se creará un snapshot completo del código fuente actual del sistema.</div>
+                </div>
+                <div class="mb-3 mt-3">
+                    <label class="form-label required">Descripción del cambio</label>
+                    <textarea id="crearDescripcion" class="form-control" rows="3" placeholder="Describa los cambios incluidos en esta versión..." required></textarea>
+                    <div class="form-text">Este campo es obligatorio para identificar la versión</div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Archivos incluidos</label>
+                    <div>
+                        <span class="badge bg-green-lt">.php</span>
+                        <span class="badge bg-green-lt">.js</span>
+                        <span class="badge bg-green-lt">.css</span>
+                        <span class="badge bg-green-lt">.sql</span>
+                        <span class="badge bg-green-lt">.json</span>
+                        <span class="badge bg-green-lt">.md</span>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Archivos excluidos</label>
+                    <div>
+                        <span class="badge bg-red-lt">node_modules/</span>
+                        <span class="badge bg-red-lt">.git/</span>
+                        <span class="badge bg-red-lt">uploads/</span>
+                        <span class="badge bg-red-lt">vendor/</span>
+                        <span class="badge bg-red-lt">*.log</span>
+                        <span class="badge bg-red-lt">*.tmp</span>
+                        <span class="badge bg-red-lt">.env</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-ghost" onclick="VersionApp.cerrarModal('CrearVersion')">Cancelar</button>
+                <button type="submit" class="btn btn-primary" id="btnConfirmarCrear"><?php echo tablerIcon('camera'); ?> Crear Snapshot</button>
+            </div>
+        </form>
     </div>
 </div>
 
-<!-- Modal de Detalle de Versión -->
-<div class="modal fade" id="modalDetalleVersion" tabindex="-1">
-    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Detalle de Versión <span id="detVersionTag" class="badge bg-primary-lt ms-2"></span></h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+<div class="modal-backdrop" id="modalDetalleVersionBackdrop" onclick="if(event.target===this)VersionApp.cerrarModal('DetalleVersion')"></div>
+<div class="modal-container" id="modalDetalleVersion">
+    <div class="modal modal-lg">
+        <div class="modal-header">
+            <h3><?php echo tablerIcon('versions'); ?> Detalle de Versión <span id="detVersionTag" class="badge bg-blue-lt ms-2"></span></h3>
+            <button onclick="VersionApp.cerrarModal('DetalleVersion')" class="modal-close"><?php echo tablerIcon('x'); ?></button>
+        </div>
+        <div class="modal-body">
+            <div class="modal-info-grid">
+                <div class="modal-info-item"><label>Descripción</label><span id="detDescripcion" class="fw-semibold">-</span></div>
+                <div class="modal-info-item"><label>Autor</label><span id="detAutor" class="fw-semibold">-</span></div>
+                <div class="modal-info-item"><label>Fecha de creación</label><span id="detFechaCreacion">-</span></div>
+                <div class="modal-info-item"><label>Total archivos</label><span id="detTotalArchivos">-</span></div>
             </div>
-            <div class="modal-body">
-                <div class="row g-3 mb-4">
-                    <div class="col-md-6">
-                        <div class="p-3 rounded bg-primary-lt">
-                            <div class="small text-primary fw-bold mb-1">Descripción</div>
-                            <div id="detDescripcion" class="fw-semibold">-</div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="p-3 rounded bg-azure-lt">
-                            <div class="small text-azure fw-bold mb-1">Autor</div>
-                            <div id="detAutor" class="fw-semibold">-</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="row g-3 mb-4">
-                    <div class="col-md-6">
-                        <div class="small fw-bold mb-1">Fecha de creación</div>
-                        <div id="detFechaCreacion">-</div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="small fw-bold mb-1">Total de archivos</div>
-                        <div id="detTotalArchivos">-</div>
-                    </div>
-                </div>
-
-                <hr>
-
-                <h6 class="fw-bold mb-3">Manifiesto de Archivos</h6>
+            <div class="modal-section">
+                <div class="modal-section-title">Manifiesto de Archivos</div>
                 <div class="table-responsive">
-                    <table class="table table-sm table-striped" id="tablaManifiesto">
+                    <table class="table table-sm table-striped">
                         <thead>
-                            <tr>
-                                <th>Ruta Relativa</th>
-                                <th>MD5</th>
-                                <th>Tamaño</th>
-                            </tr>
+                            <tr><th>Ruta Relativa</th><th>MD5</th><th>Tamaño</th></tr>
                         </thead>
-                        <tbody id="cuerpoManifiesto">
-                        </tbody>
+                        <tbody id="cuerpoManifiesto"></tbody>
                     </table>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="VersionApp.cerrarModal('DetalleVersion')">Cerrar</button>
         </div>
     </div>
 </div>
 
-<!-- Modal de Confirmación de Restauración -->
-<div class="modal fade" id="modalRestaurar" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header bg-warning">
-                <h5 class="modal-title"><?php echo tablerIcon('alert-triangle'); ?> Confirmar Restauración</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="alert alert-danger">
-                    <h4 class="alert-title">Advertencia: Restauración de archivos</h4>
-                    <div>
-                        Esta acción sobrescribirá los archivos actuales del sistema con los de la versión
-                        <strong id="restVersionTag"></strong>.
-                    </div>
-                </div>
-
-                <div class="alert alert-warning">
-                    <h4 class="alert-title">Importante: Base de datos</h4>
-                    <div>
-                        El snapshot <strong>no incluye la base de datos</strong>. Si hay cambios de esquema en la BD
-                        entre la versión actual y la versión de destino, deberá ejecutar las migraciones SQL manualmente.
-                    </div>
-                </div>
-
-                <div class="mb-3">
-                    <p><strong>Detalles de la restauración:</strong></p>
-                    <ul class="mb-0">
-                        <li>Se restaurarán todos los archivos del snapshot seleccionado</li>
-                        <li>Los archivos actuales serán sobrescritos</li>
-                        <li>Se creará un nuevo registro de versión documentando el rollback</li>
-                        <li>Si la restauración falla a medio camino, se mostrará la lista de archivos no restaurados</li>
-                    </ul>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-check form-check-single">
-                        <input type="checkbox" id="confirmarRestauracion" class="form-check-input" required>
-                        <span class="form-check-label">
-                            Entiendo que los archivos serán sobrescritos y que debo verificar migraciones de BD manualmente
-                        </span>
-                    </label>
+<div class="modal-backdrop" id="modalRestaurarBackdrop" onclick="if(event.target===this)VersionApp.cerrarModal('Restaurar')"></div>
+<div class="modal-container" id="modalRestaurar">
+    <div class="modal">
+        <div class="modal-header modal-header-warning">
+            <h3><?php echo tablerIcon('alert-triangle'); ?> Confirmar Restauración</h3>
+            <button onclick="VersionApp.cerrarModal('Restaurar')" class="modal-close"><?php echo tablerIcon('x'); ?></button>
+        </div>
+        <div class="modal-body">
+            <div class="modal-alert modal-alert-danger">
+                <div class="modal-alert-icon"><?php echo tablerIcon('alert-circle', 20); ?></div>
+                <div class="modal-alert-content">
+                    <strong>Advertencia: Restauración de archivos</strong>
+                    <p class="mb-0 mt-1">Esta acción sobrescribirá los archivos actuales del sistema con los de la versión <strong id="restVersionTag"></strong>.</p>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-warning" id="btnConfirmarRestaurar" disabled>
-                    <span class="spinner-border spinner-border-sm me-2 d-none" id="btnRestaurarSpinner"></span>
-                    <?php echo tablerIcon('arrow-back'); ?>
-                    Restaurar Versión
-                </button>
+            <div class="modal-alert modal-alert-warning mt-3">
+                <div class="modal-alert-icon"><?php echo tablerIcon('alert-triangle', 20); ?></div>
+                <div class="modal-alert-content">
+                    <strong>Importante: Base de datos</strong>
+                    <p class="mb-0 mt-1">El snapshot no incluye la base de datos. Si hay cambios de esquema en la BD entre la versión actual y la de destino, deberá ejecutar las migraciones SQL manualmente.</p>
+                </div>
             </div>
+            <div class="mt-3">
+                <p><strong>Detalles de la restauración:</strong></p>
+                <ul class="mb-2">
+                    <li>Se restaurarán todos los archivos del snapshot seleccionado</li>
+                    <li>Los archivos actuales serán sobrescritos</li>
+                    <li>Se creará un nuevo registro de versión documentando el rollback</li>
+                    <li>Si la restauración falla a medio camino, se mostrará la lista de archivos no restaurados</li>
+                </ul>
+            </div>
+            <div class="form-check">
+                <input type="checkbox" id="confirmarRestauracion" class="form-check-input" required>
+                <label class="form-check-label" for="confirmarRestauracion">Entiendo que los archivos serán sobrescritos y que debo verificar migraciones de BD manualmente</label>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-ghost" onclick="VersionApp.cerrarModal('Restaurar')">Cancelar</button>
+            <button type="button" class="btn btn-warning" id="btnConfirmarRestaurar" disabled><?php echo tablerIcon('arrow-back'); ?> Restaurar Versión</button>
         </div>
     </div>
 </div>

@@ -14,6 +14,18 @@ const SupervisionApp = (() => {
     let paginaActual = 1;
     let totalPaginas = 1;
 
+    function abrirModal(nombre) {
+        document.getElementById(`modal${nombre}Backdrop`).classList.add('show');
+        document.getElementById(`modal${nombre}`).classList.add('show');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function cerrarModal(nombre) {
+        document.getElementById(`modal${nombre}Backdrop`).classList.remove('show');
+        document.getElementById(`modal${nombre}`).classList.remove('show');
+        document.body.style.overflow = '';
+    }
+
     const getAnio = () => document.getElementById('year-selector')?.value || new Date().getFullYear();
 
     function iniciar() {
@@ -342,7 +354,7 @@ const SupervisionApp = (() => {
             contenedorHistorial.innerHTML = '<div class="text-muted text-center">Sin historial de cambios</div>';
         }
 
-        new bootstrap.Modal(document.getElementById('modalDetalle')).show();
+        abrirModal('Detalle');
     }
 
     function aprobarIndividual(id) {
@@ -362,18 +374,16 @@ const SupervisionApp = (() => {
         if (listaIds.length === 0) return;
 
         document.getElementById('aprobarIds').value = JSON.stringify(listaIds);
-        const mensaje = listaIds.length === 1
+        document.getElementById('aprobarMensaje').textContent = listaIds.length === 1
             ? '¿Aprobar esta observación?'
             : `¿Aprobar ${listaIds.length} observaciones seleccionadas?`;
-        document.getElementById('aprobarMensaje').textContent = mensaje;
-
         document.querySelector('input[name="estado_resultante"][value="sin_observacion"]').checked = false;
         document.querySelector('input[name="estado_resultante"][value="error"]').checked = false;
         document.getElementById('aprobarClasificacion').value = '';
         document.getElementById('aprobarDetalleError').value = '';
         document.getElementById('aprobarComentario').value = '';
 
-        new bootstrap.Modal(document.getElementById('modalAprobar')).show();
+        abrirModal('Aprobar');
     }
 
     async function confirmarAprobacion(e) {
@@ -414,7 +424,7 @@ const SupervisionApp = (() => {
                     mensaje += `. ${datos.fallos.length} fallo(s): ${datos.fallos.map(f => `ID ${f.id} (${f.motivo})`).join(', ')}`;
                 }
                 showSuccess(mensaje);
-                bootstrap.Modal.getInstance(document.getElementById('modalAprobar')).hide();
+                cerrarModal('Aprobar');
                 idsSeleccionados = [];
                 document.getElementById('seleccionarTodas').checked = false;
                 cargarDatos();
@@ -435,13 +445,12 @@ const SupervisionApp = (() => {
         if (listaIds.length === 0) return;
 
         document.getElementById('cancelarIds').value = JSON.stringify(listaIds);
-        const mensaje = listaIds.length === 1
+        document.getElementById('cancelarMensaje').textContent = listaIds.length === 1
             ? '¿Cancelar esta observación?'
             : `¿Cancelar ${listaIds.length} observaciones seleccionadas?`;
-        document.getElementById('cancelarMensaje').textContent = mensaje;
         document.getElementById('cancelarComentario').value = '';
 
-        new bootstrap.Modal(document.getElementById('modalCancelar')).show();
+        abrirModal('Cancelar');
     }
 
     async function confirmarCancelacion(e) {
@@ -468,7 +477,7 @@ const SupervisionApp = (() => {
                     mensaje += `. ${datos.fallos.length} fallo(s): ${datos.fallos.map(f => `ID ${f.id} (${f.motivo})`).join(', ')}`;
                 }
                 showSuccess(mensaje);
-                bootstrap.Modal.getInstance(document.getElementById('modalCancelar')).hide();
+                cerrarModal('Cancelar');
                 idsSeleccionados = [];
                 document.getElementById('seleccionarTodas').checked = false;
                 cargarDatos();
@@ -489,13 +498,12 @@ const SupervisionApp = (() => {
         if (listaIds.length === 0) return;
 
         document.getElementById('eliminarIds').value = JSON.stringify(listaIds);
-        const mensaje = listaIds.length === 1
+        document.getElementById('eliminarMensaje').textContent = listaIds.length === 1
             ? '¿Eliminar esta observación? Se moverá a la papelera de reciclaje.'
             : `¿Eliminar ${listaIds.length} observaciones seleccionadas? Se moverán a la papelera de reciclaje.`;
-        document.getElementById('eliminarMensaje').textContent = mensaje;
         document.getElementById('eliminarMotivo').value = '';
 
-        new bootstrap.Modal(document.getElementById('modalEliminar')).show();
+        abrirModal('Eliminar');
     }
 
     async function confirmarEliminacion(e) {
@@ -527,7 +535,7 @@ const SupervisionApp = (() => {
                     mensaje += `. ${datos.fallos.length} fallo(s): ${datos.fallos.map(f => `ID ${f.id} (${f.motivo})`).join(', ')}`;
                 }
                 showSuccess(mensaje);
-                bootstrap.Modal.getInstance(document.getElementById('modalEliminar')).hide();
+                cerrarModal('Eliminar');
                 idsSeleccionados = [];
                 document.getElementById('seleccionarTodas').checked = false;
                 cargarDatos();
@@ -579,9 +587,13 @@ const SupervisionApp = (() => {
         verDetalle,
         aprobarIndividual,
         cancelarIndividual,
-        eliminarIndividual
+        eliminarIndividual,
+        abrirModal,
+        cerrarModal
     };
 })();
+
+window.SupervisionApp = SupervisionApp;
 
 document.addEventListener('DOMContentLoaded', () => {
     SupervisionApp.iniciar();

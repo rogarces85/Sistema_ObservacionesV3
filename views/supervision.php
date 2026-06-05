@@ -209,199 +209,151 @@ $comunas = $db->consultar("SELECT id, nombre FROM comunas ORDER BY nombre");
     </div>
 </div>
 
-<!-- Modal de Detalle con Historial -->
-<div class="modal fade" id="modalDetalle" tabindex="-1">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Detalle de Observación</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="d-flex align-items-center justify-content-between mb-4 p-3 rounded bg-light">
+<div class="modal-backdrop" id="modalDetalleBackdrop" onclick="if(event.target===this)SupervisionApp.cerrarModal('Detalle')"></div>
+<div class="modal-container" id="modalDetalle">
+    <div class="modal modal-lg">
+        <div class="modal-header">
+            <h3><?php echo tablerIcon('eye'); ?> Detalle de Observación</h3>
+            <button onclick="SupervisionApp.cerrarModal('Detalle')" class="modal-close"><?php echo tablerIcon('x'); ?></button>
+        </div>
+        <div class="modal-body">
+            <div class="modal-section">
+                <div class="d-flex justify-content-between align-items-start mb-3">
                     <div>
-                        <h4 class="h5 mb-1" id="detEstablecimiento">-</h4>
-                        <p class="text-secondary mb-0" id="detComuna">-</p>
+                        <h4 class="mb-1" id="detEstablecimiento">-</h4>
+                        <p class="text-secondary mb-0" id="detComuna" style="font-size:0.875rem">-</p>
                     </div>
-                    <span id="detBadge" class="badge">-</span>
+                    <span id="detBadge" class="modal-badge">-</span>
                 </div>
+            </div>
+            <div class="modal-info-grid">
+                <div class="modal-info-item"><label>Mes / Año</label><span id="detMesAnio">-</span></div>
+                <div class="modal-info-item"><label>Serie / Hoja</label><span id="detReferencia">-</span></div>
+                <div class="modal-info-item"><label>Tipo Error</label><span id="detTipo">-</span></div>
+                <div class="modal-info-item"><label>Plazo</label><span id="detPlazo">-</span></div>
+            </div>
+            <div class="modal-section">
+                <div class="modal-section-title">Detalle</div>
+                <div class="modal-content-box" id="detDetalle">-</div>
+            </div>
+            <div class="modal-section">
+                <div class="modal-info-grid" style="grid-template-columns:1fr 1fr">
+                    <div class="modal-info-item"><label>Clasificación</label><span id="detClasificacion">-</span></div>
+                    <div class="modal-info-item"><label>Registrado por</label><span id="detRegistradoPor">-</span></div>
+                </div>
+                <small class="text-secondary">Creación: <span id="detFechaCreacion">-</span> | Actualización: <span id="detFechaActualizacion">-</span></small>
+            </div>
+            <div class="modal-section">
+                <div class="modal-section-title">Historial de Cambios</div>
+                <div id="detHistorial"><div class="text-muted text-center">Cargando...</div></div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="SupervisionApp.cerrarModal('Detalle')">Cerrar</button>
+        </div>
+    </div>
+</div>
 
-                <div class="row g-3 mb-4">
-                    <div class="col-md-4">
-                        <div class="p-3 rounded bg-primary-lt">
-                            <div class="small text-primary fw-bold mb-1">Mes / Año</div>
-                            <div id="detMesAnio" class="fw-semibold">-</div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="p-3 rounded bg-purple-lt">
-                            <div class="small text-purple fw-bold mb-1">Serie / Hoja</div>
-                            <div id="detReferencia" class="fw-semibold">-</div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="p-3 rounded bg-amber-lt">
-                            <div class="small text-amber fw-bold mb-1">Tipo de Error</div>
-                            <div id="detTipo" class="fw-semibold">-</div>
-                        </div>
+<div class="modal-backdrop" id="modalAprobarBackdrop" onclick="if(event.target===this)SupervisionApp.cerrarModal('Aprobar')"></div>
+<div class="modal-container" id="modalAprobar">
+    <div class="modal">
+        <div class="modal-header modal-header-success">
+            <h3><?php echo tablerIcon('check'); ?> Aprobar Observación(es)</h3>
+            <button onclick="SupervisionApp.cerrarModal('Aprobar')" class="modal-close"><?php echo tablerIcon('x'); ?></button>
+        </div>
+        <form id="formAprobar">
+            <div class="modal-body">
+                <p id="aprobarMensaje">¿Aprobar la(s) observación(es) seleccionada(s)?</p>
+                <input type="hidden" id="aprobarIds">
+                <div class="mb-3">
+                    <label class="form-label required">Clasificación de Respuesta</label>
+                    <div class="d-flex gap-4">
+                        <label class="form-check">
+                            <input type="radio" name="estado_resultante" value="sin_observacion" class="form-check-input" required>
+                            <span class="form-check-label">Sin Observación</span>
+                        </label>
+                        <label class="form-check">
+                            <input type="radio" name="estado_resultante" value="error" class="form-check-input">
+                            <span class="form-check-label">Error</span>
+                        </label>
                     </div>
                 </div>
-
-                <div class="mb-4">
-                    <div class="small fw-bold mb-1">Detalle de la Observación</div>
-                    <div id="detDetalle" class="p-3 bg-light rounded">-</div>
+                <div class="mb-3">
+                    <label class="form-label">Clasificación</label>
+                    <select id="aprobarClasificacion" class="form-select">
+                        <option value="">Sin clasificar</option>
+                        <option value="corregido">Corregido</option>
+                        <option value="error">Error</option>
+                        <option value="sin_respuesta">Sin respuesta del Establecimiento</option>
+                        <option value="respuesta_incorrecta">Respuesta incorrecta de Establecimiento</option>
+                    </select>
                 </div>
-
-                <div class="row g-3 mb-4">
-                    <div class="col-md-6">
-                        <div class="small fw-bold mb-1">Plazo de Entrega</div>
-                        <div id="detPlazo">-</div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="small fw-bold mb-1">Clasificación</div>
-                        <div id="detClasificacion">-</div>
-                    </div>
+                <div class="mb-3">
+                    <label class="form-label">Detalle Error</label>
+                    <input type="text" id="aprobarDetalleError" class="form-control" placeholder="Descripción del error si aplica...">
                 </div>
-
-                <div class="mb-4">
-                    <div class="small text-muted">Registrado por: <span id="detRegistradoPor">-</span></div>
-                    <div class="small text-muted">Fecha creación: <span id="detFechaCreacion">-</span></div>
-                    <div class="small text-muted">Última actualización: <span id="detFechaActualizacion">-</span></div>
-                </div>
-
-                <!-- Historial -->
-                <div class="mt-4">
-                    <h6 class="fw-bold mb-3">Historial de Cambios</h6>
-                    <div id="detHistorial" class="timeline">
-                        <div class="text-muted text-center">Cargando historial...</div>
-                    </div>
+                <div class="mb-3">
+                    <label class="form-label">Comentario (opcional)</label>
+                    <textarea id="aprobarComentario" class="form-control" rows="2" placeholder="Comentario adicional..."></textarea>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-ghost" onclick="SupervisionApp.cerrarModal('Aprobar')">Cancelar</button>
+                <button type="submit" class="btn btn-success" id="btnConfirmarAprobar">Confirmar</button>
             </div>
-        </div>
+        </form>
     </div>
 </div>
 
-<!-- Modal de Aprobación -->
-<div class="modal fade" id="modalAprobar" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header bg-success text-white">
-                <h5 class="modal-title"><?php echo tablerIcon('check'); ?> Aprobar Observación(es)</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <form id="formAprobar">
-                <div class="modal-body">
-                    <p id="aprobarMensaje">¿Aprobar la(s) observación(es) seleccionada(s)?</p>
-                    <input type="hidden" id="aprobarIds">
-
-                    <div class="mb-3">
-                        <label class="form-label required">Clasificación de Respuesta</label>
-                        <div class="mt-2">
-                            <label class="form-check form-check-inline">
-                                <input type="radio" name="estado_resultante" value="sin_observacion" class="form-check-input" required>
-                                <span class="form-check-label">Sin Observación</span>
-                            </label>
-                            <label class="form-check form-check-inline">
-                                <input type="radio" name="estado_resultante" value="error" class="form-check-input">
-                                <span class="form-check-label">Error</span>
-                            </label>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Clasificación</label>
-                        <select id="aprobarClasificacion" class="form-select">
-                            <option value="">Sin clasificar</option>
-                            <option value="corregido">Corregido</option>
-                            <option value="error">Error</option>
-                            <option value="sin_respuesta">Sin respuesta del Establecimiento</option>
-                            <option value="respuesta_incorrecta">Respuesta incorrecta de Establecimiento</option>
-                        </select>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Detalle Error</label>
-                        <input type="text" id="aprobarDetalleError" class="form-control" placeholder="Descripción del error si aplica...">
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Comentario (opcional)</label>
-                        <textarea id="aprobarComentario" class="form-control" rows="2" placeholder="Comentario adicional..."></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-success" id="btnConfirmarAprobar">
-                        <span class="spinner-border spinner-border-sm me-2 d-none" id="btnAprobarSpinner"></span>
-                        Confirmar
-                    </button>
-                </div>
-            </form>
+<div class="modal-backdrop" id="modalCancelarBackdrop" onclick="if(event.target===this)SupervisionApp.cerrarModal('Cancelar')"></div>
+<div class="modal-container" id="modalCancelar">
+    <div class="modal">
+        <div class="modal-header modal-header-warning">
+            <h3><?php echo tablerIcon('x'); ?> Cancelar Observación(es)</h3>
+            <button onclick="SupervisionApp.cerrarModal('Cancelar')" class="modal-close"><?php echo tablerIcon('x'); ?></button>
         </div>
+        <form id="formCancelar">
+            <div class="modal-body">
+                <p id="cancelarMensaje">¿Cancelar la(s) observación(es) seleccionada(s)?</p>
+                <input type="hidden" id="cancelarIds">
+                <div class="mb-3">
+                    <label class="form-label">Comentario (opcional)</label>
+                    <textarea id="cancelarComentario" class="form-control" rows="3" placeholder="Motivo de la cancelación..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-ghost" onclick="SupervisionApp.cerrarModal('Cancelar')">Cancelar</button>
+                <button type="submit" class="btn btn-warning" id="btnConfirmarCancelar">Confirmar</button>
+            </div>
+        </form>
     </div>
 </div>
 
-<!-- Modal de Cancelación -->
-<div class="modal fade" id="modalCancelar" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header bg-warning">
-                <h5 class="modal-title"><?php echo tablerIcon('x'); ?> Cancelar Observación(es)</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <form id="formCancelar">
-                <div class="modal-body">
-                    <p id="cancelarMensaje">¿Cancelar la(s) observación(es) seleccionada(s)?</p>
-                    <input type="hidden" id="cancelarIds">
-
-                    <div class="mb-3">
-                        <label class="form-label">Comentario (opcional)</label>
-                        <textarea id="cancelarComentario" class="form-control" rows="3" placeholder="Motivo de la cancelación..."></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-warning" id="btnConfirmarCancelar">
-                        <span class="spinner-border spinner-border-sm me-2 d-none" id="btnCancelarSpinner"></span>
-                        Confirmar
-                    </button>
-                </div>
-            </form>
+<div class="modal-backdrop" id="modalEliminarBackdrop" onclick="if(event.target===this)SupervisionApp.cerrarModal('Eliminar')"></div>
+<div class="modal-container" id="modalEliminar">
+    <div class="modal">
+        <div class="modal-header modal-header-danger">
+            <h3><?php echo tablerIcon('trash'); ?> Eliminar Observación(es)</h3>
+            <button onclick="SupervisionApp.cerrarModal('Eliminar')" class="modal-close"><?php echo tablerIcon('x'); ?></button>
         </div>
-    </div>
-</div>
-
-<!-- Modal de Eliminación (Soft Delete) -->
-<div class="modal fade" id="modalEliminar" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title"><?php echo tablerIcon('trash'); ?> Eliminar Observación(es)</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        <form id="formEliminar">
+            <div class="modal-body">
+                <p id="eliminarMensaje">¿Eliminar la(s) observación(es) seleccionada(s)?</p>
+                <div class="modal-alert modal-alert-danger">
+                    <div class="modal-alert-icon"><?php echo tablerIcon('alert-circle', 20); ?></div>
+                    <div class="modal-alert-content">Esta acción moverá los registros a la papelera de reciclaje.</div>
+                </div>
+                <input type="hidden" id="eliminarIds">
+                <div class="mb-3 mt-3">
+                    <label class="form-label">Motivo de eliminación</label>
+                    <textarea id="eliminarMotivo" class="form-control" rows="3" placeholder="Motivo de la eliminación..." required></textarea>
+                </div>
             </div>
-            <form id="formEliminar">
-                <div class="modal-body">
-                    <p id="eliminarMensaje">¿Eliminar la(s) observación(es) seleccionada(s)?</p>
-                    <p class="text-danger fw-bold">Esta acción moverá los registros a la papelera de reciclaje.</p>
-                    <input type="hidden" id="eliminarIds">
-
-                    <div class="mb-3">
-                        <label class="form-label">Motivo de eliminación</label>
-                        <textarea id="eliminarMotivo" class="form-control" rows="3" placeholder="Motivo de la eliminación..." required></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-danger" id="btnConfirmarEliminar">
-                        <span class="spinner-border spinner-border-sm me-2 d-none" id="btnEliminarSpinner"></span>
-                        Confirmar
-                    </button>
-                </div>
-            </form>
-        </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-ghost" onclick="SupervisionApp.cerrarModal('Eliminar')">Cancelar</button>
+                <button type="submit" class="btn btn-danger" id="btnConfirmarEliminar">Confirmar</button>
+            </div>
+        </form>
     </div>
 </div>
 

@@ -156,39 +156,46 @@ function crearContenedorNotificaciones() {
  */
 function confirmarAccion(mensaje) {
     return new Promise((resolver) => {
+        const backdrop = document.createElement('div');
+        backdrop.className = 'modal-backdrop show';
+        document.body.appendChild(backdrop);
+
+        const iconAlert = '<svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-alert-triangle" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 9v4"/><path d="M10.363 3.591l-8.106 13.534a1.914 1.914 0 0 0 1.636 2.875h16.214a1.914 1.914 0 0 0 1.636 -2.875l-8.106 -13.534a1.914 1.914 0 0 0 -3.274 0z"/><path d="M12 16h.01"/></svg>';
+        const iconX = '<svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-x" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M18 6l-12 12"/><path d="M6 6l12 12"/></svg>';
+        const iconClock = '<svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0"/><path d="M12 7v5l3 3"/></svg>';
+
         const modal = document.createElement('div');
-        modal.className = 'modal fade';
-        modal.setAttribute('tabindex', '-1');
+        modal.className = 'modal-container show';
         modal.innerHTML = `
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Confirmar acción</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <p>${mensaje}</p>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="button" class="btn btn-primary" id="btnConfirmarSi">Confirmar</button>
-                    </div>
+            <div class="modal">
+                <div class="modal-header">
+                    <h3>${iconAlert} Confirmar acción</h3>
+                    <button class="modal-close" onclick="document.body.removeChild(backdrop); modal.remove(); resolver(false);">${iconX}</button>
+                </div>
+                <div class="modal-body">
+                    <p>${mensaje}</p>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-ghost" onclick="document.body.removeChild(backdrop); modal.remove(); resolver(false);">Cancelar</button>
+                    <button class="btn btn-primary" id="btnConfirmarSi">Confirmar</button>
                 </div>
             </div>
         `;
 
         document.body.appendChild(modal);
-
-        const bootstrapModal = new bootstrap.Modal(modal);
-        bootstrapModal.show();
+        document.body.style.overflow = 'hidden';
 
         modal.querySelector('#btnConfirmarSi').addEventListener('click', () => {
-            bootstrapModal.hide();
+            document.body.removeChild(backdrop);
+            modal.remove();
+            document.body.style.overflow = '';
             resolver(true);
         });
 
-        modal.addEventListener('hidden.bs.modal', () => {
+        backdrop.addEventListener('click', () => {
+            document.body.removeChild(backdrop);
             modal.remove();
+            document.body.style.overflow = '';
             resolver(false);
         });
     });
@@ -291,54 +298,44 @@ class GestorSesion {
     mostrarModalAdvertencia() {
         if (this.modalAdvertencia) return;
 
+        const backdrop = document.createElement('div');
+        backdrop.className = 'modal-backdrop show';
+
+        const iconClock = '<svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0"/><path d="M12 7v5l3 3"/></svg>';
+
         this.modalAdvertencia = document.createElement('div');
-        this.modalAdvertencia.className = 'modal fade';
-        this.modalAdvertencia.setAttribute('tabindex', '-1');
-        this.modalAdvertencia.setAttribute('data-bs-backdrop', 'static');
+        this.modalAdvertencia.className = 'modal-container show';
         this.modalAdvertencia.innerHTML = `
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content">
-                    <div class="modal-header bg-warning text-dark">
-                        <h5 class="modal-title">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24"
-                                 viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"
-                                 stroke-linecap="round" stroke-linejoin="round">
-                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                <path d="M12 9v2m0 4v.01"/>
-                                <path d="M5 19h14a2 2 0 0 0 1.84 -2.75l-7.1 -12.25a2 2 0 0 0 -3.5 0l-7.1 12.25a2 2 0 0 0 1.75 2.75"/>
-                            </svg>
-                            Sesión por expirar
-                        </h5>
-                    </div>
-                    <div class="modal-body">
-                        <p>Su sesión expirará en <strong id="tiempoRestante">5 minutos</strong> por inactividad.</p>
-                        <p>¿Desea mantener la sesión activa?</p>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-primary" id="btnMantenerSesion">Mantener sesión activa</button>
-                    </div>
+            <div class="modal">
+                <div class="modal-header modal-header-warning">
+                    <h3>${iconClock} Sesión por expirar</h3>
+                </div>
+                <div class="modal-body">
+                    <p>Su sesión expirará en <strong id="tiempoRestante">5 minutos</strong> por inactividad.</p>
+                    <p>¿Desea mantener la sesión activa?</p>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-primary" id="btnMantenerSesion">Mantener sesión activa</button>
                 </div>
             </div>
         `;
 
+        document.body.appendChild(backdrop);
         document.body.appendChild(this.modalAdvertencia);
-
-        const bootstrapModal = new bootstrap.Modal(this.modalAdvertencia);
-        bootstrapModal.show();
+        document.body.style.overflow = 'hidden';
 
         this.modalAdvertencia.querySelector('#btnMantenerSesion').addEventListener('click', async () => {
             try {
                 await fetchAPI('api/auth.php?action=check');
-                bootstrapModal.hide();
+                document.body.removeChild(backdrop);
+                this.modalAdvertencia.remove();
+                this.modalAdvertencia = null;
+                document.body.style.overflow = '';
                 this.reiniciar();
                 mostrarNotificacion('Sesión renovada exitosamente', 'success');
             } catch (error) {
                 this.cerrarSesion();
             }
-        });
-
-        this.modalAdvertencia.addEventListener('hidden.bs.modal', () => {
-            this.modalAdvertencia = null;
         });
     }
 

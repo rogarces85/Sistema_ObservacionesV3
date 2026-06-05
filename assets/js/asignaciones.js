@@ -20,9 +20,6 @@ class GestorAsignaciones {
     }
 
     async inicializar() {
-        this.modalAsignar = new bootstrap.Modal(document.getElementById('modalAsignar'));
-        this.modalReferentes = new bootstrap.Modal(document.getElementById('modalReferentes'));
-
         await this.cargarRegistradores();
         await this.cargarTemporales();
         await this.cargarEstadisticas();
@@ -72,13 +69,23 @@ class GestorAsignaciones {
             this.filtrarEstablecimientosDisponibles(inputBusqueda.value.trim());
         }, 300);
         inputBusqueda.addEventListener('input', busquedaDebounce);
+    }
 
-        // Limpiar selección al cerrar modal
-        document.getElementById('modalAsignar').addEventListener('hidden.bs.modal', () => {
+    abrirModal(nombre) {
+        document.getElementById(`modal${nombre}Backdrop`).classList.add('show');
+        document.getElementById(`modal${nombre}`).classList.add('show');
+        document.body.style.overflow = 'hidden';
+    }
+
+    cerrarModal(nombre) {
+        document.getElementById(`modal${nombre}Backdrop`).classList.remove('show');
+        document.getElementById(`modal${nombre}`).classList.remove('show');
+        document.body.style.overflow = '';
+        if (nombre === 'Asignar') {
             this.establecimientosSeleccionados = [];
             document.getElementById('buscarEstablecimiento').value = '';
             this.limpiarCheckboxesMeses();
-        });
+        }
     }
 
     async cargarRegistradores() {
@@ -214,11 +221,6 @@ class GestorAsignaciones {
         });
 
         container.innerHTML = html;
-
-        // Reinicializar tooltips
-        document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
-            new bootstrap.Tooltip(el);
-        });
     }
 
     async cargarTemporales() {
@@ -296,7 +298,7 @@ class GestorAsignaciones {
         await this.cargarTodosEstablecimientos();
         this.renderizarEstablecimientosDisponibles();
 
-        this.modalAsignar.show();
+        this.abrirModal('Asignar');
     }
 
     async cargarTodosEstablecimientos() {
@@ -411,7 +413,7 @@ class GestorAsignaciones {
 
             if (respuesta.success) {
                 mostrarNotificacion(respuesta.data || 'Asignaciones guardadas exitosamente', 'success');
-                this.modalAsignar.hide();
+                this.cerrarModal('Asignar');
                 await this.cargarEstablecimientosDelRegistrador();
                 await this.cargarTemporales();
                 await this.cargarEstadisticas();
@@ -501,7 +503,7 @@ class GestorAsignaciones {
     async verReferentes(establecimientoId, nombreEstablecimiento) {
         document.getElementById('modalReferentesTitulo').textContent = `Referentes - ${nombreEstablecimiento}`;
         document.getElementById('modalReferentesBody').innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>';
-        this.modalReferentes.show();
+        this.abrirModal('Referentes');
 
         try {
             const respuesta = await fetchAPI(`api/asignaciones.php?accion=referentes&establecimiento_id=${establecimientoId}`);
@@ -575,5 +577,6 @@ class GestorAsignaciones {
 // Inicializar cuando el DOM esté listo
 let gestorAsig;
 document.addEventListener('DOMContentLoaded', () => {
-    gestorAsig = new GestorAsignaciones();
+    window.gestorAsig = new GestorAsignaciones();
+    gestorAsig = window.gestorAsig;
 });

@@ -22,14 +22,23 @@ class GestorEstablecimientos {
     }
 
     async inicializar() {
-        this.modalEst = new bootstrap.Modal(document.getElementById('modalEstablecimiento'));
-        this.modalRef = new bootstrap.Modal(document.getElementById('modalReferentes'));
-
         await this.cargarComunas();
         await this.cargarEstablecimientos();
         await this.cargarEstadisticas();
 
         this.configurarEventos();
+    }
+
+    abrirModal(nombre) {
+        document.getElementById(`modal${nombre}Backdrop`).classList.add('show');
+        document.getElementById(`modal${nombre}`).classList.add('show');
+        document.body.style.overflow = 'hidden';
+    }
+
+    cerrarModal(nombre) {
+        document.getElementById(`modal${nombre}Backdrop`).classList.remove('show');
+        document.getElementById(`modal${nombre}`).classList.remove('show');
+        document.body.style.overflow = '';
     }
 
     configurarEventos() {
@@ -371,10 +380,6 @@ class GestorEstablecimientos {
         });
 
         tbody.innerHTML = html;
-
-        document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
-            new bootstrap.Tooltip(el);
-        });
     }
 
     abrirCrearReferente() {
@@ -382,7 +387,7 @@ class GestorEstablecimientos {
         document.getElementById('refId').value = '';
         document.getElementById('modalReferenteFormTitulo').textContent = 'Nuevo Referente';
         document.getElementById('btnGuardarRef').textContent = 'Crear Referente';
-        new bootstrap.Modal(document.getElementById('modalReferenteForm')).show();
+        this.abrirModal('ReferenteForm');
     }
 
     async abrirEditarReferente(id) {
@@ -397,7 +402,7 @@ class GestorEstablecimientos {
                 document.getElementById('refEmail').value = ref.email || '';
                 document.getElementById('modalReferenteFormTitulo').textContent = 'Editar Referente';
                 document.getElementById('btnGuardarRef').textContent = 'Guardar Cambios';
-                new bootstrap.Modal(document.getElementById('modalReferenteForm')).show();
+                this.abrirModal('ReferenteForm');
             }
         } catch (error) {
             mostrarNotificacion('Error al cargar referente', 'danger');
@@ -445,7 +450,7 @@ class GestorEstablecimientos {
 
             if (respuesta.success) {
                 mostrarNotificacion(id ? 'Referente actualizado' : 'Referente creado', 'success');
-                bootstrap.Modal.getInstance(document.getElementById('modalReferenteForm')).hide();
+                this.cerrarModal('ReferenteForm');
                 await this.cargarReferentes();
             } else {
                 mostrarNotificacion(respuesta.error, 'danger');
@@ -527,5 +532,6 @@ function mostrarLoading(mostrar) {
 // Inicializar cuando el DOM esté listo
 let gestorEst;
 document.addEventListener('DOMContentLoaded', () => {
-    gestorEst = new GestorEstablecimientos();
+    window.gestorEst = new GestorEstablecimientos();
+    gestorEst = window.gestorEst;
 });

@@ -136,93 +136,87 @@ $anioSeleccionado = $_SESSION['anio_trabajo'] ?? date('Y');
     </div>
 </div>
 
-<!-- Modal para asignar establecimiento -->
-<div id="modalAsignar" class="modal fade" tabindex="-1">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <div>
-                    <h5 class="modal-title">Asignar Establecimientos</h5>
-                    <div class="text-secondary" id="modalAsignarInfo"></div>
-                </div>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+<div class="modal-backdrop" id="modalAsignarBackdrop" onclick="if(event.target===this)gestorAsig.cerrarModal('Asignar')"></div>
+<div class="modal-container" id="modalAsignar">
+    <div class="modal modal-lg">
+        <div class="modal-header">
+            <div>
+                <h3><?php echo tablerIcon('building'); ?> <span>Asignar Establecimientos</span></h3>
+                <div class="text-secondary" id="modalAsignarInfo"></div>
             </div>
-            <div class="modal-body">
-                <div class="mb-3">
-                    <label class="form-label">Tipo de Asignación</label>
-                    <div class="space-y-2">
-                        <label class="form-selectgroup-item p-3 border rounded cursor-pointer">
-                            <input type="radio" name="tipoAsignacion" value="anual" class="form-check-input me-2" checked>
-                            Anual <span class="text-secondary">— Asignación base para todo el año</span>
-                        </label>
-                        <label class="form-selectgroup-item p-3 border rounded cursor-pointer">
-                            <input type="radio" name="tipoAsignacion" value="temporal" class="form-check-input me-2">
-                            Temporal <span class="text-secondary">— Reasignación por meses específicos</span>
-                        </label>
-                    </div>
+            <button onclick="gestorAsig.cerrarModal('Asignar')" class="modal-close"><?php echo tablerIcon('x'); ?></button>
+        </div>
+        <div class="modal-body">
+            <div class="mb-3">
+                <label class="form-label">Tipo de Asignación</label>
+                <div class="d-flex flex-column gap-2">
+                    <label class="p-3 border rounded cursor-pointer">
+                        <input type="radio" name="tipoAsignacion" value="anual" class="form-check-input me-2" checked>
+                        Anual <span class="text-secondary">— Asignación base para todo el año</span>
+                    </label>
+                    <label class="p-3 border rounded cursor-pointer">
+                        <input type="radio" name="tipoAsignacion" value="temporal" class="form-check-input me-2">
+                        Temporal <span class="text-secondary">— Reasignación por meses específicos</span>
+                    </label>
                 </div>
-                <div class="mb-3">
-                    <label class="form-label">Buscar Establecimiento</label>
-                    <input type="text" id="buscarEstablecimiento" class="form-control" placeholder="Escriba para buscar por nombre o comuna...">
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Establecimientos Disponibles</label>
-                    <div id="listaEstablecimientosDisponibles" class="border rounded" style="max-height: 260px; overflow-y: auto;"></div>
-                </div>
-                <div id="periodoContainer" class="mb-3">
-                    <label class="form-label">Periodo de validez</label>
-                    <div class="space-y-2">
-                        <label class="form-check">
-                            <input type="radio" name="periodoAsignacion" value="ALL" class="form-check-input" checked>
-                            <span class="form-check-label">Todo el año <span class="text-secondary" id="anioPeriodoLabel"></span></span>
-                        </label>
-                        <label class="form-check">
-                            <input type="radio" name="periodoAsignacion" value="MESES" class="form-check-input">
-                            <span class="form-check-label">Meses específicos</span>
-                        </label>
-                        <div id="mesesEspecificosContainer" class="d-none ms-4 mt-2">
-                            <div class="row g-2">
-                                <?php
-                                $nombresMeses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-                                foreach ($nombresMeses as $i => $nombre):
-                                    $numero = $i + 1;
-                                ?>
-                                <div class="col-3">
-                                    <label class="form-check">
-                                        <input type="checkbox" class="form-check-input mes-checkbox" value="<?php echo $numero; ?>">
-                                        <span class="form-check-label"><?php echo $nombre; ?></span>
-                                    </label>
-                                </div>
-                                <?php endforeach; ?>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Buscar Establecimiento</label>
+                <input type="text" id="buscarEstablecimiento" class="form-control" placeholder="Escriba para buscar por nombre o comuna...">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Establecimientos Disponibles</label>
+                <div id="listaEstablecimientosDisponibles" class="border rounded" style="max-height: 260px; overflow-y: auto;"></div>
+            </div>
+            <div id="periodoContainer" class="mb-3">
+                <label class="form-label">Periodo de validez</label>
+                <div class="d-flex flex-column gap-2">
+                    <label class="form-check">
+                        <input type="radio" name="periodoAsignacion" value="ALL" class="form-check-input" checked>
+                        <span class="form-check-label">Todo el año <span class="text-secondary" id="anioPeriodoLabel"></span></span>
+                    </label>
+                    <label class="form-check">
+                        <input type="radio" name="periodoAsignacion" value="MESES" class="form-check-input">
+                        <span class="form-check-label">Meses específicos</span>
+                    </label>
+                    <div id="mesesEspecificosContainer" class="d-none ms-4 mt-2">
+                        <div class="row g-2">
+                            <?php
+                            $nombresMeses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+                            foreach ($nombresMeses as $i => $nombre):
+                                $numero = $i + 1;
+                            ?>
+                            <div class="col-3">
+                                <label class="form-check">
+                                    <input type="checkbox" class="form-check-input mes-checkbox" value="<?php echo $numero; ?>">
+                                    <span class="form-check-label"><?php echo $nombre; ?></span>
+                                </label>
                             </div>
+                            <?php endforeach; ?>
                         </div>
                     </div>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" id="btnGuardarAsignaciones" class="btn btn-primary">Guardar Asignaciones</button>
-            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-ghost" onclick="gestorAsig.cerrarModal('Asignar')">Cancelar</button>
+            <button type="button" id="btnGuardarAsignaciones" class="btn btn-primary">Guardar Asignaciones</button>
         </div>
     </div>
 </div>
 
-<!-- Modal de referentes -->
-<div id="modalReferentes" class="modal fade" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="modalReferentesTitulo">Referentes del Establecimiento</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body" id="modalReferentesBody">
-                <div class="text-center py-4">
-                    <div class="spinner-border text-primary" role="status"></div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Cerrar</button>
-            </div>
+<div class="modal-backdrop" id="modalReferentesBackdrop" onclick="if(event.target===this)gestorAsig.cerrarModal('Referentes')"></div>
+<div class="modal-container" id="modalReferentes">
+    <div class="modal">
+        <div class="modal-header">
+            <h3><?php echo tablerIcon('users'); ?> <span id="modalReferentesTitulo">Referentes del Establecimiento</span></h3>
+            <button onclick="gestorAsig.cerrarModal('Referentes')" class="modal-close"><?php echo tablerIcon('x'); ?></button>
+        </div>
+        <div class="modal-body" id="modalReferentesBody">
+            <div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="gestorAsig.cerrarModal('Referentes')">Cerrar</button>
         </div>
     </div>
 </div>

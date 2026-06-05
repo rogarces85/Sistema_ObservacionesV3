@@ -115,11 +115,14 @@ global $TIPOS_ERROR, $MESES, $SERIES_REM, $HOJAS_POR_SERIE;
     </div>
 </div>
 
-<div class="modal-overlay" id="modalForm">
-    <div class="modal-box">
+<div class="modal-backdrop" id="modalFormBackdrop" onclick="if(event.target===this)ObsApp.cerrarModal()"></div>
+<div class="modal-container" id="modalForm">
+    <div class="modal modal-lg">
         <div class="modal-header">
-            <h3 id="modalTitulo">Nueva Observación</h3>
-            <button onclick="ObsApp.cerrarModal()" class="modal-close">&times;</button>
+            <h3><?php echo tablerIcon('clipboard-text'); ?> <span id="modalTitulo">Nueva Observación</span></h3>
+            <button onclick="ObsApp.cerrarModal()" class="modal-close">
+                <?php echo tablerIcon('x'); ?>
+            </button>
         </div>
         <form id="formObs" onsubmit="ObsApp.guardar(event)">
             <div class="modal-body">
@@ -211,11 +214,14 @@ global $TIPOS_ERROR, $MESES, $SERIES_REM, $HOJAS_POR_SERIE;
     </div>
 </div>
 
-<div class="modal-overlay" id="modalVer">
-    <div class="modal-box modal-lg">
+<div class="modal-backdrop" id="modalVerBackdrop" onclick="if(event.target===this)ObsApp.cerrarVer()"></div>
+<div class="modal-container" id="modalVer">
+    <div class="modal modal-xl">
         <div class="modal-header">
-            <h3>Detalle de Observación</h3>
-            <button onclick="ObsApp.cerrarVer()" class="modal-close">&times;</button>
+            <h3><?php echo tablerIcon('eye'); ?> Detalle de Observación</h3>
+            <button onclick="ObsApp.cerrarVer()" class="modal-close">
+                <?php echo tablerIcon('x'); ?>
+            </button>
         </div>
         <div class="modal-body" id="detalleContenido">
         </div>
@@ -478,75 +484,6 @@ global $TIPOS_ERROR, $MESES, $SERIES_REM, $HOJAS_POR_SERIE;
     color: white;
 }
 
-.modal-overlay {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
-    z-index: 1000;
-    align-items: center;
-    justify-content: center;
-}
-
-.modal-overlay.show {
-    display: flex;
-}
-
-.modal-box {
-    background: white;
-    border-radius: 16px;
-    width: 100%;
-    max-width: 600px;
-    max-height: 90vh;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-}
-
-.modal-box.modal-lg {
-    max-width: 800px;
-}
-
-.modal-header {
-    padding: 1rem 1.25rem;
-    border-bottom: 1px solid #e2e8f0;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.modal-header h3 {
-    font-size: 1rem;
-    font-weight: 600;
-    margin: 0;
-}
-
-.modal-close {
-    background: none;
-    border: none;
-    font-size: 1.5rem;
-    color: #64748b;
-    cursor: pointer;
-    line-height: 1;
-}
-
-.modal-body {
-    padding: 1.25rem;
-    overflow-y: auto;
-    flex: 1;
-}
-
-.modal-footer {
-    padding: 1rem 1.25rem;
-    border-top: 1px solid #e2e8f0;
-    display: flex;
-    justify-content: flex-end;
-    gap: 0.75rem;
-}
-
 .form-row {
     display: flex;
     gap: 1rem;
@@ -796,11 +733,15 @@ const ObsApp = (() => {
         document.getElementById('modalTitulo').textContent = 'Nueva Observación';
         document.getElementById('formObs').reset();
         document.getElementById('rowHoja').style.display = 'flex';
+        document.getElementById('modalFormBackdrop').classList.add('show');
         document.getElementById('modalForm').classList.add('show');
+        document.body.style.overflow = 'hidden';
     };
     
     const cerrarModal = () => {
+        document.getElementById('modalFormBackdrop').classList.remove('show');
         document.getElementById('modalForm').classList.remove('show');
+        document.body.style.overflow = '';
     };
     
     const editar = async (id) => {
@@ -828,7 +769,9 @@ const ObsApp = (() => {
             document.getElementById('frmClasif').value = o.clasificacion || '';
             document.getElementById('frmValidador').value = o.usa_validador || '';
             
+            document.getElementById('modalFormBackdrop').classList.add('show');
             document.getElementById('modalForm').classList.add('show');
+            document.body.style.overflow = 'hidden';
         } catch (e) {
             mostrarError(e.message);
         }
@@ -904,52 +847,74 @@ const ObsApp = (() => {
             const badgeClass = `badge badge-${o.estado_actual}`;
             
             document.getElementById('detalleContenido').innerHTML = `
-                <div class="detalle-header">
-                    <div>
-                        <h4>${esc(o.nombre_corto || o.establecimiento_nombre)}</h4>
-                        <p>${esc(o.comuna_nombre)}</p>
+                <div class="modal-section">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <h4 class="mb-1">${esc(o.nombre_corto || o.establecimiento_nombre)}</h4>
+                            <p class="text-secondary mb-0" style="font-size:0.875rem">${esc(o.comuna_nombre)}</p>
+                        </div>
+                        <span class="modal-badge ${o.estado_actual}">${cap(o.estado_actual)}</span>
                     </div>
-                    <span class="${badgeClass}">${cap(o.estado_actual)}</span>
                 </div>
                 
-                <div class="detalle-grid">
-                    <div class="detalle-item"><label>Mes/Año</label><span>${esc(o.mes)} ${o.anio}</span></div>
-                    <div class="detalle-item"><label>Serie/Hoja</label><span>${esc(o.codigo_serie || '-')} / ${esc(o.codigo_hoja || '-')}</span></div>
-                    <div class="detalle-item"><label>Tipo Error</label><span>${esc(o.tipo_error)}</span></div>
-                    <div class="detalle-item"><label>Plazo</label><span>${o.plazo_entrega ? cap(o.plazo_entrega.replace('_', ' ')) : '-'}</span></div>
+                <div class="modal-info-grid">
+                    <div class="modal-info-item">
+                        <label>Mes/Año</label>
+                        <span>${esc(o.mes)} ${o.anio}</span>
+                    </div>
+                    <div class="modal-info-item">
+                        <label>Serie/Hoja</label>
+                        <span>${esc(o.codigo_serie || '-')} / ${esc(o.codigo_hoja || '-')}</span>
+                    </div>
+                    <div class="modal-info-item">
+                        <label>Tipo Error</label>
+                        <span>${esc(o.tipo_error)}</span>
+                    </div>
+                    <div class="modal-info-item">
+                        <label>Plazo</label>
+                        <span>${o.plazo_entrega ? cap(o.plazo_entrega.replace('_', ' ')) : '-'}</span>
+                    </div>
                 </div>
                 
-                <div class="detalle-section">
-                    <label>Detalle</label>
-                    <div class="detalle-content">${esc(o.detalle_observacion) || '-'}</div>
+                <div class="modal-section">
+                    <div class="modal-section-title">Detalle</div>
+                    <div class="modal-content-box">${esc(o.detalle_observacion) || '-'}</div>
                 </div>
                 
-                <div class="detalle-meta">
-                    <small>Registrado por: ${esc(o.usuario_registro_nombre)}</small><br>
-                    <small>Creación: ${formatoFecha(o.fecha_registro)}</small>
+                <div class="modal-section">
+                    <small class="text-secondary">Registrado por: ${esc(o.usuario_registro_nombre)} | Fecha: ${formatoFecha(o.fecha_registro)}</small>
                 </div>
                 
                 ${hist.length > 0 ? `
-                <div class="detalle-section">
-                    <label>Historial</label>
-                    <div class="historial">
-                        ${hist.map(h => `<div class="historial-item">
-                            <span class="historial-estado">${esc(h.estado_anterior || 'Inicio')} → ${esc(h.estado_nuevo)}</span>
-                            <span class="historial-fecha">${formatoFecha(h.fecha_creacion)}</span>
-                            <span class="historial-user">${esc(h.usuario_nombre)}</span>
+                <div class="modal-section">
+                    <div class="modal-section-title">Historial de Cambios</div>
+                    <div class="modal-timeline">
+                        ${hist.map(h => `<div class="modal-timeline-item">
+                            <div class="modal-timeline-dot">${tablerIconSvg('arrow-right', 12)}</div>
+                            <div class="modal-timeline-content">
+                                <div class="modal-timeline-header">
+                                    <span class="modal-timeline-title">${esc(h.estado_anterior || 'Inicio')} → ${esc(h.estado_nuevo)}</span>
+                                    <span class="modal-timeline-date">${formatoFecha(h.fecha_creacion)}</span>
+                                </div>
+                                <div class="modal-timeline-user">${esc(h.usuario_nombre)}</div>
+                            </div>
                         </div>`).join('')}
                     </div>
                 </div>` : ''}
             `;
             
+            document.getElementById('modalVerBackdrop').classList.add('show');
             document.getElementById('modalVer').classList.add('show');
+            document.body.style.overflow = 'hidden';
         } catch (e) {
             mostrarError(e.message);
         }
     };
     
     const cerrarVer = () => {
+        document.getElementById('modalVerBackdrop').classList.remove('show');
         document.getElementById('modalVer').classList.remove('show');
+        document.body.style.overflow = '';
     };
     
     const eliminar = async (id) => {
@@ -1001,101 +966,3 @@ const ObsApp = (() => {
     return { cargar, abrirCrear, editar, ver, eliminar, cerrarModal, cerrarVer, limpiarFiltros, guardar };
 })();
 </script>
-
-<style>
-.detalle-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 1.5rem;
-    padding-bottom: 1rem;
-    border-bottom: 1px solid #e2e8f0;
-}
-
-.detalle-header h4 {
-    margin: 0 0 0.25rem;
-    color: #1e293b;
-}
-
-.detalle-header p {
-    margin: 0;
-    color: #64748b;
-    font-size: 0.875rem;
-}
-
-.detalle-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-}
-
-.detalle-item label {
-    display: block;
-    font-size: 0.7rem;
-    text-transform: uppercase;
-    color: #94a3b8;
-    margin-bottom: 0.25rem;
-}
-
-.detalle-item span {
-    font-weight: 500;
-    color: #1e293b;
-}
-
-.detalle-section {
-    margin-bottom: 1.5rem;
-}
-
-.detalle-section label {
-    display: block;
-    font-size: 0.7rem;
-    text-transform: uppercase;
-    color: #94a3b8;
-    margin-bottom: 0.5rem;
-}
-
-.detalle-content {
-    background: #f8fafc;
-    padding: 0.75rem;
-    border-radius: 6px;
-    color: #374151;
-}
-
-.detalle-meta {
-    color: #64748b;
-    font-size: 0.8rem;
-    margin-bottom: 1rem;
-}
-
-.historial {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-
-.historial-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.5rem;
-    background: #f8fafc;
-    border-radius: 6px;
-    font-size: 0.8rem;
-}
-
-.historial-estado {
-    font-weight: 500;
-    color: #1e293b;
-}
-
-.historial-fecha, .historial-user {
-    color: #64748b;
-}
-
-@media (max-width: 768px) {
-    .detalle-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-}
-</style>

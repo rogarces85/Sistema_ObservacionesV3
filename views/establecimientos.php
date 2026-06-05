@@ -110,134 +110,120 @@
     </div>
 </div>
 
-<!-- Modal Crear/Editar Establecimiento -->
-<div id="modalEstablecimiento" class="modal fade" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="modalEstablecimientoTitulo">Nuevo Establecimiento</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <form id="formEstablecimiento">
-                <div class="modal-body">
-                    <input type="hidden" id="estId" value="">
-                    <div class="mb-3">
-                        <label class="form-label required">Código de Establecimiento</label>
-                        <input type="number" id="estCodigo" class="form-control" required placeholder="Ej: 101">
-                        <div class="form-hint">Código numérico único del establecimiento (DEIS)</div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label required">Nombre Completo</label>
-                        <input type="text" id="estNombre" class="form-control" required placeholder="Ej: Hospital Base San José de Osorno">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label required">Nombre Corto</label>
-                        <input type="text" id="estNombreCorto" class="form-control" required placeholder="Ej: HBSJO" maxlength="50">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label required">Comuna</label>
-                        <select id="estComuna" class="form-select" required>
-                            <option value="">Seleccionar comuna...</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary" id="btnGuardarEst">Guardar</button>
-                </div>
-            </form>
+<div class="modal-backdrop" id="modalEstablecimientoBackdrop" onclick="if(event.target===this)gestorEst.cerrarModal('Establecimiento')"></div>
+<div class="modal-container" id="modalEstablecimiento">
+    <div class="modal">
+        <div class="modal-header">
+            <h3><?php echo tablerIcon('building'); ?> <span id="modalEstablecimientoTitulo">Nuevo Establecimiento</span></h3>
+            <button onclick="gestorEst.cerrarModal('Establecimiento')" class="modal-close"><?php echo tablerIcon('x'); ?></button>
         </div>
-    </div>
-</div>
-
-<!-- Modal Gestión de Referentes -->
-<div id="modalReferentes" class="modal fade" tabindex="-1">
-    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="referentesTitulo">Referentes del Establecimiento</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
+        <form id="formEstablecimiento">
             <div class="modal-body">
-                <input type="hidden" id="refEstablecimientoId" value="">
-                
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <p class="text-secondary mb-0">Personas de contacto para observaciones REM</p>
-                    <button onclick="gestorEst.abrirCrearReferente()" class="btn btn-sm btn-primary">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="icon me-1" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 5l0 14" /><path d="M5 12l14 0" /></svg>
-                        Nuevo Referente
-                    </button>
+                <input type="hidden" id="estId" value="">
+                <div class="mb-3">
+                    <label class="form-label required">Código de Establecimiento</label>
+                    <input type="number" id="estCodigo" class="form-control" required placeholder="Ej: 101">
+                    <div class="form-text">Código numérico único del establecimiento (DEIS)</div>
                 </div>
+                <div class="mb-3">
+                    <label class="form-label required">Nombre Completo</label>
+                    <input type="text" id="estNombre" class="form-control" required placeholder="Ej: Hospital Base San José de Osorno">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label required">Nombre Corto</label>
+                    <input type="text" id="estNombreCorto" class="form-control" required placeholder="Ej: HBSJO" maxlength="50">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label required">Comuna</label>
+                    <select id="estComuna" class="form-select" required>
+                        <option value="">Seleccionar comuna...</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-ghost" onclick="gestorEst.cerrarModal('Establecimiento')">Cancelar</button>
+                <button type="submit" class="btn btn-primary" id="btnGuardarEst">Guardar</button>
+            </div>
+        </form>
+    </div>
+</div>
 
-                <div class="table-responsive">
-                    <table class="table table-vcenter table-hover">
-                        <thead>
-                            <tr>
-                                <th>Nombre</th>
-                                <th>Cargo</th>
-                                <th>Teléfono</th>
-                                <th>Email</th>
-                                <th class="text-center">Estado</th>
-                                <th class="text-center">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tablaReferentes">
-                            <tr>
-                                <td colspan="6" class="text-center text-secondary py-4">
-                                    <div class="spinner-border spinner-border-sm me-2" role="status"></div>
-                                    Cargando referentes...
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+<div class="modal-backdrop" id="modalReferentesBackdrop" onclick="if(event.target===this)gestorEst.cerrarModal('Referentes')"></div>
+<div class="modal-container" id="modalReferentes">
+    <div class="modal modal-xl">
+        <div class="modal-header">
+            <h3><?php echo tablerIcon('users'); ?> <span id="referentesTitulo">Referentes del Establecimiento</span></h3>
+            <button onclick="gestorEst.cerrarModal('Referentes')" class="modal-close"><?php echo tablerIcon('x'); ?></button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="refEstablecimientoId" value="">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <p class="text-secondary mb-0">Personas de contacto para observaciones REM</p>
+                <button onclick="gestorEst.abrirCrearReferente()" class="btn btn-sm btn-primary">
+                    <?php echo tablerIcon('user-plus', 18); ?> Nuevo Referente
+                </button>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-vcenter table-hover">
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Cargo</th>
+                            <th>Teléfono</th>
+                            <th>Email</th>
+                            <th class="text-center">Estado</th>
+                            <th class="text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaReferentes">
+                        <tr><td colspan="6" class="text-center text-secondary py-4"><div class="spinner-border spinner-border-sm me-2" role="status"></div>Cargando referentes...</td></tr>
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Modal Crear/Editar Referente -->
-<div id="modalReferenteForm" class="modal fade" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="modalReferenteFormTitulo">Nuevo Referente</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <form id="formReferente">
-                <div class="modal-body">
-                    <input type="hidden" id="refId" value="">
-                    <div class="mb-3">
-                        <label class="form-label required">Nombre Completo</label>
-                        <input type="text" id="refNombre" class="form-control" required placeholder="Ej: María González López">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label required">Cargo</label>
-                        <select id="refCargo" class="form-select" required>
-                            <option value="">Seleccionar cargo...</option>
-                            <option value="Encargado de Estadísticas">Encargado de Estadísticas</option>
-                            <option value="Digitador de Estadísticas">Digitador de Estadísticas</option>
-                            <option value="Jefe de Servicio">Jefe de Servicio</option>
-                            <option value="Administrativo">Administrativo</option>
-                            <option value="Otro">Otro</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Teléfono</label>
-                        <input type="tel" id="refTelefono" class="form-control" placeholder="Ej: +56912345678">
-                        <div class="form-hint">Formato: +569XXXXXXXX o XXXXXXXX</div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Email</label>
-                        <input type="email" id="refEmail" class="form-control" placeholder="Ej: maria.gonzalez@ssor.cl">
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary" id="btnGuardarRef">Guardar</button>
-                </div>
-            </form>
+<div class="modal-backdrop" id="modalReferenteFormBackdrop" onclick="if(event.target===this)gestorEst.cerrarModal('ReferenteForm')"></div>
+<div class="modal-container" id="modalReferenteForm">
+    <div class="modal">
+        <div class="modal-header">
+            <h3><?php echo tablerIcon('user'); ?> <span id="modalReferenteFormTitulo">Nuevo Referente</span></h3>
+            <button onclick="gestorEst.cerrarModal('ReferenteForm')" class="modal-close"><?php echo tablerIcon('x'); ?></button>
         </div>
+        <form id="formReferente">
+            <div class="modal-body">
+                <input type="hidden" id="refId" value="">
+                <div class="mb-3">
+                    <label class="form-label required">Nombre Completo</label>
+                    <input type="text" id="refNombre" class="form-control" required placeholder="Ej: María González López">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label required">Cargo</label>
+                    <select id="refCargo" class="form-select" required>
+                        <option value="">Seleccionar cargo...</option>
+                        <option value="Encargado de Estadísticas">Encargado de Estadísticas</option>
+                        <option value="Digitador de Estadísticas">Digitador de Estadísticas</option>
+                        <option value="Jefe de Servicio">Jefe de Servicio</option>
+                        <option value="Administrativo">Administrativo</option>
+                        <option value="Otro">Otro</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Teléfono</label>
+                    <input type="tel" id="refTelefono" class="form-control" placeholder="Ej: +56912345678">
+                    <div class="form-text">Formato: +569XXXXXXXX o XXXXXXXX</div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Email</label>
+                    <input type="email" id="refEmail" class="form-control" placeholder="Ej: maria.gonzalez@ssor.cl">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-ghost" onclick="gestorEst.cerrarModal('ReferenteForm')">Cancelar</button>
+                <button type="submit" class="btn btn-primary" id="btnGuardarRef">Guardar</button>
+            </div>
+        </form>
     </div>
 </div>
 

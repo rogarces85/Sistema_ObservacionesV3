@@ -172,31 +172,29 @@ $comunas = $locationModel->getComunas();
 
 </div>
 
-<!-- Modal de Confirmación -->
-<div id="confirmModal" class="modal fade" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="confirmTitle">Confirmar Acción</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+<div class="modal-backdrop" id="confirmModalBackdrop" onclick="if(event.target===this)PapeleraApp.cerrarModal()"></div>
+<div class="modal-container" id="confirmModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3><?php echo tablerIcon('alert-triangle'); ?> <span id="confirmTitle">Confirmar Acción</span></h3>
+            <button onclick="PapeleraApp.cerrarModal()" class="modal-close"><?php echo tablerIcon('x'); ?></button>
+        </div>
+        <div class="modal-body">
+            <p id="confirmMessage"></p>
+            <div class="mb-3">
+                <label class="form-label">Comentario (opcional)</label>
+                <textarea id="confirmComment" class="form-control" rows="3"></textarea>
             </div>
-            <div class="modal-body">
-                <p id="confirmMessage"></p>
-                <div class="mb-3">
-                    <label class="form-label">Comentario (opcional)</label>
-                    <textarea id="confirmComment" class="form-control" rows="3"></textarea>
-                </div>
-                <div id="confirmCheckboxContainer" class="d-none">
-                    <label class="form-check">
-                        <input type="checkbox" id="confirmIrreversible" class="form-check-input">
-                        <span class="form-check-label text-danger">Entiendo que esta acción no se puede deshacer</span>
-                    </label>
-                </div>
+            <div id="confirmCheckboxContainer" class="d-none">
+                <label class="form-check">
+                    <input type="checkbox" id="confirmIrreversible" class="form-check-input">
+                    <span class="form-check-label text-danger">Entiendo que esta acción no se puede deshacer</span>
+                </label>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-primary" id="confirmActionBtn">Confirmar</button>
-            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="PapeleraApp.cerrarModal()">Cancelar</button>
+            <button class="btn btn-primary" id="confirmActionBtn">Confirmar</button>
         </div>
     </div>
 </div>

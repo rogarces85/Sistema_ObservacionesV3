@@ -91,6 +91,18 @@ const VersionadoApp = (() => {
         }).join('');
     }
 
+    function abrirModal(nombre) {
+        document.getElementById(`modal${nombre}Backdrop`).classList.add('show');
+        document.getElementById(`modal${nombre}`).classList.add('show');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function cerrarModal(nombre) {
+        document.getElementById(`modal${nombre}Backdrop`).classList.remove('show');
+        document.getElementById(`modal${nombre}`).classList.remove('show');
+        document.body.style.overflow = '';
+    }
+
     function actualizarEstadisticas(listaVersiones) {
         document.getElementById('statTotalVersiones').textContent = listaVersiones.length;
 
@@ -109,7 +121,7 @@ const VersionadoApp = (() => {
 
     function abrirModalCrear() {
         document.getElementById('crearDescripcion').value = '';
-        new bootstrap.Modal(document.getElementById('modalCrearVersion')).show();
+        abrirModal('CrearVersion');
     }
 
     async function confirmarCreacion(e) {
@@ -121,9 +133,7 @@ const VersionadoApp = (() => {
             return;
         }
 
-        const spinner = document.getElementById('btnCrearSpinner');
         const btn = document.getElementById('btnConfirmarCrear');
-        spinner.classList.remove('d-none');
         btn.disabled = true;
 
         try {
@@ -134,7 +144,7 @@ const VersionadoApp = (() => {
 
             if (respuesta.success) {
                 showSuccess(respuesta.data ? `Snapshot ${respuesta.data.version_tag} creado exitosamente (${respuesta.data.archivos_copiados} archivos)` : 'Snapshot creado exitosamente');
-                bootstrap.Modal.getInstance(document.getElementById('modalCrearVersion')).hide();
+                cerrarModal('CrearVersion');
                 cargarVersiones();
             } else {
                 throw new Error(respuesta.error || 'Error al crear el snapshot');
@@ -142,7 +152,6 @@ const VersionadoApp = (() => {
         } catch (error) {
             showError('Error: ' + error.message);
         } finally {
-            spinner.classList.add('d-none');
             btn.disabled = false;
         }
     }
@@ -189,7 +198,7 @@ const VersionadoApp = (() => {
             }).join('');
         }
 
-        new bootstrap.Modal(document.getElementById('modalDetalleVersion')).show();
+        abrirModal('DetalleVersion');
     }
 
     function abrirModalRestaurar(id) {
@@ -204,7 +213,7 @@ const VersionadoApp = (() => {
         document.getElementById('confirmarRestauracion').checked = false;
         document.getElementById('btnConfirmarRestaurar').disabled = true;
 
-        new bootstrap.Modal(document.getElementById('modalRestaurar')).show();
+        abrirModal('Restaurar');
     }
 
     async function confirmarRestauracion() {
@@ -213,9 +222,7 @@ const VersionadoApp = (() => {
             return;
         }
 
-        const spinner = document.getElementById('btnRestaurarSpinner');
         const btn = document.getElementById('btnConfirmarRestaurar');
-        spinner.classList.remove('d-none');
         btn.disabled = true;
 
         try {
@@ -238,7 +245,7 @@ const VersionadoApp = (() => {
                     showWarning('Recordatorio: ' + datos.advertencia_bd);
                 }
 
-                bootstrap.Modal.getInstance(document.getElementById('modalRestaurar')).hide();
+                cerrarModal('Restaurar');
                 cargarVersiones();
             } else {
                 throw new Error(respuesta.error || 'Error al ejecutar la restauración');
@@ -246,7 +253,6 @@ const VersionadoApp = (() => {
         } catch (error) {
             showError('Error: ' + error.message);
         } finally {
-            spinner.classList.add('d-none');
             btn.disabled = false;
         }
     }
@@ -269,9 +275,12 @@ const VersionadoApp = (() => {
         iniciar,
         cargarVersiones,
         verDetalle,
-        abrirModalRestaurar
+        abrirModalRestaurar,
+        cerrarModal
     };
 })();
+
+window.VersionadoApp = VersionadoApp;
 
 document.addEventListener('DOMContentLoaded', () => {
     VersionadoApp.iniciar();

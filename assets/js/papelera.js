@@ -20,10 +20,21 @@ class PapeleraEliminadas {
     }
 
     inicializar() {
-        this.confirmModal = new bootstrap.Modal(document.getElementById('confirmModal'));
         this.configurarEventos();
         this.cargarEstadisticas();
         this.cargarObservaciones();
+    }
+
+    abrirModal() {
+        document.getElementById('confirmModalBackdrop').classList.add('show');
+        document.getElementById('confirmModal').classList.add('show');
+        document.body.style.overflow = 'hidden';
+    }
+
+    cerrarModal() {
+        document.getElementById('confirmModalBackdrop').classList.remove('show');
+        document.getElementById('confirmModal').classList.remove('show');
+        document.body.style.overflow = '';
     }
 
     configurarEventos() {
@@ -412,7 +423,7 @@ class PapeleraEliminadas {
             btnConfirmar.disabled = false;
         }
 
-        this.confirmModal.show();
+        this.abrirModal();
     }
 
     async ejecutarAccionConfirmada() {
@@ -428,7 +439,7 @@ class PapeleraEliminadas {
             }
         }
 
-        this.confirmModal.hide();
+        this.cerrarModal();
 
         try {
             const esMasivo = ids.length > 1;
@@ -551,5 +562,5 @@ class PapeleraEliminadas {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    window.papelera = new PapeleraEliminadas();
+    window.PapeleraApp = new PapeleraEliminadas();
 });
