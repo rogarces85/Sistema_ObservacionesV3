@@ -75,6 +75,7 @@ $pageTitles = [
                         <span class="user-name"><?php echo htmlspecialchars($userName); ?></span>
                         <span class="user-role"><?php echo htmlspecialchars($userRole); ?></span>
                     </div>
+                    <?php echo tablerIcon('chevron-down', 16); ?>
                     <div class="dropdown-menu" id="user-dropdown">
                         <a class="dropdown-item" href="?pagina=perfil&anio=<?php echo $currentYear; ?>">
                             <?php echo tablerIcon('user'); ?>

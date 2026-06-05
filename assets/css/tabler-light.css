@@ -242,6 +242,16 @@ body {
     background: var(--bg);
 }
 
+.nav-user .ti-chevron-down {
+    color: var(--muted);
+    margin-left: 0.25rem;
+    transition: transform 0.2s;
+}
+
+.nav-user.dropdown:has(.dropdown-menu.show) .ti-chevron-down {
+    transform: rotate(180deg);
+}
+
 .user-avatar {
     width: 36px;
     height: 36px;
