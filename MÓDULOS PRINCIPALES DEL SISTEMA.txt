@@ -1,0 +1,17 @@
+MÓDULOS PRINCIPALES DEL SISTEMA
+ 1. Autenticación - Login, logout, verificación de sesión, cambio de año
+ 2. Usuarios - CRUD completo, contraseñas, auditoría
+ 3. Establecimientos - Gestión de centros de salud
+ 4. Comunas - Catálogo de comunas
+ 5. Referentes - Contactos de establecimientos
+ 6. Asignaciones - Vinculación registrador-establecimiento por año/mes
+ 7. Observaciones - CRUD de observaciones REM
+ 8. Supervisión - Revisión, aprobación/cancelación de observaciones
+ 9. Papelera - Restaurar/eliminar observaciones eliminadas
+10. Importación - Carga masiva desde Excel
+11. Exportación - Generación de reportes (Excel, PDF, CSV)
+12. Reportes - Múltiples dimensiones de análisis
+13. Historial - Registro de cambios de estado
+14. Versionado - Snapshots y rollback del código
+15. Cola de Reportes - Procesamiento asíncrono
+16. Seguridad - Protección CSRF

@@ -6,7 +6,6 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Login - Sistema de Observaciones REM</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.4.0/dist/css/tabler.min.css">
-    <link rel="stylesheet" href="assets/css/tabler-override.css">
     <link rel="icon" type="image/x-icon" href="favicon.ico">
 </head>
 <body class="d-flex flex-column">
@@ -14,7 +13,7 @@
         <div class="container container-tight py-4">
             <div class="text-center mb-4">
                 <a href="." class="navbar-brand navbar-brand-autodark">
-                    <h1 class="navbar-brand-text">Sistema de Observaciones REM</h1>
+                    <h1 class="navbar-brand">Sistema de Observaciones REM</h1>
                 </a>
                 <p class="text-muted">Servicio de Salud Osorno</p>
             </div>

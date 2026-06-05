@@ -156,9 +156,6 @@ try {
                 responderJson(false, null, 'Método no permitido', 405);
             }
 
-            validarCsrfToken();
-
-            // Destruir sesión completamente
             $_SESSION = [];
 
             if (ini_get('session.use_cookies')) {

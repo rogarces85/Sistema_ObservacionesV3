@@ -27,6 +27,16 @@
         function toggleSidebar() {
             document.querySelector('.navbar-vertical').classList.toggle('show');
         }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            window.gestorSesion = new GestorSesion();
+            window.gestorSesion.iniciar();
+
+            document.getElementById('btn-logout')?.addEventListener('click', function(e) {
+                e.preventDefault();
+                logout();
+            });
+        });
     </script>
 </body>
 </html>

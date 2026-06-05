@@ -54,9 +54,11 @@ async function fetchAPI(url, opciones = {}) {
             throw new Error(datos.error || 'Token CSRF inválido');
         }
 
-        // Actualizar CSRF token si viene en la respuesta
+        // Actualizar CSRF token si viene en la respuesta (anidado o directo)
         if (datos.data && datos.data.csrf_token) {
             localStorage.setItem('csrf_token', datos.data.csrf_token);
+        } else if (datos.csrf_token) {
+            localStorage.setItem('csrf_token', datos.csrf_token);
         }
 
         return datos;
@@ -367,9 +369,14 @@ window.API_BASE = API_BASE;
 
 window.logout = async function () {
     try {
-        await fetchAPI('api/auth.php?action=logout', { method: 'POST' });
+        await fetch('api/auth.php?action=logout', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' }
+        });
     } catch (_) {}
     localStorage.removeItem('csrf_token');
+    sessionStorage.clear();
     window.location.href = 'index.php';
 };
 
@@ -398,11 +405,6 @@ document.addEventListener('click', (e) => {
         dropdown.classList.remove('show');
     }
 });
-
-window.tablerIcon = function (name, size) {
-    const mapa = { error: 'danger', success: 'success', warning: 'warning', info: 'info' };
-    mostrarNotificacion(mensaje, mapa[tipo] || 'info');
-};
 
 window.showLoading = function () {
     document.getElementById('loading-spinner')?.classList.remove('d-none');

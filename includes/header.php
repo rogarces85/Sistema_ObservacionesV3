@@ -81,7 +81,7 @@ $pageTitles = [
                             <?php echo tablerIcon('user'); ?>
                             Mi Perfil
                         </a>
-                        <a class="dropdown-item danger" href="#" onclick="logout()">
+                        <a class="dropdown-item danger" href="javascript:void(0)" id="btn-logout">
                             <?php echo tablerIcon('logout'); ?>
                             Cerrar Sesión
                         </a>
