@@ -2,141 +2,79 @@
 $currentPage = $_GET['pagina'] ?? 'dashboard';
 $userRole = $_SESSION['rol'] ?? '';
 $currentYear = $_SESSION['anio_trabajo'] ?? date('Y');
+$userName = $_SESSION['nombre_completo'] ?? 'Usuario';
+$userInitials = strtoupper(substr($userName, 0, 2));
 
-$navGroups = [
-    [
-        'title' => 'Dashboard',
-        'items' => [
-            [
-                'id' => 'dashboard',
-                'title' => 'Panel de Control',
-                'icon' => 'home',
-                'roles' => [ROL_REGISTRADOR, ROL_SUPERVISOR]
-            ]
-        ]
-    ],
-    [
-        'title' => 'Gestión',
-        'items' => [
-            [
-                'id' => 'observaciones',
-                'title' => 'Observaciones',
-                'icon' => 'file-text',
-                'roles' => [ROL_REGISTRADOR, ROL_SUPERVISOR]
-            ],
-            [
-                'id' => 'importacion',
-                'title' => 'Importar desde Excel',
-                'icon' => 'upload',
-                'roles' => [ROL_REGISTRADOR]
-            ],
-            [
-                'id' => 'supervision',
-                'title' => 'Supervisión',
-                'icon' => 'eye',
-                'roles' => [ROL_SUPERVISOR]
-            ]
-        ]
-    ],
-    [
-        'title' => 'Reportes',
-        'items' => [
-            [
-                'id' => 'reportes',
-                'title' => 'Reportes',
-                'icon' => 'chart-bar',
-                'roles' => [ROL_REGISTRADOR, ROL_SUPERVISOR]
-            ]
-        ]
-    ],
-    [
-        'title' => 'Configuración',
-        'items' => [
-            [
-                'id' => 'usuarios',
-                'title' => 'Usuarios',
-                'icon' => 'users',
-                'roles' => [ROL_SUPERVISOR]
-            ],
-            [
-                'id' => 'asignaciones',
-                'title' => 'Asignar Establecimientos',
-                'icon' => 'package',
-                'roles' => [ROL_SUPERVISOR]
-            ],
-            [
-                'id' => 'establecimientos',
-                'title' => 'Establecimientos',
-                'icon' => 'building',
-                'roles' => [ROL_SUPERVISOR]
-            ],
-            [
-                'id' => 'eliminadas',
-                'title' => 'Eliminadas',
-                'icon' => 'trash',
-                'roles' => [ROL_SUPERVISOR]
-            ],
-            [
-                'id' => 'perfil',
-                'title' => 'Mi Perfil',
-                'icon' => 'user',
-                'roles' => [ROL_REGISTRADOR, ROL_SUPERVISOR]
-            ]
-        ]
-    ]
+$navItems = [
+    'dashboard' => ['title' => 'Panel de Control', 'icon' => 'home'],
+    'observaciones' => ['title' => 'Observaciones', 'icon' => 'file-text'],
+    'importacion' => ['title' => 'Importar Excel', 'icon' => 'upload', 'roles' => [ROL_REGISTRADOR]],
+    'supervision' => ['title' => 'Supervisión', 'icon' => 'eye', 'roles' => [ROL_SUPERVISOR]],
+    'reportes' => ['title' => 'Reportes', 'icon' => 'chart-bar'],
+];
+
+$configItems = [
+    'usuarios' => ['title' => 'Usuarios', 'icon' => 'users', 'roles' => [ROL_SUPERVISOR]],
+    'asignaciones' => ['title' => 'Asignaciones', 'icon' => 'package', 'roles' => [ROL_SUPERVISOR]],
+    'establecimientos' => ['title' => 'Establecimientos', 'icon' => 'building', 'roles' => [ROL_SUPERVISOR]],
+    'eliminadas' => ['title' => 'Eliminadas', 'icon' => 'trash', 'roles' => [ROL_SUPERVISOR]],
+    'perfil' => ['title' => 'Mi Perfil', 'icon' => 'user'],
 ];
 ?>
-<aside class="navbar navbar-vertical navbar-expand-lg border-end">
-    <div class="container-fluid">
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#sidebar-menu"
-            aria-controls="sidebar-menu" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="navbar-brand">
-            <a href="?pagina=dashboard" class="d-flex align-items-center gap-2 text-decoration-none">
-                <div class="navbar-brand-logo">
-                    <?php echo tablerIcon('clipboard-heart'); ?>
+
+<aside class="navbar-vertical">
+    <a href="?pagina=dashboard" class="sidebar-brand">
+        <div class="brand-icon">
+            <?php echo tablerIcon('clipboard-heart'); ?>
+        </div>
+        <div class="brand-text">
+            <span class="title">Sistema REM</span>
+            <span class="subtitle">Servicio de Salud</span>
+        </div>
+    </a>
+
+    <nav class="sidebar-nav">
+        <div class="nav-section">
+            <?php foreach ($navItems as $id => $item): ?>
+                <?php if (isset($item['roles']) && !in_array($userRole, $item['roles'])) continue; ?>
+                <div class="nav-item">
+                    <a href="?pagina=<?php echo $id; ?>&anio=<?php echo $currentYear; ?>" 
+                       class="nav-link <?php echo ($currentPage === $id) ? 'active' : ''; ?>">
+                        <?php echo tablerIcon($item['icon']); ?>
+                        <span><?php echo $item['title']; ?></span>
+                    </a>
                 </div>
-                <div class="navbar-brand-text">
-                    <span class="title">Sistema REM</span>
-                    <span class="subtitle">Servicio de Salud</span>
+            <?php endforeach; ?>
+        </div>
+
+        <?php
+        $hasConfigItems = false;
+        foreach ($configItems as $item) {
+            if (!isset($item['roles']) || in_array($userRole, $item['roles'])) {
+                $hasConfigItems = true;
+                break;
+            }
+        }
+        ?>
+        
+        <?php if ($hasConfigItems): ?>
+        <div class="nav-section">
+            <div class="nav-section-title">Configuración</div>
+            <?php foreach ($configItems as $id => $item): ?>
+                <?php if (isset($item['roles']) && !in_array($userRole, $item['roles'])) continue; ?>
+                <div class="nav-item">
+                    <a href="?pagina=<?php echo $id; ?>&anio=<?php echo $currentYear; ?>" 
+                       class="nav-link <?php echo ($currentPage === $id) ? 'active' : ''; ?>">
+                        <?php echo tablerIcon($item['icon']); ?>
+                        <span><?php echo $item['title']; ?></span>
+                    </a>
                 </div>
-            </a>
+            <?php endforeach; ?>
         </div>
-        <div class="collapse navbar-collapse" id="sidebar-menu">
-            <ul class="navbar-nav pt-4" data-bs-toggle="mobile-nav">
-                <?php foreach ($navGroups as $group): ?>
-                    <?php
-                    $hasVisibleItems = false;
-                    foreach ($group['items'] as $item) {
-                        if (in_array($userRole, $item['roles'])) {
-                            $hasVisibleItems = true;
-                            break;
-                        }
-                    }
-                    if (!$hasVisibleItems) continue;
-                    ?>
-                    <li class="nav-item">
-                        <small class="nav-subtitle text-secondary px-3 pb-1 d-block text-uppercase">
-                            <?php echo $group['title']; ?>
-                        </small>
-                    </li>
-                    <?php foreach ($group['items'] as $item): ?>
-                        <?php if (in_array($userRole, $item['roles'])): ?>
-                            <li class="nav-item">
-                                <a class="nav-link <?php echo ($currentPage === $item['id']) ? 'active' : ''; ?>"
-                                    href="?pagina=<?php echo $item['id']; ?>&anio=<?php echo $currentYear; ?>">
-                                    <span class="nav-link-icon"><?php echo tablerIcon($item['icon']); ?></span>
-                                    <span class="nav-link-title"><?php echo $item['title']; ?></span>
-                                </a>
-                            </li>
-                        <?php endif; ?>
-                    <?php endforeach; ?>
-                <?php endforeach; ?>
-            </ul>
-        </div>
-        <div class="mt-auto px-3 py-3 d-none d-lg-block">
-            <small class="text-secondary">Versión <?php echo APP_VERSION; ?></small>
-        </div>
+        <?php endif; ?>
+    </nav>
+
+    <div class="sidebar-footer">
+        Versión <?php echo APP_VERSION; ?>
     </div>
 </aside>

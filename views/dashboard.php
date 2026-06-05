@@ -1,345 +1,322 @@
 <?php
-/**
- * Dashboard Light - Panel de Control
- * Sistema de Observaciones REM
- */
-
 $usuarioId = $_SESSION['usuario_id'] ?? 0;
 $rol = $_SESSION['rol'] ?? '';
 $anio = $_SESSION['anio_trabajo'] ?? date('Y');
 $nombreUsuario = $_SESSION['nombre_completo'] ?? 'Usuario';
 $partesNombre = explode(' ', $nombreUsuario);
-$primerNombre = $partesNombre[0] ?? 'Usuario';
+$primerNombre = $partesNombre[0];
 ?>
 
-<div class="dashboard-container">
+<div class="dashboard">
     <div class="dashboard-header">
-        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center w-100 gap-3">
-            <div>
-                <div class="page-pretitle">Bienvenido de vuelta</div>
-                <h2 class="page-title mb-0">
-                    Hola, <?php echo htmlspecialchars($primerNombre); ?>
-                    <span class="badge bg-blue-lt text-blue ms-2"><?php echo $anio; ?></span>
-                </h2>
-            </div>
-            <div class="btn-list">
-                <?php if ($rol === ROL_REGISTRADOR): ?>
-                    <a href="?pagina=observaciones&anio=<?php echo $anio; ?>" class="btn btn-primary">
-                        <?php echo tablerIcon('plus'); ?>
-                        Nueva Observación
-                    </a>
-                <?php endif; ?>
-                <?php if ($rol === ROL_SUPERVISOR): ?>
-                    <a href="?pagina=supervision&anio=<?php echo $anio; ?>" class="btn btn-outline-secondary">
-                        <?php echo tablerIcon('eye'); ?>
-                        Supervisar
-                    </a>
-                <?php endif; ?>
-                <button class="btn btn-icon btn-outline-secondary" onclick="location.reload()" title="Actualizar">
-                    <?php echo tablerIcon('refresh'); ?>
-                </button>
-            </div>
+        <div class="greeting">
+            <h1>Hola, <?php echo htmlspecialchars($primerNombre); ?></h1>
+            <p>Resumen de observaciones REM - Año <?php echo $anio; ?></p>
+        </div>
+        <div class="header-actions">
+            <?php if ($rol === ROL_REGISTRADOR): ?>
+            <a href="?pagina=observaciones&anio=<?php echo $anio; ?>" class="btn btn-primary">
+                <?php echo tablerIcon('plus'); ?>
+                Nueva Observación
+            </a>
+            <?php endif; ?>
         </div>
     </div>
 
     <div id="alertas-container"></div>
 
-    <div class="row g-4 mb-4">
-        <div class="col-6 col-lg-3">
-            <div class="card">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="subheader">Total Registradas</div>
-                    </div>
-                    <div class="h1 mb-3 mt-2" id="stat-total">
-                        <span class="placeholder" style="width:60px"></span>
-                    </div>
-                    <div class="d-flex align-items-center">
-                        <div class="chart-sparkline" id="sparkline-total"></div>
-                    </div>
+    <div class="stats-grid">
+        <div class="stat-card stat-total">
+            <div class="stat-icon">
+                <?php echo tablerIcon('file-text'); ?>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value" id="stat-total">
+                    <span class="loading"></span>
                 </div>
+                <div class="stat-label">Total Registradas</div>
             </div>
         </div>
-        <div class="col-6 col-lg-3">
-            <div class="card">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="subheader">Pendientes</div>
-                    </div>
-                    <div class="h1 mb-3 mt-2" id="stat-pendientes">
-                        <span class="placeholder" style="width:50px"></span>
-                    </div>
-                    <div class="d-flex align-items-center">
-                        <div class="chart-sparkline" id="sparkline-pendientes"></div>
-                    </div>
+
+        <div class="stat-card stat-pending">
+            <div class="stat-icon">
+                <?php echo tablerIcon('clock'); ?>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value" id="stat-pendientes">
+                    <span class="loading"></span>
                 </div>
+                <div class="stat-label">Pendientes</div>
             </div>
         </div>
-        <div class="col-6 col-lg-3">
-            <div class="card">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="subheader">Aprobadas</div>
-                    </div>
-                    <div class="h1 mb-3 mt-2" id="stat-aprobadas">
-                        <span class="placeholder" style="width:50px"></span>
-                    </div>
-                    <div class="d-flex align-items-center">
-                        <div class="chart-sparkline" id="sparkline-aprobadas"></div>
-                    </div>
+
+        <div class="stat-card stat-approved">
+            <div class="stat-icon">
+                <?php echo tablerIcon('check-circle'); ?>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value" id="stat-aprobadas">
+                    <span class="loading"></span>
                 </div>
+                <div class="stat-label">Aprobadas</div>
             </div>
         </div>
-        <div class="col-6 col-lg-3">
-            <div class="card">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="subheader">Con Problemas</div>
-                    </div>
-                    <div class="h1 mb-3 mt-2" id="stat-problemas">
-                        <span class="placeholder" style="width:50px"></span>
-                    </div>
-                    <div class="d-flex align-items-center">
-                        <div class="chart-sparkline" id="sparkline-problemas"></div>
-                    </div>
+
+        <div class="stat-card stat-errors">
+            <div class="stat-icon">
+                <?php echo tablerIcon('alert-triangle'); ?>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value" id="stat-problemas">
+                    <span class="loading"></span>
                 </div>
+                <div class="stat-label">Con Problemas</div>
             </div>
         </div>
     </div>
 
-    <div class="row g-4 mb-4">
-        <div class="col-lg-8">
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title"><?php echo tablerIcon('table'); ?> Observaciones Recientes</h3>
-                    <div class="card-actions">
-                        <a href="?pagina=observaciones&anio=<?php echo $anio; ?>" class="btn btn-sm btn-ghost-primary">
-                            Ver todas
-                        </a>
-                    </div>
-                </div>
-                <div class="table-responsive">
-                    <table class="table card-table table-vcenter">
-                        <thead>
-                            <tr>
-                                <th>Establecimiento</th>
-                                <th>Serie</th>
-                                <th>Mes</th>
-                                <th>Estado</th>
-                                <th>Fecha</th>
-                                <th class="w-1"></th>
-                            </tr>
-                        </thead>
-                        <tbody id="tabla-recientes">
-                            <tr>
-                                <td colspan="6" class="text-center py-4 text-secondary">
-                                    <div class="spinner-border spinner-border-sm me-2" role="status"></div>
-                                    Cargando...
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+    <div class="charts-grid">
+        <div class="chart-card">
+            <div class="chart-header">
+                <h3>Distribución por Estado</h3>
+            </div>
+            <div class="chart-body">
+                <div id="chart-donut"></div>
             </div>
         </div>
-        <div class="col-lg-4">
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title"><?php echo tablerIcon('bolt'); ?> Acciones Rápidas</h3>
-                </div>
-                <div class="card-body">
-                    <div class="row g-3">
-                        <?php if ($rol === ROL_REGISTRADOR): ?>
-                        <div class="col-6">
-                            <a href="?pagina=observaciones&anio=<?php echo $anio; ?>" class="btn btn-outline-primary w-100 h-100">
-                                <div class="d-flex flex-column align-items-center py-2">
-                                    <?php echo tablerIcon('plus', 24); ?>
-                                    <span class="mt-1">Nueva</span>
-                                </div>
-                            </a>
-                        </div>
-                        <div class="col-6">
-                            <a href="?pagina=importacion&anio=<?php echo $anio; ?>" class="btn btn-outline-primary w-100 h-100">
-                                <div class="d-flex flex-column align-items-center py-2">
-                                    <?php echo tablerIcon('upload', 24); ?>
-                                    <span class="mt-1">Importar</span>
-                                </div>
-                            </a>
-                        </div>
-                        <?php endif; ?>
-                        <?php if ($rol === ROL_SUPERVISOR): ?>
-                        <div class="col-6">
-                            <a href="?pagina=supervision&anio=<?php echo $anio; ?>" class="btn btn-outline-warning w-100 h-100">
-                                <div class="d-flex flex-column align-items-center py-2">
-                                    <?php echo tablerIcon('eye', 24); ?>
-                                    <span class="mt-1">Supervisar</span>
-                                </div>
-                            </a>
-                        </div>
-                        <div class="col-6">
-                            <a href="?pagina=reportes&anio=<?php echo $anio; ?>" class="btn btn-outline-primary w-100 h-100">
-                                <div class="d-flex flex-column align-items-center py-2">
-                                    <?php echo tablerIcon('report', 24); ?>
-                                    <span class="mt-1">Reportes</span>
-                                </div>
-                            </a>
-                        </div>
-                        <?php endif; ?>
-                        <div class="col-6">
-                            <a href="?pagina=perfil&anio=<?php echo $anio; ?>" class="btn btn-outline-secondary w-100 h-100">
-                                <div class="d-flex flex-column align-items-center py-2">
-                                    <?php echo tablerIcon('user', 24); ?>
-                                    <span class="mt-1">Perfil</span>
-                                </div>
-                            </a>
-                        </div>
-                        <div class="col-6">
-                            <a href="?pagina=reportes&tipo=errores&anio=<?php echo $anio; ?>" class="btn btn-outline-danger w-100 h-100">
-                                <div class="d-flex flex-column align-items-center py-2">
-                                    <?php echo tablerIcon('alert-triangle', 24); ?>
-                                    <span class="mt-1">Errores</span>
-                                </div>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 
-    <div class="row g-4 mb-4">
-        <div class="col-lg-4">
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title"><?php echo tablerIcon('chart-donut'); ?> Distribución por Estado</h3>
-                </div>
-                <div class="card-body">
-                    <div id="chart-donut" style="height: 250px">
-                        <div class="text-center py-5 text-secondary">
-                            <div class="spinner-border spinner-border-sm me-2" role="status"></div>
-                            Cargando...
-                        </div>
-                    </div>
-                </div>
+        <div class="chart-card">
+            <div class="chart-header">
+                <h3>Observaciones por Mes</h3>
             </div>
-        </div>
-        <div class="col-lg-8">
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title"><?php echo tablerIcon('grid-dots'); ?> Heatmap Serie × Hoja</h3>
-                    <div class="card-actions">
-                        <select id="selector-mes-heatmap" class="form-select form-select-sm" style="width: auto">
-                            <option value="">Todos los meses</option>
-                            <?php
-                            $meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-                            foreach ($meses as $i => $mes): ?>
-                                <option value="<?php echo $i + 1; ?>"><?php echo $mes; ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <div id="chart-heatmap" style="height: 250px">
-                        <div class="text-center py-5 text-secondary">
-                            <div class="spinner-border spinner-border-sm me-2" role="status"></div>
-                            Cargando...
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="row g-4 mb-4">
-        <div class="col-lg-6">
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title"><?php echo tablerIcon('chart-bar'); ?> Top Establecimientos con Problemas</h3>
-                </div>
-                <div class="card-body p-0">
-                    <div id="chart-top-problemas" class="table-responsive">
-                        <table class="table table-sm table-vcenter mb-0">
-                            <thead>
-                                <tr>
-                                    <th>Establecimiento</th>
-                                    <th class="text-end">Errores</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tabla-top-problemas">
-                                <tr>
-                                    <td colspan="2" class="text-center py-3 text-secondary">
-                                        <div class="spinner-border spinner-border-sm me-2" role="status"></div>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-lg-6">
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title"><?php echo tablerIcon('calendar'); ?> Observaciones por Mes</h3>
-                </div>
-                <div class="card-body">
-                    <div id="chart-lineas" style="height: 200px">
-                        <div class="text-center py-5 text-secondary">
-                            <div class="spinner-border spinner-border-sm me-2" role="status"></div>
-                        </div>
-                    </div>
-                </div>
+            <div class="chart-body">
+                <div id="chart-lineas"></div>
             </div>
         </div>
     </div>
 </div>
 
 <style>
-.dashboard-container {
-    animation: fadeIn 0.3s ease-out;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+.dashboard {
+    max-width: 1400px;
+    margin: 0 auto;
 }
 
 .dashboard-header {
-    margin-bottom: 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
 }
 
-.subheader {
-    font-size: 0.75rem;
-    color: var(--tblr-muted);
+.greeting h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0 0 0.25rem;
+}
+
+.greeting p {
+    color: #64748b;
+    margin: 0;
+    font-size: 0.95rem;
+}
+
+.header-actions {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1rem;
+    border-radius: 8px;
     font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+    font-size: 0.875rem;
+    text-decoration: none;
+    transition: all 0.2s;
+    border: none;
+    cursor: pointer;
 }
 
-.chart-sparkline {
-    height: 40px;
-    width: 100%;
+.btn-primary {
+    background: #0ea5e9;
+    color: white;
 }
 
-.btn.h-100 {
-    min-height: 80px;
-}
-
-.btn-outline-primary:hover, .btn-outline-warning:hover, .btn-outline-danger:hover, .btn-outline-secondary:hover {
-    transform: translateY(-2px);
+.btn-primary:hover {
+    background: #0284c7;
+    transform: translateY(-1px);
 }
 
 .btn .ti {
-    margin-bottom: 2px;
+    width: 18px;
+    height: 18px;
 }
 
-.table-vcenter > thead > tr > th,
-.table-vcenter > tbody > tr > td {
-    vertical-align: middle;
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.5rem;
+    margin-bottom: 2rem;
 }
 
-#tabla-recientes .badge {
-    font-size: 0.65rem;
+.stat-card {
+    background: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    border: 1px solid #e2e8f0;
+    transition: all 0.2s;
+}
+
+.stat-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transform: translateY(-2px);
+}
+
+.stat-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.stat-icon .ti {
+    width: 28px;
+    height: 28px;
+}
+
+.stat-total .stat-icon {
+    background: #e0f2fe;
+    color: #0ea5e9;
+}
+
+.stat-pending .stat-icon {
+    background: #fef9c3;
+    color: #ca8a04;
+}
+
+.stat-approved .stat-icon {
+    background: #dcfce7;
+    color: #16a34a;
+}
+
+.stat-errors .stat-icon {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.stat-content {
+    flex: 1;
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #1e293b;
+    line-height: 1.2;
+}
+
+.stat-value .loading {
+    display: inline-block;
+    width: 48px;
+    height: 32px;
+    background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 6px;
+}
+
+@keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+.stat-label {
+    font-size: 0.85rem;
+    color: #64748b;
+    font-weight: 500;
+}
+
+.charts-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+}
+
+.chart-card {
+    background: white;
+    border-radius: 16px;
+    border: 1px solid #e2e8f0;
+    overflow: hidden;
+}
+
+.chart-header {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.chart-header h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin: 0;
+}
+
+.chart-body {
+    padding: 1.5rem;
+    height: 300px;
+}
+
+#chart-donut, #chart-lineas {
+    width: 100%;
+    height: 100%;
+}
+
+@media (max-width: 1024px) {
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .charts-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 640px) {
+    .dashboard-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+#alertas-container {
+    margin-bottom: 1.5rem;
+}
+
+#alertas-container .alert {
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+}
+
+#alertas-container .alert-danger {
+    background: #fee2e2;
+    color: #dc2626;
+    border: none;
 }
 </style>
 
@@ -347,9 +324,7 @@ $primerNombre = $partesNombre[0] ?? 'Usuario';
 window.DASHBOARD_CONFIG = {
     anio: <?php echo $anio; ?>,
     rol: '<?php echo $rol; ?>',
-    usuarioId: <?php echo $usuarioId; ?>,
-    autoRefreshInterval: 120000,
-    csrfToken: document.querySelector('meta[name="csrf-token"]')?.content || ''
+    usuarioId: <?php echo $usuarioId; ?>
 };
 </script>
 <script src="assets/js/dashboard.js"></script>
