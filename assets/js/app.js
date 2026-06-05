@@ -153,10 +153,19 @@ function crearContenedorNotificaciones() {
 
 /**
  * Confirmar acción con modal
- * @param {string} mensaje - Mensaje de confirmación
+ * @param {string|object} opciones - Mensaje o objeto {titulo, mensaje, tipo, textoConfirmar, textoCancelar}
  * @returns {Promise<boolean>} true si confirma, false si cancela
  */
-function confirmarAccion(mensaje) {
+function confirmarAccion(opciones) {
+    const config = typeof opciones === 'string'
+        ? { mensaje: opciones }
+        : opciones;
+    const titulo = config.titulo || 'Confirmar acción';
+    const mensaje = config.mensaje || '';
+    const tipo = config.tipo || 'warning';
+    const textoConfirmar = config.textoConfirmar || 'Confirmar';
+    const textoCancelar = config.textoCancelar || 'Cancelar';
+
     return new Promise((resolver) => {
         const backdrop = document.createElement('div');
         backdrop.className = 'modal-backdrop show';
@@ -164,22 +173,22 @@ function confirmarAccion(mensaje) {
 
         const iconAlert = '<svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-alert-triangle" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 9v4"/><path d="M10.363 3.591l-8.106 13.534a1.914 1.914 0 0 0 1.636 2.875h16.214a1.914 1.914 0 0 0 1.636 -2.875l-8.106 -13.534a1.914 1.914 0 0 0 -3.274 0z"/><path d="M12 16h.01"/></svg>';
         const iconX = '<svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-x" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M18 6l-12 12"/><path d="M6 6l12 12"/></svg>';
-        const iconClock = '<svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0"/><path d="M12 7v5l3 3"/></svg>';
+        const btnClass = tipo === 'danger' ? 'btn btn-danger' : 'btn btn-primary';
 
         const modal = document.createElement('div');
         modal.className = 'modal-container show';
         modal.innerHTML = `
             <div class="modal">
-                <div class="modal-header">
-                    <h3>${iconAlert} Confirmar acción</h3>
-                    <button class="modal-close" onclick="document.body.removeChild(backdrop); modal.remove(); resolver(false);">${iconX}</button>
+                <div class="modal-header modal-header-${tipo}">
+                    <h3>${iconAlert} ${titulo}</h3>
+                    <button class="modal-close" data-accion="cancelar">${iconX}</button>
                 </div>
                 <div class="modal-body">
                     <p>${mensaje}</p>
                 </div>
                 <div class="modal-footer">
-                    <button class="btn btn-ghost" onclick="document.body.removeChild(backdrop); modal.remove(); resolver(false);">Cancelar</button>
-                    <button class="btn btn-primary" id="btnConfirmarSi">Confirmar</button>
+                    <button class="btn btn-ghost" data-accion="cancelar">${textoCancelar}</button>
+                    <button class="${btnClass}" data-accion="confirmar">${textoConfirmar}</button>
                 </div>
             </div>
         `;
@@ -187,19 +196,16 @@ function confirmarAccion(mensaje) {
         document.body.appendChild(modal);
         document.body.style.overflow = 'hidden';
 
-        modal.querySelector('#btnConfirmarSi').addEventListener('click', () => {
+        const cerrar = (valor) => {
             document.body.removeChild(backdrop);
             modal.remove();
             document.body.style.overflow = '';
-            resolver(true);
-        });
+            resolver(valor);
+        };
 
-        backdrop.addEventListener('click', () => {
-            document.body.removeChild(backdrop);
-            modal.remove();
-            document.body.style.overflow = '';
-            resolver(false);
-        });
+        modal.querySelectorAll('[data-accion="cancelar"]').forEach(b => b.addEventListener('click', () => cerrar(false)));
+        modal.querySelector('[data-accion="confirmar"]').addEventListener('click', () => cerrar(true));
+        backdrop.addEventListener('click', () => cerrar(false));
     });
 }
 

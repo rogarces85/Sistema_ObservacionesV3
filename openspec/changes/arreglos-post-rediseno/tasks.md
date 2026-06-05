@@ -15,13 +15,16 @@
 - [x] 1.7 Agregar iconos faltantes en `icons.php`: `file`, `clipboard-text`, `user-edit`, `key`, `file-invoice`, `table`, `versions`, `camera`, `camera-plus`, `camera-check`, `arrow-back`
 - [x] 1.8 Corregir clase `.navbar-brand-text` → `.navbar-brand` en login.php (clase inexistente)
 - [x] 1.9 Verificación de sintaxis PHP en todos los archivos — 0 errores
+- [x] 1.10 Corregir logout: CSRF bloqueaba la destrucción de sesión — logout ya no requiere CSRF, usa fetch directo con credentials
+- [x] 1.11 Corregir GestorSesion: nunca se instanciaba — ahora se instancia en footer.php con `DOMContentLoaded`
+- [x] 1.12 Corregir `fetchAPI()`: no actualizaba CSRF token cuando venía en nivel superior de respuesta
 
 ## T-02: Verificación - Login y Auth
 
 - [ ] 2.1 Verificar login page renderiza con estilos Tabler completos
 - [ ] 2.2 Probar login exitoso → redirige a dashboard
 - [ ] 2.3 Probar login fallido → mensaje de error visible
-- [ ] 2.4 Verificar logout funciona desde cualquier página
+- [x] 2.4 Verificar logout funciona desde cualquier página
 - [ ] 2.5 Verificar timeout de sesión (25 min advertencia, 30 min expiración)
 - [ ] 2.6 Verificar selector de año funciona en el header
 
@@ -29,7 +32,7 @@
 
 - [ ] 3.1 Verificar sidebar muestra navegación correcta según rol (Supervisor vs Registrador)
 - [ ] 3.2 Verificar item activo se marca correctamente al navegar
-- [ ] 3.3 Verificar dropdown de usuario abre con click, cierra al hacer click fuera
+- [x] 3.3 Verificar dropdown de usuario abre con click, cierra al hacer click fuera
 - [ ] 3.4 Verificar footer muestra nombre de app y año
 - [ ] 3.5 Verificar responsive: sidebar colapsa en mobile
 - [ ] 3.6 Verificar loading overlay/spinner aparece durante navegación

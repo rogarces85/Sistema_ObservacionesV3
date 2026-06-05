@@ -55,14 +55,16 @@ try {
                 $comunaId = $_GET['comuna_id'] ?? null;
                 $busqueda = $_GET['busqueda'] ?? null;
                 $incluirInactivos = isset($_GET['incluir_inactivos']) && $_GET['incluir_inactivos'] === '1';
-                
-                $establecimientos = $modeloEstablecimiento->listar($comunaId, $busqueda, $incluirInactivos);
-                
+                $soloActivos = isset($_GET['activo']) && $_GET['activo'] === '1';
+                $incluirInactivosFinal = $soloActivos ? false : $incluirInactivos;
+
+                $establecimientos = $modeloEstablecimiento->listar($comunaId, $busqueda, $incluirInactivosFinal);
+
                 // Agregar conteo de referentes a cada establecimiento
                 foreach ($establecimientos as &$est) {
                     $est['referentes_count'] = $modeloEstablecimiento->contarReferentes($est['id']);
                 }
-                
+
                 responder(true, $establecimientos);
                 break;
 

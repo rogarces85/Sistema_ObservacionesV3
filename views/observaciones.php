@@ -286,6 +286,25 @@ global $TIPOS_ERROR, $MESES, $SERIES_REM, $HOJAS_POR_SERIE;
     background: #f8fafc;
 }
 
+.btn-danger {
+    background: #dc2626;
+    color: white;
+}
+
+.btn-danger:hover {
+    background: #b91c1c;
+}
+
+.btn-ghost {
+    background: transparent;
+    border: 1px solid #e2e8f0;
+    color: #475569;
+}
+
+.btn-ghost:hover {
+    background: #f1f5f9;
+}
+
 .btn .ti {
     width: 18px;
     height: 18px;
@@ -616,7 +635,7 @@ const ObsApp = (() => {
                 (s.por_estado || []).forEach(e => porEst[e.estado_actual] = parseInt(e.total));
                 document.getElementById('statPendiente').textContent = porEst['pendiente'] || 0;
                 document.getElementById('statAprobado').textContent = porEst['aprobado'] || 0;
-                document.getElementById('statError').textContent = (porEst['error'] || 0) + (porEst['rechazado'] || 0);
+                document.getElementById('statError').textContent = (porEst['error'] || 0);
             }
         } catch (e) {
             console.error(e);
@@ -918,8 +937,15 @@ const ObsApp = (() => {
     };
     
     const eliminar = async (id) => {
-        if (!confirm('¿Eliminar esta observación?')) return;
-        
+        const confirmado = await confirmarAccion({
+            titulo: 'Eliminar Observación',
+            mensaje: '¿Está seguro de eliminar esta observación? Esta acción no se puede deshacer.',
+            tipo: 'danger',
+            textoConfirmar: 'Eliminar',
+            textoCancelar: 'Cancelar'
+        });
+        if (!confirmado) return;
+
         try {
             const r = await fetchAPI(`api/observaciones.php?id=${id}`, { method: 'DELETE' });
             if (r.success) {
