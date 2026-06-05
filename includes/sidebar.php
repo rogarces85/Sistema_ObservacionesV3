@@ -86,16 +86,21 @@ $navGroups = [
     ]
 ];
 ?>
-<aside class="navbar navbar-vertical navbar-expand-lg" data-bs-theme="dark">
+<aside class="navbar navbar-vertical navbar-expand-lg border-end">
     <div class="container-fluid">
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#sidebar-menu"
             aria-controls="sidebar-menu" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
         </button>
-        <div class="navbar-brand navbar-brand-autodark">
-            <a href="?pagina=dashboard" class="text-white text-decoration-none">
-                <span class="fs-4 fw-bold">Sistema REM</span>
-                <small class="d-block text-secondary">Servicio de Salud</small>
+        <div class="navbar-brand">
+            <a href="?pagina=dashboard" class="d-flex align-items-center gap-2 text-decoration-none">
+                <div class="navbar-brand-logo">
+                    <?php echo tablerIcon('clipboard-heart'); ?>
+                </div>
+                <div class="navbar-brand-text">
+                    <span class="title">Sistema REM</span>
+                    <span class="subtitle">Servicio de Salud</span>
+                </div>
             </a>
         </div>
         <div class="collapse navbar-collapse" id="sidebar-menu">

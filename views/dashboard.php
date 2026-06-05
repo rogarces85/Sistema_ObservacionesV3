@@ -1,6 +1,6 @@
 <?php
 /**
- * Vista del Dashboard - Panel de Control
+ * Dashboard Light - Panel de Control
  * Sistema de Observaciones REM
  */
 
@@ -8,304 +8,198 @@ $usuarioId = $_SESSION['usuario_id'] ?? 0;
 $rol = $_SESSION['rol'] ?? '';
 $anio = $_SESSION['anio_trabajo'] ?? date('Y');
 $nombreUsuario = $_SESSION['nombre_completo'] ?? 'Usuario';
+$partesNombre = explode(' ', $nombreUsuario);
+$primerNombre = $partesNombre[0] ?? 'Usuario';
 ?>
 
-<div class="page-header d-flex flex-wrap justify-content-between align-items-center">
-    <div>
-        <div class="page-pretitle">Resumen estadístico del sistema de observaciones REM</div>
-        <h2 class="page-title">Panel de Control <span id="anio-titulo"><?php echo $anio; ?></span></h2>
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center w-100 gap-3">
+            <div>
+                <div class="page-pretitle">Bienvenido de vuelta</div>
+                <h2 class="page-title mb-0">
+                    Hola, <?php echo htmlspecialchars($primerNombre); ?>
+                    <span class="badge bg-blue-lt text-blue ms-2"><?php echo $anio; ?></span>
+                </h2>
+            </div>
+            <div class="btn-list">
+                <?php if ($rol === ROL_REGISTRADOR): ?>
+                    <a href="?pagina=observaciones&anio=<?php echo $anio; ?>" class="btn btn-primary">
+                        <?php echo tablerIcon('plus'); ?>
+                        Nueva Observación
+                    </a>
+                <?php endif; ?>
+                <?php if ($rol === ROL_SUPERVISOR): ?>
+                    <a href="?pagina=supervision&anio=<?php echo $anio; ?>" class="btn btn-outline-secondary">
+                        <?php echo tablerIcon('eye'); ?>
+                        Supervisar
+                    </a>
+                <?php endif; ?>
+                <button class="btn btn-icon btn-outline-secondary" onclick="location.reload()" title="Actualizar">
+                    <?php echo tablerIcon('refresh'); ?>
+                </button>
+            </div>
+        </div>
     </div>
-    <div class="btn-list">
-        <?php if ($rol === ROL_REGISTRADOR): ?>
-            <a href="?pagina=observaciones&anio=<?php echo $anio; ?>" class="btn btn-primary">
-                <?php echo tablerIcon('plus'); ?>
-                Nueva Observación
-            </a>
-        <?php endif; ?>
-        <?php if ($rol === ROL_SUPERVISOR): ?>
-            <a href="?pagina=supervision&anio=<?php echo $anio; ?>" class="btn btn-outline-secondary">
-                <?php echo tablerIcon('eye'); ?>
-                Supervisar
-            </a>
-        <?php endif; ?>
-        <label class="form-check form-switch form-check-single ms-2" title="Actualización automática">
-            <input class="form-check-input" type="checkbox" id="auto-refresh-toggle" checked>
-            <span class="form-check-label small ms-1">Auto</span>
-        </label>
+
+    <div id="alertas-container"></div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-6 col-lg-3">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="subheader">Total Registradas</div>
+                    </div>
+                    <div class="h1 mb-3 mt-2" id="stat-total">
+                        <span class="placeholder" style="width:60px"></span>
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <div class="chart-sparkline" id="sparkline-total"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="subheader">Pendientes</div>
+                    </div>
+                    <div class="h1 mb-3 mt-2" id="stat-pendientes">
+                        <span class="placeholder" style="width:50px"></span>
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <div class="chart-sparkline" id="sparkline-pendientes"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="subheader">Aprobadas</div>
+                    </div>
+                    <div class="h1 mb-3 mt-2" id="stat-aprobadas">
+                        <span class="placeholder" style="width:50px"></span>
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <div class="chart-sparkline" id="sparkline-aprobadas"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="subheader">Con Problemas</div>
+                    </div>
+                    <div class="h1 mb-3 mt-2" id="stat-problemas">
+                        <span class="placeholder" style="width:50px"></span>
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <div class="chart-sparkline" id="sparkline-problemas"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-</div>
 
-<div id="alertas-container"></div>
-
-<!-- Pestañas del Dashboard -->
-<ul class="nav nav-tabs mb-3" id="dashboard-tabs" role="tablist">
-    <li class="nav-item" role="presentation">
-        <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-resumen" type="button" role="tab">
-            <?php echo tablerIcon('chart-bar'); ?> Resumen
-        </button>
-    </li>
-    <li class="nav-item" role="presentation">
-        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-kanban" type="button" role="tab">
-            <?php echo tablerIcon('layout-kanban'); ?> Kanban
-        </button>
-    </li>
-    <li class="nav-item" role="presentation">
-        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-timeline" type="button" role="tab">
-            <?php echo tablerIcon('history'); ?> Actividad
-        </button>
-    </li>
-</ul>
-
-<div class="tab-content" id="dashboard-tab-content">
-    <!-- Pestaña Resumen -->
-    <div class="tab-pane fade show active" id="tab-resumen" role="tabpanel">
-        <!-- Tarjetas de Estadísticas -->
-        <div class="row g-3" id="stats-container">
-            <div class="col-sm-6 col-lg-3">
-                <div class="card card-sm">
-                    <div class="card-status-top bg-blue"></div>
-                    <div class="card-body">
-                        <div class="d-flex align-items-center gap-3">
-                            <div class="avatar avatar-md bg-blue-lt text-blue-fg"><?php echo tablerIcon('chart-bar'); ?></div>
-                            <div>
-                                <div class="h1 mb-0 text-primary" id="stat-total">
-                                    <span class="skeleton" style="width:80px;height:2rem;display:inline-block"></span>
+    <div class="row g-4 mb-4">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title"><?php echo tablerIcon('table'); ?> Observaciones Recientes</h3>
+                    <div class="card-actions">
+                        <a href="?pagina=observaciones&anio=<?php echo $anio; ?>" class="btn btn-sm btn-ghost-primary">
+                            Ver todas
+                        </a>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table card-table table-vcenter">
+                        <thead>
+                            <tr>
+                                <th>Establecimiento</th>
+                                <th>Serie</th>
+                                <th>Mes</th>
+                                <th>Estado</th>
+                                <th>Fecha</th>
+                                <th class="w-1"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-recientes">
+                            <tr>
+                                <td colspan="6" class="text-center py-4 text-secondary">
+                                    <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                                    Cargando...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title"><?php echo tablerIcon('bolt'); ?> Acciones Rápidas</h3>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <?php if ($rol === ROL_REGISTRADOR): ?>
+                        <div class="col-6">
+                            <a href="?pagina=observaciones&anio=<?php echo $anio; ?>" class="btn btn-outline-primary w-100 h-100">
+                                <div class="d-flex flex-column align-items-center py-2">
+                                    <?php echo tablerIcon('plus', 24); ?>
+                                    <span class="mt-1">Nueva</span>
                                 </div>
-                                <div class="text-secondary small fw-semibold">Total Registradas</div>
-                            </div>
+                            </a>
                         </div>
-                        <div id="sparkline-total" class="mt-2" style="height:40px"></div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-sm-6 col-lg-3">
-                <div class="card card-sm">
-                    <div class="card-status-top bg-yellow"></div>
-                    <div class="card-body">
-                        <div class="d-flex align-items-center gap-3">
-                            <div class="avatar avatar-md bg-yellow-lt text-yellow-fg"><?php echo tablerIcon('clock'); ?></div>
-                            <div>
-                                <div class="h1 mb-0 text-yellow" id="stat-pendientes">
-                                    <span class="skeleton" style="width:60px;height:2rem;display:inline-block"></span>
+                        <div class="col-6">
+                            <a href="?pagina=importacion&anio=<?php echo $anio; ?>" class="btn btn-outline-primary w-100 h-100">
+                                <div class="d-flex flex-column align-items-center py-2">
+                                    <?php echo tablerIcon('upload', 24); ?>
+                                    <span class="mt-1">Importar</span>
                                 </div>
-                                <div class="text-secondary small fw-semibold">Pendientes</div>
-                            </div>
+                            </a>
                         </div>
-                        <div id="sparkline-pendientes" class="mt-2" style="height:40px"></div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-sm-6 col-lg-3">
-                <div class="card card-sm">
-                    <div class="card-status-top bg-green"></div>
-                    <div class="card-body">
-                        <div class="d-flex align-items-center gap-3">
-                            <div class="avatar avatar-md bg-green-lt text-green-fg"><?php echo tablerIcon('check-circle'); ?></div>
-                            <div>
-                                <div class="h1 mb-0 text-green" id="stat-aprobadas">
-                                    <span class="skeleton" style="width:60px;height:2rem;display:inline-block"></span>
+                        <?php endif; ?>
+                        <?php if ($rol === ROL_SUPERVISOR): ?>
+                        <div class="col-6">
+                            <a href="?pagina=supervision&anio=<?php echo $anio; ?>" class="btn btn-outline-warning w-100 h-100">
+                                <div class="d-flex flex-column align-items-center py-2">
+                                    <?php echo tablerIcon('eye', 24); ?>
+                                    <span class="mt-1">Supervisar</span>
                                 </div>
-                                <div class="text-secondary small fw-semibold">Aprobadas</div>
-                            </div>
+                            </a>
                         </div>
-                        <div id="sparkline-aprobadas" class="mt-2" style="height:40px"></div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-sm-6 col-lg-3">
-                <div class="card card-sm">
-                    <div class="card-status-top bg-red"></div>
-                    <div class="card-body">
-                        <div class="d-flex align-items-center gap-3">
-                            <div class="avatar avatar-md bg-red-lt text-red-fg"><?php echo tablerIcon('alert-triangle'); ?></div>
-                            <div>
-                                <div class="h1 mb-0 text-red" id="stat-problemas">
-                                    <span class="skeleton" style="width:60px;height:2rem;display:inline-block"></span>
+                        <div class="col-6">
+                            <a href="?pagina=reportes&anio=<?php echo $anio; ?>" class="btn btn-outline-primary w-100 h-100">
+                                <div class="d-flex flex-column align-items-center py-2">
+                                    <?php echo tablerIcon('report', 24); ?>
+                                    <span class="mt-1">Reportes</span>
                                 </div>
-                                <div class="text-secondary small fw-semibold">Con Problemas</div>
-                            </div>
+                            </a>
                         </div>
-                        <div id="sparkline-problemas" class="mt-2" style="height:40px"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Gráficos -->
-        <div class="row g-3 mt-2">
-            <div class="col-lg-4">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title"><?php echo tablerIcon('chart-pie'); ?> Distribución por Estado</h3>
-                    </div>
-                    <div class="card-body">
-                        <div id="chart-donut" style="height:280px">
-                            <div class="text-center py-5 text-secondary">
-                                <div class="spinner-border spinner-border-sm me-2" role="status"></div>
-                                Cargando...
-                            </div>
+                        <?php endif; ?>
+                        <div class="col-6">
+                            <a href="?pagina=perfil&anio=<?php echo $anio; ?>" class="btn btn-outline-secondary w-100 h-100">
+                                <div class="d-flex flex-column align-items-center py-2">
+                                    <?php echo tablerIcon('user', 24); ?>
+                                    <span class="mt-1">Perfil</span>
+                                </div>
+                            </a>
                         </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-lg-4">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title"><?php echo tablerIcon('activity'); ?> Top Tipos de Error</h3>
-                    </div>
-                    <div class="card-body">
-                        <div id="chart-barras" style="height:280px">
-                            <div class="text-center py-5 text-secondary">
-                                <div class="spinner-border spinner-border-sm me-2" role="status"></div>
-                                Cargando...
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-lg-4">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title"><?php echo tablerIcon('calendar'); ?> Observaciones por Mes</h3>
-                        <div class="ms-auto">
-                            <select id="selector-mes-local" class="form-select form-select-sm" style="width:auto">
-                                <option value="">Todos los meses</option>
-                                <?php
-                                $meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-                                foreach ($meses as $mes): ?>
-                                    <option value="<?php echo $mes; ?>"><?php echo $mes; ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <div id="chart-lineas" style="height:280px">
-                            <div class="text-center py-5 text-secondary">
-                                <div class="spinner-border spinner-border-sm me-2" role="status"></div>
-                                Cargando...
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Observaciones Recientes -->
-        <div class="card mt-3">
-            <div class="card-header">
-                <h3 class="card-title"><?php echo tablerIcon('list'); ?> Últimas Observaciones</h3>
-                <a href="?pagina=observaciones&anio=<?php echo $anio; ?>" class="btn btn-ghost-primary btn-sm ms-auto">Ver todas</a>
-            </div>
-            <div class="card-body p-0">
-                <div id="recientes-container" class="table-responsive">
-                    <div class="text-center py-5 text-secondary">
-                        <div class="spinner-border spinner-border-sm me-2" role="status"></div>
-                        Cargando...
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Widget 13: Alertas Inteligentes -->
-        <div id="widget-alertas-inteligentes" class="row g-3 mt-2"></div>
-
-        <!-- Widgets Grid -->
-        <div class="row g-3 mt-2">
-            <div class="col-lg-6">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title"><?php echo tablerIcon('eye'); ?> Carga del Supervisor</h3>
-                    </div>
-                    <div class="card-body">
-                        <div id="chart-carga-supervisor" style="height:260px">
-                            <div class="text-center py-5 text-secondary">
-                                <div class="spinner-border spinner-border-sm me-2" role="status"></div>
-                                Cargando...
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-lg-6">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title"><?php echo tablerIcon('calendar-stats'); ?> Cumplimiento de Plazo</h3>
-                    </div>
-                    <div class="card-body">
-                        <div id="chart-cumplimiento-plazo" style="height:260px">
-                            <div class="text-center py-5 text-secondary">
-                                <div class="spinner-border spinner-border-sm me-2" role="status"></div>
-                                Cargando...
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="row g-3 mt-2">
-            <div class="col-lg-6">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title"><?php echo tablerIcon('building-community'); ?> Distribución por Comuna</h3>
-                    </div>
-                    <div class="card-body">
-                        <div id="chart-mapa-comunas" style="height:260px">
-                            <div class="text-center py-5 text-secondary">
-                                <div class="spinner-border spinner-border-sm me-2" role="status"></div>
-                                Cargando...
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-lg-6">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title"><?php echo tablerIcon('trending-up'); ?> Estacionalidad</h3>
-                    </div>
-                    <div class="card-body">
-                        <div id="chart-estacionalidad" style="height:260px">
-                            <div class="text-center py-5 text-secondary">
-                                <div class="spinner-border spinner-border-sm me-2" role="status"></div>
-                                Cargando...
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="row g-3 mt-2">
-            <div class="col-lg-6">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title"><?php echo tablerIcon('table'); ?> Heatmap Serie × Hoja</h3>
-                    </div>
-                    <div class="card-body">
-                        <div id="chart-heatmap" style="height:260px">
-                            <div class="text-center py-5 text-secondary">
-                                <div class="spinner-border spinner-border-sm me-2" role="status"></div>
-                                Cargando...
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-lg-6">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title"><?php echo tablerIcon('chart-arrows'); ?> Comparativa Interanual</h3>
-                        <div class="card-actions">
-                            <small class="text-secondary"><?php echo $anio - 1; ?> vs <?php echo $anio; ?></small>
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <div id="chart-comparativa" style="height:260px">
-                            <div class="text-center py-5 text-secondary">
-                                <div class="spinner-border spinner-border-sm me-2" role="status"></div>
-                                Cargando...
-                            </div>
+                        <div class="col-6">
+                            <a href="?pagina=reportes&tipo=errores&anio=<?php echo $anio; ?>" class="btn btn-outline-danger w-100 h-100">
+                                <div class="d-flex flex-column align-items-center py-2">
+                                    <?php echo tablerIcon('alert-triangle', 24); ?>
+                                    <span class="mt-1">Errores</span>
+                                </div>
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -313,33 +207,141 @@ $nombreUsuario = $_SESSION['nombre_completo'] ?? 'Usuario';
         </div>
     </div>
 
-    <!-- Pestaña Kanban -->
-    <div class="tab-pane fade" id="tab-kanban" role="tabpanel">
-        <div id="kanban-container">
-            <div class="text-center py-5 text-secondary">
-                <div class="spinner-border me-2" role="status"></div>
-                Cargando tablero kanban...
+    <div class="row g-4 mb-4">
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title"><?php echo tablerIcon('chart-donut'); ?> Distribución por Estado</h3>
+                </div>
+                <div class="card-body">
+                    <div id="chart-donut" style="height: 250px">
+                        <div class="text-center py-5 text-secondary">
+                            <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                            Cargando...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title"><?php echo tablerIcon('grid-dots'); ?> Heatmap Serie × Hoja</h3>
+                    <div class="card-actions">
+                        <select id="selector-mes-heatmap" class="form-select form-select-sm" style="width: auto">
+                            <option value="">Todos los meses</option>
+                            <?php
+                            $meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+                            foreach ($meses as $i => $mes): ?>
+                                <option value="<?php echo $i + 1; ?>"><?php echo $mes; ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="chart-heatmap" style="height: 250px">
+                        <div class="text-center py-5 text-secondary">
+                            <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                            Cargando...
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Pestaña Timeline -->
-    <div class="tab-pane fade" id="tab-timeline" role="tabpanel">
-        <div class="card">
-            <div class="card-header">
-                <h3 class="card-title"><?php echo tablerIcon('history'); ?> Actividad Reciente</h3>
+    <div class="row g-4 mb-4">
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title"><?php echo tablerIcon('chart-bar'); ?> Top Establecimientos con Problemas</h3>
+                </div>
+                <div class="card-body p-0">
+                    <div id="chart-top-problemas" class="table-responsive">
+                        <table class="table table-sm table-vcenter mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Establecimiento</th>
+                                    <th class="text-end">Errores</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-top-problemas">
+                                <tr>
+                                    <td colspan="2" class="text-center py-3 text-secondary">
+                                        <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
-            <div class="card-body">
-                <div id="timeline-container">
-                    <div class="text-center py-5 text-secondary">
-                        <div class="spinner-border spinner-border-sm me-2" role="status"></div>
-                        Cargando...
+        </div>
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title"><?php echo tablerIcon('calendar'); ?> Observaciones por Mes</h3>
+                </div>
+                <div class="card-body">
+                    <div id="chart-lineas" style="height: 200px">
+                        <div class="text-center py-5 text-secondary">
+                            <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<style>
+.dashboard-container {
+    animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.dashboard-header {
+    margin-bottom: 1.5rem;
+}
+
+.subheader {
+    font-size: 0.75rem;
+    color: var(--tblr-muted);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.chart-sparkline {
+    height: 40px;
+    width: 100%;
+}
+
+.btn.h-100 {
+    min-height: 80px;
+}
+
+.btn-outline-primary:hover, .btn-outline-warning:hover, .btn-outline-danger:hover, .btn-outline-secondary:hover {
+    transform: translateY(-2px);
+}
+
+.btn .ti {
+    margin-bottom: 2px;
+}
+
+.table-vcenter > thead > tr > th,
+.table-vcenter > tbody > tr > td {
+    vertical-align: middle;
+}
+
+#tabla-recientes .badge {
+    font-size: 0.65rem;
+}
+</style>
 
 <script>
 window.DASHBOARD_CONFIG = {
