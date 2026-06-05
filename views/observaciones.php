@@ -25,26 +25,56 @@ global $TIPOS_ERROR, $MESES, $SERIES_REM, $HOJAS_POR_SERIE;
     </div>
 
     <div class="stats-row" id="statsRow">
-        <div class="stat-mini">
-            <div class="stat-mini-value" id="statTotal">-</div>
-            <div class="stat-mini-label">Total</div>
+        <div class="stat-mini stat-mini-total">
+            <div class="stat-mini-icon">
+                <?php echo tablerIcon('clipboard-list'); ?>
+            </div>
+            <div class="stat-mini-body">
+                <div class="stat-mini-value" id="statTotal">-</div>
+                <div class="stat-mini-label">Total</div>
+                <div class="stat-mini-meta" id="statTotalMeta">En el año</div>
+            </div>
         </div>
-        <div class="stat-mini">
-            <div class="stat-mini-value" id="statPendiente">-</div>
-            <div class="stat-mini-label">Pendientes</div>
+        <div class="stat-mini stat-mini-pendiente">
+            <div class="stat-mini-icon">
+                <?php echo tablerIcon('clock'); ?>
+            </div>
+            <div class="stat-mini-body">
+                <div class="stat-mini-value" id="statPendiente">-</div>
+                <div class="stat-mini-label">Pendientes</div>
+                <div class="stat-mini-meta" id="statPendienteMeta">0% del total</div>
+            </div>
         </div>
-        <div class="stat-mini">
-            <div class="stat-mini-value" id="statAprobado">-</div>
-            <div class="stat-mini-label">Aprobados</div>
+        <div class="stat-mini stat-mini-aprobado">
+            <div class="stat-mini-icon">
+                <?php echo tablerIcon('circle-check'); ?>
+            </div>
+            <div class="stat-mini-body">
+                <div class="stat-mini-value" id="statAprobado">-</div>
+                <div class="stat-mini-label">Aprobados</div>
+                <div class="stat-mini-meta" id="statAprobadoMeta">0% del total</div>
+            </div>
         </div>
-        <div class="stat-mini">
-            <div class="stat-mini-value" id="statError">-</div>
-            <div class="stat-mini-label">Errores</div>
+        <div class="stat-mini stat-mini-error">
+            <div class="stat-mini-icon">
+                <?php echo tablerIcon('alert-triangle'); ?>
+            </div>
+            <div class="stat-mini-body">
+                <div class="stat-mini-value" id="statError">-</div>
+                <div class="stat-mini-label">Errores</div>
+                <div class="stat-mini-meta" id="statErrorMeta">0% del total</div>
+            </div>
         </div>
     </div>
 
     <div class="filters-card">
-        <div class="filters-header">Filtros</div>
+        <div class="filters-header">
+            <div class="filters-header-left">
+                <?php echo tablerIcon('filter'); ?>
+                <span>Filtros de Búsqueda</span>
+            </div>
+            <span class="filters-badge">4 filtros disponibles</span>
+        </div>
         <div class="filters-body">
             <div class="filter-group">
                 <label>Buscar</label>
@@ -88,7 +118,16 @@ global $TIPOS_ERROR, $MESES, $SERIES_REM, $HOJAS_POR_SERIE;
 
     <div class="table-card">
         <div class="table-header">
-            <h3>Listado de Observaciones</h3>
+            <div class="table-header-left">
+                <div class="table-header-icon">
+                    <?php echo tablerIcon('table'); ?>
+                </div>
+                <div>
+                    <h3>Listado de Observaciones</h3>
+                    <p>Resultados de la búsqueda actual</p>
+                </div>
+            </div>
+            <span class="table-header-badge" id="tablaContador">0 resultados</span>
         </div>
         <div class="table-responsive">
             <table class="data-table">
@@ -320,15 +359,67 @@ global $TIPOS_ERROR, $MESES, $SERIES_REM, $HOJAS_POR_SERIE;
 .stat-mini {
     background: white;
     border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 1.1rem 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: all 0.25s;
+    overflow: hidden;
+    position: relative;
+}
+
+.stat-mini::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+}
+
+.stat-mini-total::before { background: linear-gradient(90deg, #38bdf8, #0ea5e9); }
+.stat-mini-pendiente::before { background: linear-gradient(90deg, #fbbf24, #f59e0b); }
+.stat-mini-aprobado::before { background: linear-gradient(90deg, #4ade80, #16a34a); }
+.stat-mini-error::before { background: linear-gradient(90deg, #f87171, #dc2626); }
+
+.stat-mini:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+}
+
+.stat-mini-icon {
+    width: 46px;
+    height: 46px;
     border-radius: 12px;
-    padding: 1rem;
-    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: white;
+}
+
+.stat-mini-icon .icon {
+    width: 22px;
+    height: 22px;
+}
+
+.stat-mini-total .stat-mini-icon { background: linear-gradient(135deg, #38bdf8, #0ea5e9); box-shadow: 0 4px 10px rgba(14, 165, 233, 0.25); }
+.stat-mini-pendiente .stat-mini-icon { background: linear-gradient(135deg, #fbbf24, #f59e0b); box-shadow: 0 4px 10px rgba(245, 158, 11, 0.25); }
+.stat-mini-aprobado .stat-mini-icon { background: linear-gradient(135deg, #4ade80, #16a34a); box-shadow: 0 4px 10px rgba(22, 163, 74, 0.25); }
+.stat-mini-error .stat-mini-icon { background: linear-gradient(135deg, #f87171, #dc2626); box-shadow: 0 4px 10px rgba(220, 38, 38, 0.25); }
+
+.stat-mini-body {
+    flex: 1;
+    min-width: 0;
 }
 
 .stat-mini-value {
     font-size: 1.5rem;
     font-weight: 700;
     color: #1e293b;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
 }
 
 .stat-mini-label {
@@ -336,21 +427,56 @@ global $TIPOS_ERROR, $MESES, $SERIES_REM, $HOJAS_POR_SERIE;
     color: #64748b;
     text-transform: uppercase;
     letter-spacing: 0.05em;
+    font-weight: 600;
+    margin-top: 0.1rem;
+}
+
+.stat-mini-meta {
+    font-size: 0.7rem;
+    color: #94a3b8;
+    margin-top: 0.25rem;
+    font-weight: 500;
 }
 
 .filters-card {
     background: white;
     border: 1px solid #e2e8f0;
-    border-radius: 12px;
+    border-radius: 14px;
     margin-bottom: 1.5rem;
     overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 .filters-header {
-    padding: 0.75rem 1.25rem;
-    border-bottom: 1px solid #e2e8f0;
+    padding: 0.85rem 1.25rem;
+    border-bottom: 1px solid #f1f5f9;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     font-weight: 600;
     color: #1e293b;
+}
+
+.filters-header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.95rem;
+}
+
+.filters-header-left .icon {
+    width: 18px;
+    height: 18px;
+    color: #0ea5e9;
+}
+
+.filters-badge {
+    background: #e0f2fe;
+    color: #0369a1;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 600;
 }
 
 .filters-body {
@@ -398,20 +524,65 @@ global $TIPOS_ERROR, $MESES, $SERIES_REM, $HOJAS_POR_SERIE;
 .table-card {
     background: white;
     border: 1px solid #e2e8f0;
-    border-radius: 12px;
+    border-radius: 14px;
     overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 .table-header {
     padding: 1rem 1.25rem;
-    border-bottom: 1px solid #e2e8f0;
+    border-bottom: 1px solid #f1f5f9;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+}
+
+.table-header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+}
+
+.table-header-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #e0f2fe, #7dd3fc);
+    color: #0369a1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.table-header-icon .icon {
+    width: 20px;
+    height: 20px;
 }
 
 .table-header h3 {
-    font-size: 1rem;
-    font-weight: 600;
+    font-size: 0.95rem;
+    font-weight: 700;
     color: #1e293b;
     margin: 0;
+    line-height: 1.2;
+}
+
+.table-header p {
+    font-size: 0.75rem;
+    color: #94a3b8;
+    margin: 0.15rem 0 0;
+}
+
+.table-header-badge {
+    background: #f1f5f9;
+    color: #475569;
+    padding: 0.3rem 0.7rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
 }
 
 .table-responsive {
@@ -425,18 +596,23 @@ global $TIPOS_ERROR, $MESES, $SERIES_REM, $HOJAS_POR_SERIE;
 
 .data-table th,
 .data-table td {
-    padding: 0.75rem 1rem;
+    padding: 0.85rem 1rem;
     text-align: left;
-    border-bottom: 1px solid #e2e8f0;
+    border-bottom: 1px solid #f1f5f9;
+    vertical-align: middle;
 }
 
 .data-table th {
     font-size: 0.7rem;
-    font-weight: 600;
+    font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: #64748b;
     background: #f8fafc;
+}
+
+.data-table tbody tr {
+    transition: background 0.15s;
 }
 
 .data-table tbody tr:hover {
@@ -446,6 +622,198 @@ global $TIPOS_ERROR, $MESES, $SERIES_REM, $HOJAS_POR_SERIE;
 .data-table td {
     font-size: 0.875rem;
     color: #1e293b;
+}
+
+.cell-establecimiento {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+}
+
+.est-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #e0e7ff, #a5b4fc);
+    color: #4338ca;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+}
+
+.est-nombre {
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.est-comuna {
+    font-size: 0.75rem;
+    color: #94a3b8;
+    margin-top: 0.1rem;
+}
+
+.mes-pill {
+    display: inline-block;
+    padding: 0.25rem 0.6rem;
+    background: #eff6ff;
+    color: #1d4ed8;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.cell-serie {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+}
+
+.serie-chip {
+    display: inline-block;
+    padding: 0.2rem 0.5rem;
+    background: #fef3c7;
+    color: #92400e;
+    border-radius: 5px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    font-family: 'SF Mono', Monaco, monospace;
+}
+
+.hoja-chip {
+    display: inline-block;
+    padding: 0.2rem 0.5rem;
+    background: #e0e7ff;
+    color: #4338ca;
+    border-radius: 5px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    font-family: 'SF Mono', Monaco, monospace;
+}
+
+.tipo-chip {
+    display: inline-block;
+    padding: 0.2rem 0.5rem;
+    background: #f1f5f9;
+    color: #475569;
+    border-radius: 5px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.cell-usuario {
+    font-size: 0.825rem;
+    color: #475569;
+}
+
+.action-group {
+    display: flex;
+    gap: 0.3rem;
+    justify-content: flex-end;
+}
+
+.action-btn {
+    width: 32px;
+    height: 32px;
+    border: 1px solid #e2e8f0;
+    background: white;
+    color: #64748b;
+    cursor: pointer;
+    border-radius: 7px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.action-btn .icon {
+    width: 16px;
+    height: 16px;
+}
+
+.action-view:hover {
+    background: #e0f2fe;
+    border-color: #7dd3fc;
+    color: #0369a1;
+}
+
+.action-edit:hover {
+    background: #fef3c7;
+    border-color: #fcd34d;
+    color: #b45309;
+}
+
+.action-delete:hover {
+    background: #fee2e2;
+    border-color: #fca5a5;
+    color: #b91c1c;
+}
+
+.loading-cell {
+    text-align: center;
+    color: #94a3b8;
+    padding: 2rem !important;
+}
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.3rem 0.65rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+
+.badge::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.badge-pendiente { background: #fef9c3; color: #a16207; }
+.badge-aprobado { background: #dcfce7; color: #15803d; }
+.badge-rechazado, .badge-error { background: #fee2e2; color: #b91c1c; }
+.badge-justificado { background: #e0f2fe; color: #075985; }
+
+.empty-state-table {
+    padding: 3rem 1rem;
+    text-align: center;
+}
+
+.empty-state-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: #f1f5f9;
+    color: #94a3b8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1rem;
+}
+
+.empty-state-icon .icon {
+    width: 32px;
+    height: 32px;
+}
+
+.empty-state-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 0.35rem;
+}
+
+.empty-state-text {
+    font-size: 0.85rem;
+    color: #94a3b8;
 }
 
 .loading-cell {
@@ -549,24 +917,14 @@ global $TIPOS_ERROR, $MESES, $SERIES_REM, $HOJAS_POR_SERIE;
     resize: vertical;
 }
 
-.action-btn {
-    padding: 0.375rem;
-    border: none;
-    background: transparent;
-    color: #64748b;
-    cursor: pointer;
-    border-radius: 4px;
-}
-
-.action-btn:hover {
-    background: #f1f5f9;
-    color: #0ea5e9;
+.action-group {
+    display: flex;
+    gap: 0.3rem;
+    justify-content: flex-end;
 }
 
 .empty-row td {
-    text-align: center;
-    color: #94a3b8;
-    padding: 2rem !important;
+    padding: 0 !important;
 }
 
 @media (max-width: 768px) {
@@ -630,12 +988,23 @@ const ObsApp = (() => {
             const r = await fetchAPI(`api/observaciones.php?accion=stats&anio=${anio}`);
             if (r.success) {
                 const s = r.data;
-                document.getElementById('statTotal').textContent = s.total || 0;
+                const total = parseInt(s.total) || 0;
+                document.getElementById('statTotal').textContent = total;
                 const porEst = {};
                 (s.por_estado || []).forEach(e => porEst[e.estado_actual] = parseInt(e.total));
-                document.getElementById('statPendiente').textContent = porEst['pendiente'] || 0;
-                document.getElementById('statAprobado').textContent = porEst['aprobado'] || 0;
-                document.getElementById('statError').textContent = (porEst['error'] || 0);
+                const pend = porEst['pendiente'] || 0;
+                const apro = porEst['aprobado'] || 0;
+                const err = porEst['error'] || 0;
+                document.getElementById('statPendiente').textContent = pend;
+                document.getElementById('statAprobado').textContent = apro;
+                document.getElementById('statError').textContent = err;
+                
+                const pctMeta = (n) => total > 0 ? Math.round((n / total) * 100) + '% del total' : '0% del total';
+                document.getElementById('statPendienteMeta').textContent = pctMeta(pend);
+                document.getElementById('statAprobadoMeta').textContent = pctMeta(apro);
+                document.getElementById('statErrorMeta').textContent = pctMeta(err);
+                const totalMeta = document.getElementById('statTotalMeta');
+                if (totalMeta) totalMeta.textContent = `En ${anio}`;
             }
         } catch (e) {
             console.error(e);
@@ -670,27 +1039,56 @@ const ObsApp = (() => {
     const renderTabla = (d) => {
         const tbody = document.getElementById('tablaCuerpo');
         const datos = d.datos || [];
+        const contador = document.getElementById('tablaContador');
+        if (contador) contador.textContent = `${d.total || 0} resultado${(d.total || 0) !== 1 ? 's' : ''}`;
         
         if (datos.length === 0) {
-            tbody.innerHTML = '<tr class="empty-row"><td colspan="7">No se encontraron observaciones</td></tr>';
+            tbody.innerHTML = `<tr class="empty-row"><td colspan="7">
+                <div class="empty-state-table">
+                    <div class="empty-state-icon"><?php echo tablerIcon('inbox'); ?></div>
+                    <div class="empty-state-title">No se encontraron observaciones</div>
+                    <div class="empty-state-text">Ajusta los filtros o crea una nueva observación</div>
+                </div>
+            </td></tr>`;
             return;
         }
         
         tbody.innerHTML = datos.map(o => {
             const puedeEditar = USUARIO_ROL === 'supervisor' || (o.usuario_registro_id == USUARIO_ID && o.estado_actual === 'pendiente');
             const badgeClass = `badge badge-${o.estado_actual}`;
+            const mesIcons = {
+                'Enero': 'M1 12h22M12 1v22', 'Febrero': 'M3 12h18M12 3v18',
+                'Marzo': 'M4 6h16M4 12h16M4 18h16'
+            };
+            const serieInfo = o.codigo_serie ? `<span class="serie-chip">${esc(o.codigo_serie)}</span>` : '-';
+            const hojaInfo = o.codigo_hoja ? `<span class="hoja-chip">${esc(o.codigo_hoja)}</span>` : '';
             
             return `<tr>
-                <td><strong>${esc(o.nombre_corto || o.establecimiento_nombre)}</strong><br><small style="color:#94a3b8">${esc(o.comuna_nombre)}</small></td>
-                <td>${esc(o.mes)}</td>
-                <td>${esc(o.codigo_serie || '-')}<br><small style="color:#94a3b8">${esc(o.codigo_hoja || '-')}</small></td>
-                <td><span class="badge" style="background:#f1f5f9;color:#475569">${esc(o.tipo_error)}</span></td>
-                <td><span class="${badgeClass}">${cap(o.estado_actual)}</span></td>
-                <td><small>${esc(o.usuario_registro_nombre)}</small></td>
                 <td>
-                    <button class="action-btn" onclick="ObsApp.ver(${o.id})" title="Ver"><?php echo tablerIcon('eye'); ?></button>
-                    ${puedeEditar ? `<button class="action-btn" onclick="ObsApp.editar(${o.id})" title="Editar"><?php echo tablerIcon('edit'); ?></button>` : ''}
-                    ${USUARIO_ROL === 'supervisor' ? `<button class="action-btn" onclick="ObsApp.eliminar(${o.id})" title="Eliminar"><?php echo tablerIcon('trash'); ?></button>` : ''}
+                    <div class="cell-establecimiento">
+                        <div class="est-icon">${(o.nombre_corto || o.establecimiento_nombre || '?').charAt(0).toUpperCase()}</div>
+                        <div>
+                            <div class="est-nombre">${esc(o.nombre_corto || o.establecimiento_nombre)}</div>
+                            <div class="est-comuna">${esc(o.comuna_nombre || '')}</div>
+                        </div>
+                    </div>
+                </td>
+                <td><span class="mes-pill">${esc(o.mes)}</span></td>
+                <td>
+                    <div class="cell-serie">
+                        ${serieInfo}
+                        ${hojaInfo ? ` / ${hojaInfo}` : ''}
+                    </div>
+                </td>
+                <td><span class="tipo-chip">${esc(o.tipo_error)}</span></td>
+                <td><span class="${badgeClass}">${cap(o.estado_actual)}</span></td>
+                <td><div class="cell-usuario">${esc(o.usuario_registro_nombre || '-')}</div></td>
+                <td>
+                    <div class="action-group">
+                        <button class="action-btn action-view" onclick="ObsApp.ver(${o.id})" title="Ver detalle"><?php echo tablerIcon('eye'); ?></button>
+                        ${puedeEditar ? `<button class="action-btn action-edit" onclick="ObsApp.editar(${o.id})" title="Editar"><?php echo tablerIcon('edit'); ?></button>` : ''}
+                        ${USUARIO_ROL === 'supervisor' ? `<button class="action-btn action-delete" onclick="ObsApp.eliminar(${o.id})" title="Eliminar"><?php echo tablerIcon('trash'); ?></button>` : ''}
+                    </div>
                 </td>
             </tr>`;
         }).join('');
