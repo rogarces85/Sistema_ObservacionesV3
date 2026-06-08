@@ -11,8 +11,10 @@ require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../config/constants.php';
 require_once __DIR__ . '/../includes/csrf.php';
 require_once __DIR__ . '/../models/Observacion.php';
+require_once __DIR__ . '/../models/Observation.php';
 require_once __DIR__ . '/../models/Establecimiento.php';
 require_once __DIR__ . '/../models/Location.php';
+require_once __DIR__ . '/../models/Exporter.php';
 
 const LIMITE_SYNC = 1000;
 const LIMITE_MAXIMO = 50000;
@@ -87,8 +89,14 @@ if ($metodo === 'POST') {
         responder(false, null, 'Formato no válido. Use: excel, pdf o csv', 400);
     }
 
-    if (!in_array($tipoReporte, ['general', 'detallado'])) {
+    $tiposAnaliticos = ['errores_establecimiento', 'plazos_entrega', 'uso_validador', 'errores_serie', 'errores_hoja'];
+
+    if (!in_array($tipoReporte, array_merge(['general', 'detallado'], $tiposAnaliticos), true)) {
         responder(false, null, 'Tipo de reporte no válido', 400);
+    }
+
+    if (in_array($tipoReporte, $tiposAnaliticos, true)) {
+        generarExportacionAnalitica($cuerpo, $formato, $tipoReporte, $usuarioId, $rol);
     }
 
     $filtros = [
@@ -117,6 +125,61 @@ if ($metodo === 'POST') {
     } else {
         encolarExportacion($filtros, $formato, $tipoReporte, $totalRegistros, $usuarioId);
     }
+}
+
+function generarExportacionAnalitica($cuerpo, $formato, $tipoReporte, $usuarioId, $rol)
+{
+    $filtros = obtenerFiltrosAnaliticosDesdeCuerpo($cuerpo);
+    $modeloObservacion = new Observation();
+
+    if (!empty($filtros['comuna_id']) && !empty($filtros['establecimiento_id']) && !$modeloObservacion->establecimientoPerteneceAComuna($filtros['establecimiento_id'], $filtros['comuna_id'])) {
+        responder(false, null, 'El establecimiento no pertenece a la comuna seleccionada', 400);
+    }
+
+    $reporte = $modeloObservacion->getReporteAnaliticoCategoria($tipoReporte, $filtros['anio'], $filtros, $usuarioId, $rol);
+    $totalRegistros = count($reporte['resultados'] ?? []);
+
+    if ($totalRegistros === 0) {
+        responder(false, null, 'No hay datos exportables para la categoría seleccionada', 400);
+    }
+
+    if ($totalRegistros > LIMITE_MAXIMO) {
+        responder(false, null, 'La exportación supera el límite máximo permitido. Ajuste los filtros.', 400);
+    }
+
+    $exportador = new Exporter();
+    $nombreSeguro = preg_replace('/[^a-z0-9_]+/i', '_', $tipoReporte);
+    $extension = $formato === 'excel' ? 'xlsx' : $formato;
+    $archivo = "Reporte_Analitico_{$nombreSeguro}_" . date('Y-m-d_His') . ".{$extension}";
+    $exportador->exportAnalitico($reporte, $archivo, $formato);
+}
+
+function obtenerFiltrosAnaliticosDesdeCuerpo($cuerpo)
+{
+    $mesesPorTrimestre = [
+        1 => ['Enero', 'Febrero', 'Marzo'],
+        2 => ['Abril', 'Mayo', 'Junio'],
+        3 => ['Julio', 'Agosto', 'Septiembre'],
+        4 => ['Octubre', 'Noviembre', 'Diciembre']
+    ];
+    $trimestre = isset($cuerpo['trimestre']) && $cuerpo['trimestre'] !== '' ? (int)$cuerpo['trimestre'] : null;
+    $mes = trim($cuerpo['mes'] ?? '');
+
+    if ($trimestre !== null && !isset($mesesPorTrimestre[$trimestre])) {
+        responder(false, null, 'Trimestre no válido', 400);
+    }
+    if ($trimestre !== null && $mes !== '' && !in_array($mes, $mesesPorTrimestre[$trimestre], true)) {
+        responder(false, null, 'El mes seleccionado no corresponde al trimestre indicado', 400);
+    }
+
+    return [
+        'anio' => (int)($cuerpo['anio'] ?? date('Y')),
+        'trimestre' => $trimestre,
+        'mes' => $mes !== '' ? $mes : null,
+        'meses' => $mes !== '' ? [$mes] : ($trimestre !== null ? $mesesPorTrimestre[$trimestre] : []),
+        'comuna_id' => !empty($cuerpo['comuna_id']) ? (int)$cuerpo['comuna_id'] : null,
+        'establecimiento_id' => !empty($cuerpo['establecimiento_id']) ? (int)$cuerpo['establecimiento_id'] : null
+    ];
 }
 
 function obtenerFiltros()

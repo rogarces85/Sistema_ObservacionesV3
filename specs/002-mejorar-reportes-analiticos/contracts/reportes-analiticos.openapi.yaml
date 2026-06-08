@@ -1,0 +1,257 @@
+openapi: 3.0.3
+info:
+  title: Contrato de Reportes Analiticos
+  version: 1.0.0
+  description: Contrato funcional para consultar y exportar categorias analiticas de reportes REM.
+servers:
+  - url: /
+paths:
+  /api/reports.php:
+    get:
+      summary: Consultar reportes analiticos
+      description: Devuelve una o varias categorias analiticas segun filtros activos y alcance del usuario autenticado.
+      parameters:
+        - name: report
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - reportes-analiticos
+              - errores_establecimiento
+              - plazos_entrega
+              - uso_validador
+              - errores_serie
+              - errores_hoja
+        - name: anio
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 2020
+        - name: trimestre
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 4
+        - name: mes
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: comuna_id
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: establecimiento_id
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Reportes analiticos consultados correctamente o sin datos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespuestaReportesAnaliticos'
+        '401':
+          description: Usuario no autenticado.
+        '403':
+          description: Usuario sin permiso para el alcance solicitado.
+        '400':
+          description: Filtros invalidos.
+        '500':
+          description: Error recuperable del servidor.
+  /api/export.php:
+    post:
+      summary: Exportar reporte analitico
+      description: Genera una descarga para una categoria analitica usando los filtros activos.
+      parameters:
+        - name: X-CSRF-TOKEN
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SolicitudExportacionAnalitica'
+      responses:
+        '200':
+          description: Exportacion generada o encolada correctamente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespuestaExportacionAnalitica'
+        '400':
+          description: Categoria, formato o filtros invalidos; tambien aplica cuando no hay datos exportables.
+        '401':
+          description: Usuario no autenticado.
+        '403':
+          description: Usuario sin permiso para exportar el alcance solicitado.
+        '500':
+          description: Error al generar exportacion.
+components:
+  schemas:
+    FiltrosReporte:
+      type: object
+      required:
+        - anio
+      properties:
+        anio:
+          type: integer
+        trimestre:
+          type: integer
+          nullable: true
+        mes:
+          type: string
+          nullable: true
+        comuna_id:
+          type: integer
+          nullable: true
+        establecimiento_id:
+          type: integer
+          nullable: true
+    ResultadoAgregado:
+      type: object
+      required:
+        - clave
+        - nombre
+        - total
+      properties:
+        clave:
+          type: string
+        nombre:
+          type: string
+        total:
+          type: integer
+        porcentaje:
+          type: number
+          nullable: true
+        comuna:
+          type: string
+          nullable: true
+        establecimiento:
+          type: string
+          nullable: true
+        serie:
+          type: string
+          nullable: true
+        hoja:
+          type: string
+          nullable: true
+        mes:
+          type: string
+          nullable: true
+    ReporteAnalitico:
+      type: object
+      required:
+        - categoria
+        - titulo
+        - totales
+        - resultados
+        - estado
+      properties:
+        categoria:
+          type: string
+        titulo:
+          type: string
+        totales:
+          type: object
+          additionalProperties:
+            type: integer
+        resultados:
+          type: array
+          items:
+            $ref: '#/components/schemas/ResultadoAgregado'
+        estado:
+          type: string
+          enum:
+            - listo
+            - vacio
+            - error
+        mensaje:
+          type: string
+          nullable: true
+    RespuestaReportesAnaliticos:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            filtros:
+              $ref: '#/components/schemas/FiltrosReporte'
+            reportes:
+              type: array
+              items:
+                $ref: '#/components/schemas/ReporteAnalitico'
+        message:
+          type: string
+          nullable: true
+    SolicitudExportacionAnalitica:
+      type: object
+      required:
+        - tipo_reporte
+        - formato
+        - anio
+      properties:
+        tipo_reporte:
+          type: string
+          enum:
+            - errores_establecimiento
+            - plazos_entrega
+            - uso_validador
+            - errores_serie
+            - errores_hoja
+        formato:
+          type: string
+          enum:
+            - excel
+            - csv
+            - pdf
+        anio:
+          type: integer
+        trimestre:
+          type: integer
+          nullable: true
+        mes:
+          type: string
+          nullable: true
+        comuna_id:
+          type: integer
+          nullable: true
+        establecimiento_id:
+          type: integer
+          nullable: true
+    RespuestaExportacionAnalitica:
+      type: object
+      required:
+        - success
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          nullable: true
+          properties:
+            archivo:
+              type: string
+              nullable: true
+            en_cola:
+              type: boolean
+            mensaje:
+              type: string
+        error:
+          type: string
+          nullable: true

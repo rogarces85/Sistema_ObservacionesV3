@@ -509,6 +509,31 @@ class Exporter
         exit;
     }
 
+    public function exportAnalitico(array $reporte, string $filename, string $formato = 'excel')
+    {
+        $headers = ['Dimensión', 'Comuna', 'Total', 'Porcentaje'];
+        $data = [];
+
+        foreach ($reporte['resultados'] ?? [] as $fila) {
+            $data[] = [
+                $fila['nombre'] ?? $fila['clave'] ?? 'Sin nombre',
+                $fila['comuna'] ?? '',
+                (int)($fila['total'] ?? 0),
+                number_format((float)($fila['porcentaje'] ?? 0), 1, ',', '.') . '%'
+            ];
+        }
+
+        if ($formato === 'csv') {
+            $this->exportToCSV($data, $filename, $headers);
+        }
+
+        if ($formato === 'pdf') {
+            $this->exportToPDF($data, $filename, $headers, $reporte['titulo'] ?? 'Reporte Analítico REM');
+        }
+
+        $this->exportToExcel($data, $filename, $headers);
+    }
+
     /**
      * Exportar Informe de Errores REM a PDF
      * Formato vertical (portrait), diseño moderno para presentación a directivos

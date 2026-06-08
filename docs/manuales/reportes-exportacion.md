@@ -2,7 +2,7 @@
 
 ## Descripción
 
-El módulo de **Reportes y Exportación** permite generar reportes de las observaciones REM en diferentes formatos (Excel, PDF, CSV), visualizar una vista previa paginada de los datos filtrados y generar informes de errores trimestrales/anuales (solo supervisores).
+El módulo de **Reportes y Exportación** permite analizar observaciones REM mediante reportes analíticos, generar archivos en diferentes formatos (Excel, PDF, CSV), visualizar una vista previa paginada de los datos filtrados y generar informes de errores trimestrales/anuales (solo supervisores).
 
 ---
 
@@ -21,6 +21,7 @@ La sección de filtros permite refinar los datos que se mostrarán y exportarán
 | Filtro | Descripción |
 |--------|-------------|
 | **Año** | Año de las observaciones (2020 en adelante) |
+| **Trimestre** | Trimestre del año para enfocar reportes analíticos |
 | **Mes** | Mes específico o todos los meses |
 | **Estado** | Estado actual: Pendiente, Aprobado, Error, Rechazado |
 | **Comuna** | Filtrar por comuna del establecimiento |
@@ -31,6 +32,58 @@ La sección de filtros permite refinar los datos que se mostrarán y exportarán
 
 - **Aplicar Filtros**: Ejecuta la búsqueda con los filtros seleccionados
 - **Limpiar**: Restablece todos los filtros a sus valores por defecto
+
+---
+
+## Reportes Analíticos
+
+La sección **Reportes Analíticos** permite revisar cinco categorías con los mismos filtros activos:
+
+| Categoría | Descripción |
+|-----------|-------------|
+| **Errores por establecimiento** | Muestra establecimientos con mayor cantidad de errores |
+| **Plazos de entrega** | Resume observaciones fuera de plazo por establecimiento |
+| **Uso de validador** | Identifica establecimientos con registros sin uso de validador |
+| **Errores por serie** | Agrupa errores por código de serie REM |
+| **Errores por hoja** | Agrupa errores por código de hoja REM |
+
+Cada categoría incluye:
+
+- Indicadores principales: observaciones analizadas, errores, fuera de plazo y sin validador.
+- Gráfico de barras con los principales resultados.
+- Tabla con los mismos datos del gráfico.
+- Botón **Exportar categoría** para descargar el reporte visible.
+- Estados claros para carga, sin datos o error recuperable.
+
+### Cómo usar los reportes analíticos
+
+1. Seleccionar año y, opcionalmente, trimestre, mes, comuna o establecimiento.
+2. Presionar **Aplicar Filtros** o **Actualizar análisis**.
+3. Revisar los indicadores y seleccionar una categoría.
+4. Usar **Exportar categoría** si necesita descargar solo ese análisis.
+
+### Mockup de Reportes Analíticos
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│ Reportes Analíticos                                      [Actualizar]│
+├─────────────────────────────────────────────────────────────────────┤
+│ Observaciones       Errores          Fuera plazo      Sin validador  │
+│ 1.234               85               17               9              │
+├─────────────────────────────────────────────────────────────────────┤
+│ [Errores Est.] [Plazos] [Validador] [Series] [Hojas]                 │
+├─────────────────────────────────────────────────────────────────────┤
+│ Errores por establecimiento                         [Exportar cat.]  │
+│ ┌──────────────────────────── Gráfico barras ─────────────────────┐ │
+│ │ CESFAM A █████████████ 24                                      │ │
+│ │ CESFAM B ████████ 15                                           │ │
+│ └─────────────────────────────────────────────────────────────────┘ │
+│ ┌──────────────────────────── Tabla ──────────────────────────────┐ │
+│ │ Dimensión              Comuna        Total        %             │ │
+│ │ CESFAM A               Osorno        24           28,2%         │ │
+│ └─────────────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────────┘
+```
 
 ---
 

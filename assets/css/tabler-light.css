@@ -984,3 +984,26 @@ body {
         grid-template-columns: 1fr 1fr;
     }
 }
+.reportes-analytics__metric {
+    border-color: var(--border);
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+}
+
+.reportes-analytics__panel {
+    min-height: 360px;
+}
+
+.reportes-analytics__estado {
+    border: 1px dashed var(--border);
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
+    padding: 0.75rem 1rem;
+}
+
+.reportes-analytics__chart {
+    min-height: 320px;
+}
+
+.reportes-analytics__chart:empty {
+    display: none;
+}

@@ -1,9 +1,9 @@
 <!-- SPECKIT START -->
-Implementation plan: specs/001-unificar-specs/plan.md
-Research: specs/001-unificar-specs/research.md
-Data model: specs/001-unificar-specs/data-model.md
-API contracts: specs/001-unificar-specs/contracts/
-Quickstart: specs/001-unificar-specs/quickstart.md
+Implementation plan: specs/002-mejorar-reportes-analiticos/plan.md
+Research: specs/002-mejorar-reportes-analiticos/research.md
+Data model: specs/002-mejorar-reportes-analiticos/data-model.md
+API contracts: specs/002-mejorar-reportes-analiticos/contracts/
+Quickstart: specs/002-mejorar-reportes-analiticos/quickstart.md
 
 Key constraints:
 - BD existente y poblada — NO modificar esquema ni migraciones

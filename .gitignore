@@ -1,5 +1,6 @@
 # Dependencies
 node_modules/
+vendor/
 
 # Environment files
 .env
@@ -19,6 +20,7 @@ Thumbs.db
 # Logs
 *.log
 npm-debug.log*
+*.cache
 
 # Runtime
 pids/

@@ -1049,6 +1049,203 @@ class Observation
         return $this->db->query($sql, [$anio]);
     }
 
+    public function getReportesAnaliticos($anio, array $filtros = [], $userId = null, $userRole = null): array
+    {
+        $categorias = [
+            'errores_establecimiento' => ['titulo' => 'Errores por establecimiento', 'datos' => $this->reporteAnaliticoErroresEstablecimiento($anio, $filtros, $userId, $userRole)],
+            'plazos_entrega' => ['titulo' => 'Plazos de entrega', 'datos' => $this->reporteAnaliticoPlazosEntrega($anio, $filtros, $userId, $userRole)],
+            'uso_validador' => ['titulo' => 'Uso de validador', 'datos' => $this->reporteAnaliticoUsoValidador($anio, $filtros, $userId, $userRole)],
+            'errores_serie' => ['titulo' => 'Errores por serie', 'datos' => $this->reporteAnaliticoErroresSerie($anio, $filtros, $userId, $userRole)],
+            'errores_hoja' => ['titulo' => 'Errores por hoja', 'datos' => $this->reporteAnaliticoErroresHoja($anio, $filtros, $userId, $userRole)]
+        ];
+
+        $reportes = [];
+        foreach ($categorias as $categoria => $config) {
+            $reportes[] = $this->formatearReporteAnalitico($categoria, $config['titulo'], $config['datos']);
+        }
+
+        return [
+            'filtros' => $filtros,
+            'totales_globales' => $this->getTotalesAnaliticos($anio, $filtros, $userId, $userRole),
+            'reportes' => $reportes
+        ];
+    }
+
+    public function getReporteAnaliticoCategoria($categoria, $anio, array $filtros = [], $userId = null, $userRole = null): array
+    {
+        $reportes = $this->getReportesAnaliticos($anio, $filtros, $userId, $userRole)['reportes'];
+        foreach ($reportes as $reporte) {
+            if ($reporte['categoria'] === $categoria) {
+                return $reporte;
+            }
+        }
+        return $this->formatearReporteAnalitico($categoria, 'Reporte analitico', []);
+    }
+
+    public function getTotalesAnaliticos($anio, array $filtros = [], $userId = null, $userRole = null): array
+    {
+        $params = [];
+        $where = $this->construirWhereAnalitico($anio, $filtros, $userId, $userRole, $params);
+        $sql = "SELECT COUNT(*) as total_observaciones,
+                       SUM(CASE WHEN o.tipo_error = 'ERROR' THEN 1 ELSE 0 END) as total_errores,
+                       SUM(CASE WHEN o.plazo_entrega = 'fuera_plazo' THEN 1 ELSE 0 END) as total_fuera_plazo,
+                       SUM(CASE WHEN o.usa_validador = 'no' THEN 1 ELSE 0 END) as total_sin_validador
+                FROM observaciones o
+                INNER JOIN establecimientos e ON o.establecimiento_id = e.id
+                INNER JOIN comunas c ON e.comuna_id = c.id
+                WHERE $where";
+        $fila = $this->db->queryOne($sql, $params) ?: [];
+        return [
+            'total_observaciones' => (int)($fila['total_observaciones'] ?? 0),
+            'total_errores' => (int)($fila['total_errores'] ?? 0),
+            'total_fuera_plazo' => (int)($fila['total_fuera_plazo'] ?? 0),
+            'total_sin_validador' => (int)($fila['total_sin_validador'] ?? 0)
+        ];
+    }
+
+    public function establecimientoPerteneceAComuna($establecimientoId, $comunaId): bool
+    {
+        if (!$establecimientoId || !$comunaId) {
+            return true;
+        }
+        $fila = $this->db->queryOne(
+            "SELECT id FROM establecimientos WHERE id = ? AND comuna_id = ?",
+            [(int)$establecimientoId, (int)$comunaId]
+        );
+        return !empty($fila);
+    }
+
+    private function reporteAnaliticoErroresEstablecimiento($anio, array $filtros, $userId, $userRole): array
+    {
+        $params = [];
+        $where = $this->construirWhereAnalitico($anio, $filtros, $userId, $userRole, $params);
+        $sql = "SELECT e.id as clave, COALESCE(e.nombre_corto, e.nombre) as nombre, c.nombre as comuna, COUNT(*) as total
+                FROM observaciones o
+                INNER JOIN establecimientos e ON o.establecimiento_id = e.id
+                INNER JOIN comunas c ON e.comuna_id = c.id
+                WHERE $where AND o.tipo_error = 'ERROR'
+                GROUP BY e.id, e.nombre, e.nombre_corto, c.nombre
+                ORDER BY total DESC, nombre ASC";
+        return $this->db->query($sql, $params);
+    }
+
+    private function reporteAnaliticoPlazosEntrega($anio, array $filtros, $userId, $userRole): array
+    {
+        $params = [];
+        $where = $this->construirWhereAnalitico($anio, $filtros, $userId, $userRole, $params);
+        $sql = "SELECT e.id as clave, COALESCE(e.nombre_corto, e.nombre) as nombre, c.nombre as comuna,
+                       SUM(CASE WHEN o.plazo_entrega = 'fuera_plazo' THEN 1 ELSE 0 END) as total,
+                       SUM(CASE WHEN o.plazo_entrega = 'dentro_plazo' THEN 1 ELSE 0 END) as dentro_plazo,
+                       COUNT(*) as total_observaciones
+                FROM observaciones o
+                INNER JOIN establecimientos e ON o.establecimiento_id = e.id
+                INNER JOIN comunas c ON e.comuna_id = c.id
+                WHERE $where AND o.plazo_entrega IS NOT NULL AND o.plazo_entrega != ''
+                GROUP BY e.id, e.nombre, e.nombre_corto, c.nombre
+                ORDER BY total DESC, nombre ASC";
+        return $this->db->query($sql, $params);
+    }
+
+    private function reporteAnaliticoUsoValidador($anio, array $filtros, $userId, $userRole): array
+    {
+        $params = [];
+        $where = $this->construirWhereAnalitico($anio, $filtros, $userId, $userRole, $params);
+        $sql = "SELECT e.id as clave, COALESCE(e.nombre_corto, e.nombre) as nombre, c.nombre as comuna,
+                       SUM(CASE WHEN o.usa_validador = 'no' THEN 1 ELSE 0 END) as total,
+                       SUM(CASE WHEN o.usa_validador = 'si' THEN 1 ELSE 0 END) as usa_validador,
+                       COUNT(*) as total_observaciones
+                FROM observaciones o
+                INNER JOIN establecimientos e ON o.establecimiento_id = e.id
+                INNER JOIN comunas c ON e.comuna_id = c.id
+                WHERE $where AND o.usa_validador IS NOT NULL AND o.usa_validador != ''
+                GROUP BY e.id, e.nombre, e.nombre_corto, c.nombre
+                ORDER BY total DESC, nombre ASC";
+        return $this->db->query($sql, $params);
+    }
+
+    private function reporteAnaliticoErroresSerie($anio, array $filtros, $userId, $userRole): array
+    {
+        $params = [];
+        $where = $this->construirWhereAnalitico($anio, $filtros, $userId, $userRole, $params);
+        $sql = "SELECT o.codigo_serie as clave, o.codigo_serie as nombre, COUNT(*) as total
+                FROM observaciones o
+                INNER JOIN establecimientos e ON o.establecimiento_id = e.id
+                INNER JOIN comunas c ON e.comuna_id = c.id
+                WHERE $where AND o.tipo_error = 'ERROR' AND o.codigo_serie IS NOT NULL AND o.codigo_serie != ''
+                GROUP BY o.codigo_serie
+                ORDER BY total DESC, nombre ASC";
+        return $this->db->query($sql, $params);
+    }
+
+    private function reporteAnaliticoErroresHoja($anio, array $filtros, $userId, $userRole): array
+    {
+        $params = [];
+        $where = $this->construirWhereAnalitico($anio, $filtros, $userId, $userRole, $params);
+        $sql = "SELECT o.codigo_hoja as clave, o.codigo_hoja as nombre, COUNT(*) as total
+                FROM observaciones o
+                INNER JOIN establecimientos e ON o.establecimiento_id = e.id
+                INNER JOIN comunas c ON e.comuna_id = c.id
+                WHERE $where AND o.tipo_error = 'ERROR' AND o.codigo_hoja IS NOT NULL AND o.codigo_hoja != ''
+                GROUP BY o.codigo_hoja
+                ORDER BY total DESC, nombre ASC";
+        return $this->db->query($sql, $params);
+    }
+
+    private function construirWhereAnalitico($anio, array $filtros, $userId, $userRole, array &$params): string
+    {
+        $where = ['o.anio = ?'];
+        $params[] = (int)$anio;
+
+        if (!empty($filtros['meses'])) {
+            $placeholders = implode(',', array_fill(0, count($filtros['meses']), '?'));
+            $where[] = "o.mes IN ($placeholders)";
+            $params = array_merge($params, $filtros['meses']);
+        } elseif (!empty($filtros['mes'])) {
+            $where[] = 'o.mes = ?';
+            $params[] = $filtros['mes'];
+        }
+
+        if (!empty($filtros['comuna_id'])) {
+            $where[] = 'e.comuna_id = ?';
+            $params[] = (int)$filtros['comuna_id'];
+        }
+
+        if (!empty($filtros['establecimiento_id'])) {
+            $where[] = 'o.establecimiento_id = ?';
+            $params[] = (int)$filtros['establecimiento_id'];
+        }
+
+        if ($userRole === ROL_REGISTRADOR && $userId) {
+            $where[] = 'o.usuario_registro_id = ?';
+            $params[] = (int)$userId;
+        }
+
+        return implode(' AND ', $where);
+    }
+
+    private function formatearReporteAnalitico($categoria, $titulo, array $datos): array
+    {
+        $total = array_sum(array_map(function ($fila) {
+            return (int)($fila['total'] ?? 0);
+        }, $datos));
+
+        $resultados = array_map(function ($fila) use ($total) {
+            $cantidad = (int)($fila['total'] ?? 0);
+            $fila['total'] = $cantidad;
+            $fila['porcentaje'] = $total > 0 ? round(($cantidad / $total) * 100, 1) : 0;
+            return $fila;
+        }, $datos);
+
+        return [
+            'categoria' => $categoria,
+            'titulo' => $titulo,
+            'totales' => ['total' => $total],
+            'resultados' => $resultados,
+            'estado' => empty($resultados) ? 'vacio' : 'listo',
+            'mensaje' => empty($resultados) ? 'No hay datos para los filtros seleccionados.' : null
+        ];
+    }
+
     /**
      * Obtener errores para informe trimestral/anual
      * Filtra tipo_error = 'ERROR', ordena por comuna → categoría establecimiento → establecimiento → mes

@@ -1,6 +1,6 @@
 /**
  * reportes.js - Módulo de Reportes y Exportación
- * Maneja filtros, vista previa paginada, exportación e informes de errores
+ * Maneja filtros, vista previa paginada, exportación, informes y reportes analíticos.
  */
 
 'use strict';
@@ -11,6 +11,14 @@ const Reportes = (() => {
     let porPagina = 20;
     let totalPaginas = 0;
     let conteoActual = 0;
+    let categoriaActiva = 'errores_establecimiento';
+    const graficos = {};
+    const datosAnaliticos = {};
+
+    const API_BASE = (() => {
+        const path = window.location.pathname;
+        return path.substring(0, path.lastIndexOf('/') + 1);
+    })();
 
     const TRIMESTRES = {
         '1': ['Enero', 'Febrero', 'Marzo'],
@@ -19,15 +27,60 @@ const Reportes = (() => {
         '4': ['Octubre', 'Noviembre', 'Diciembre']
     };
 
+    const CATEGORIAS_ANALITICAS = {
+        errores_establecimiento: { titulo: 'Errores por establecimiento', color: '#dc2626' },
+        plazos_entrega: { titulo: 'Plazos de entrega', color: '#ca8a04' },
+        uso_validador: { titulo: 'Uso de validador', color: '#7c3aed' },
+        errores_serie: { titulo: 'Errores por serie', color: '#0ea5e9' },
+        errores_hoja: { titulo: 'Errores por hoja', color: '#16a34a' }
+    };
+
     function obtenerFiltros() {
         return {
             anio: document.getElementById('filtroAnio').value,
+            trimestre: document.getElementById('filtroTrimestre')?.value || '',
             mes: document.getElementById('filtroMes').value,
             estado: document.getElementById('filtroEstado').value,
             comuna_id: document.getElementById('filtroComuna').value,
             establecimiento_id: document.getElementById('filtroEstablecimiento').value,
             tipo_error: document.getElementById('filtroTipoError').value
         };
+    }
+
+    function obtenerFiltrosAnaliticos() {
+        const filtros = obtenerFiltros();
+        return {
+            anio: filtros.anio,
+            trimestre: filtros.trimestre,
+            mes: filtros.mes,
+            comuna_id: filtros.comuna_id,
+            establecimiento_id: filtros.establecimiento_id
+        };
+    }
+
+    function validarMesTrimestre() {
+        const trimestre = document.getElementById('filtroTrimestre')?.value || '';
+        const mes = document.getElementById('filtroMes').value;
+        if (!trimestre || !mes) return true;
+        const valido = TRIMESTRES[trimestre]?.includes(mes);
+        if (!valido) {
+            mostrarError('El mes seleccionado no corresponde al trimestre indicado');
+        }
+        return valido;
+    }
+
+    function construirParams(filtros, extras = {}) {
+        const params = new URLSearchParams();
+        Object.entries({ ...extras, ...filtros }).forEach(([clave, valor]) => {
+            if (valor !== null && valor !== undefined && valor !== '') {
+                params.append(clave, valor);
+            }
+        });
+        return params;
+    }
+
+    function getCsrfToken() {
+        return document.querySelector('meta[name="csrf-token"]')?.content || localStorage.getItem('csrf_token') || '';
     }
 
     async function cargarEstablecimientos() {
@@ -39,7 +92,7 @@ const Reportes = (() => {
 
         if (comunaId) {
             try {
-                const respuesta = await fetch(`api/locations.php?action=get_establecimientos&comuna_id=${comunaId}`);
+                const respuesta = await fetch(`${API_BASE}api/locations.php?action=get_establecimientos&comuna_id=${encodeURIComponent(comunaId)}`);
                 const datos = await respuesta.json();
                 if (datos.success) {
                     datos.data.forEach(est => {
@@ -51,20 +104,17 @@ const Reportes = (() => {
                 }
             } catch (error) {
                 console.error('Error al cargar establecimientos:', error);
+                mostrarError('No fue posible cargar establecimientos');
             }
         }
     }
 
     async function actualizarConteo() {
         const filtros = obtenerFiltros();
-        const params = new URLSearchParams();
-        params.append('accion', 'contar');
-        Object.entries(filtros).forEach(([clave, valor]) => {
-            if (valor) params.append(clave, valor);
-        });
+        const params = construirParams(filtros, { accion: 'contar' });
 
         try {
-            const respuesta = await fetch(`api/export.php?${params}`);
+            const respuesta = await fetch(`${API_BASE}api/export.php?${params}`);
             const datos = await respuesta.json();
             if (datos.success) {
                 conteoActual = datos.data.total;
@@ -101,25 +151,22 @@ const Reportes = (() => {
 
     async function obtenerDatosPreview() {
         const filtros = obtenerFiltros();
-        const params = new URLSearchParams();
-        params.append('accion', 'preview');
-        params.append('pagina', paginaActual);
-        params.append('por_pagina', porPagina);
-        Object.entries(filtros).forEach(([clave, valor]) => {
-            if (valor) params.append(clave, valor);
+        const params = construirParams(filtros, {
+            accion: 'preview',
+            pagina: paginaActual,
+            por_pagina: porPagina
         });
 
         mostrarCargando(true);
 
         try {
-            const respuesta = await fetch(`api/export.php?${params}`);
+            const respuesta = await fetch(`${API_BASE}api/export.php?${params}`);
             const datos = await respuesta.json();
 
             if (datos.success) {
                 totalRegistros = datos.data.total;
                 porPagina = datos.data.porPagina || 20;
                 totalPaginas = datos.data.totalPaginas || 0;
-
                 renderizarTabla(datos.data.datos);
                 renderizarPaginacion();
                 document.getElementById('previewTotal').textContent = `${totalRegistros.toLocaleString('es-CL')} registros`;
@@ -134,17 +181,141 @@ const Reportes = (() => {
         }
     }
 
+    async function cargarReportesAnaliticos() {
+        if (!validarMesTrimestre()) return;
+
+        const filtros = obtenerFiltrosAnaliticos();
+        const params = construirParams(filtros, { report: 'reportes-analiticos' });
+        setEstadoAnaliticoTodos('Cargando reportes analíticos...');
+
+        try {
+            const respuesta = await fetch(`${API_BASE}api/reports.php?${params}`);
+            const datos = await respuesta.json();
+            if (!datos.success) {
+                throw new Error(datos.message || 'No fue posible cargar reportes analíticos');
+            }
+
+            renderizarIndicadores(datos.data.totales_globales || {});
+            (datos.data.reportes || []).forEach(reporte => {
+                datosAnaliticos[reporte.categoria] = reporte;
+                renderizarReporteAnalitico(reporte);
+            });
+        } catch (error) {
+            console.error('Error al cargar reportes analíticos:', error);
+            Object.keys(CATEGORIAS_ANALITICAS).forEach(categoria => {
+                setEstadoAnalitico(categoria, 'No fue posible cargar esta categoría.', 'danger');
+                setBotonExportarAnalitico(categoria, true);
+            });
+            mostrarError(error.message || 'Error de conexión al cargar reportes analíticos');
+        }
+    }
+
+    function renderizarIndicadores(totales) {
+        ['total_observaciones', 'total_errores', 'total_fuera_plazo', 'total_sin_validador'].forEach(clave => {
+            const elemento = document.querySelector(`[data-indicador="${clave}"]`);
+            if (elemento) {
+                elemento.textContent = Number(totales[clave] || 0).toLocaleString('es-CL');
+            }
+        });
+    }
+
+    function renderizarReporteAnalitico(reporte) {
+        const categoria = reporte.categoria;
+        const resultados = reporte.resultados || [];
+        setBotonExportarAnalitico(categoria, resultados.length === 0);
+
+        if (resultados.length === 0) {
+            destruirGrafico(categoria);
+            setEstadoAnalitico(categoria, reporte.mensaje || 'No hay datos para los filtros seleccionados.', 'muted');
+            renderizarTablaAnalitica(categoria, []);
+            return;
+        }
+
+        setEstadoAnalitico(categoria, `${resultados.length.toLocaleString('es-CL')} filas agregadas`, 'success');
+        renderizarGraficoAnalitico(categoria, resultados.slice(0, 15));
+        renderizarTablaAnalitica(categoria, resultados);
+    }
+
+    function renderizarGraficoAnalitico(categoria, resultados) {
+        const contenedor = document.getElementById(`grafico-${categoria}`);
+        if (!contenedor || typeof ApexCharts === 'undefined') return;
+
+        destruirGrafico(categoria);
+        const config = CATEGORIAS_ANALITICAS[categoria] || {};
+        graficos[categoria] = new ApexCharts(contenedor, {
+            chart: { type: 'bar', height: 320, toolbar: { show: false } },
+            series: [{ name: 'Total', data: resultados.map(item => Number(item.total || 0)) }],
+            xaxis: { categories: resultados.map(item => item.nombre || item.clave || 'Sin nombre') },
+            colors: [config.color || '#0ea5e9'],
+            plotOptions: { bar: { horizontal: true, borderRadius: 4 } },
+            dataLabels: { enabled: true },
+            tooltip: { y: { formatter: valor => Number(valor).toLocaleString('es-CL') } }
+        });
+        graficos[categoria].render();
+    }
+
+    function destruirGrafico(categoria) {
+        if (graficos[categoria]) {
+            graficos[categoria].destroy();
+            delete graficos[categoria];
+        }
+    }
+
+    function renderizarTablaAnalitica(categoria, resultados) {
+        const cuerpo = document.querySelector(`[data-tabla-categoria="${categoria}"] tbody`);
+        if (!cuerpo) return;
+
+        if (resultados.length === 0) {
+            cuerpo.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-4">No hay datos para los filtros seleccionados</td></tr>';
+            return;
+        }
+
+        cuerpo.innerHTML = resultados.map(item => `
+            <tr>
+                <td>${escapeHtml(item.nombre || item.clave || 'Sin nombre')}</td>
+                <td>${escapeHtml(item.comuna || '')}</td>
+                <td class="text-end fw-bold">${Number(item.total || 0).toLocaleString('es-CL')}</td>
+                <td class="text-end">${Number(item.porcentaje || 0).toLocaleString('es-CL')}%</td>
+            </tr>
+        `).join('');
+    }
+
+    function setEstadoAnaliticoTodos(mensaje) {
+        Object.keys(CATEGORIAS_ANALITICAS).forEach(categoria => setEstadoAnalitico(categoria, mensaje, 'muted'));
+    }
+
+    function setEstadoAnalitico(categoria, mensaje, tipo) {
+        const estado = document.querySelector(`[data-estado-categoria="${categoria}"]`);
+        if (!estado) return;
+        const clases = {
+            success: 'reportes-analytics__estado text-success',
+            danger: 'reportes-analytics__estado text-danger',
+            muted: 'reportes-analytics__estado text-muted'
+        };
+        estado.className = clases[tipo] || clases.muted;
+        estado.textContent = mensaje;
+    }
+
+    function setBotonExportarAnalitico(categoria, deshabilitado) {
+        const boton = document.querySelector(`[data-exportar-analitico="${categoria}"]`);
+        if (boton) boton.disabled = deshabilitado;
+    }
+
+    function seleccionarCategoria(categoria) {
+        categoriaActiva = categoria;
+        document.querySelectorAll('[data-panel-categoria]').forEach(panel => {
+            panel.classList.toggle('d-none', panel.dataset.panelCategoria !== categoria);
+        });
+        document.querySelectorAll('[data-categoria]').forEach(tab => {
+            tab.classList.toggle('active', tab.dataset.categoria === categoria);
+        });
+    }
+
     function renderizarTabla(datos) {
         const cuerpo = document.getElementById('cuerpoTablaPreview');
 
         if (!datos || datos.length === 0) {
-            cuerpo.innerHTML = `
-                <tr>
-                    <td colspan="12" class="text-center text-muted py-4">
-                        No se encontraron registros con los filtros seleccionados
-                    </td>
-                </tr>
-            `;
+            cuerpo.innerHTML = '<tr><td colspan="12" class="text-center text-muted py-4">No se encontraron registros con los filtros seleccionados</td></tr>';
             return;
         }
 
@@ -160,7 +331,7 @@ const Reportes = (() => {
                     <td>${escapeHtml(registro.codigo_serie || '')}</td>
                     <td>${escapeHtml(registro.codigo_hoja || '')}</td>
                     <td>${escapeHtml(registro.tipo_error)}</td>
-                    <td class="text-truncate" style="max-width: 200px;" title="${escapeHtml(registro.detalle_observacion || '')}">${escapeHtml(registro.detalle_observacion || '')}</td>
+                    <td class="text-truncate" title="${escapeHtml(registro.detalle_observacion || '')}">${escapeHtml(registro.detalle_observacion || '')}</td>
                     <td><span class="badge ${registro.plazo_entrega === 'fuera_plazo' ? 'bg-danger-lt' : 'bg-success-lt'}">${escapeHtml(registro.plazo_entrega || '')}</span></td>
                     <td><span class="badge ${claseEstado}">${escapeHtml(registro.estado_actual)}</span></td>
                     <td>${escapeHtml(registro.clasificacion || '')}</td>
@@ -184,40 +355,31 @@ const Reportes = (() => {
         const fin = Math.min(paginaActual * porPagina, totalRegistros);
         info.textContent = `Mostrando ${inicio}-${fin} de ${totalRegistros.toLocaleString('es-CL')}`;
 
-        let html = '';
-        html += `<li class="page-item ${paginaActual === 1 ? 'disabled' : ''}">
-                    <a class="page-link" href="#" data-pagina="${paginaActual - 1}">«</a>
-                 </li>`;
-
-        let paginaInicio = Math.max(1, paginaActual - 2);
-        let paginaFin = Math.min(totalPaginas, paginaActual + 2);
+        let html = `<li class="page-item ${paginaActual === 1 ? 'disabled' : ''}"><a class="page-link" href="#" data-pagina="${paginaActual - 1}">«</a></li>`;
+        const paginaInicio = Math.max(1, paginaActual - 2);
+        const paginaFin = Math.min(totalPaginas, paginaActual + 2);
 
         if (paginaInicio > 1) {
-            html += `<li class="page-item"><a class="page-link" href="#" data-pagina="1">1</a></li>`;
-            if (paginaInicio > 2) html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+            html += '<li class="page-item"><a class="page-link" href="#" data-pagina="1">1</a></li>';
+            if (paginaInicio > 2) html += '<li class="page-item disabled"><span class="page-link">...</span></li>';
         }
 
         for (let p = paginaInicio; p <= paginaFin; p++) {
-            html += `<li class="page-item ${p === paginaActual ? 'active' : ''}">
-                        <a class="page-link" href="#" data-pagina="${p}">${p}</a>
-                     </li>`;
+            html += `<li class="page-item ${p === paginaActual ? 'active' : ''}"><a class="page-link" href="#" data-pagina="${p}">${p}</a></li>`;
         }
 
         if (paginaFin < totalPaginas) {
-            if (paginaFin < totalPaginas - 1) html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+            if (paginaFin < totalPaginas - 1) html += '<li class="page-item disabled"><span class="page-link">...</span></li>';
             html += `<li class="page-item"><a class="page-link" href="#" data-pagina="${totalPaginas}">${totalPaginas}</a></li>`;
         }
 
-        html += `<li class="page-item ${paginaActual === totalPaginas ? 'disabled' : ''}">
-                    <a class="page-link" href="#" data-pagina="${paginaActual + 1}">»</a>
-                 </li>`;
-
+        html += `<li class="page-item ${paginaActual === totalPaginas ? 'disabled' : ''}"><a class="page-link" href="#" data-pagina="${paginaActual + 1}">»</a></li>`;
         lista.innerHTML = html;
 
         lista.querySelectorAll('.page-link').forEach(enlace => {
-            enlace.addEventListener('click', async (e) => {
+            enlace.addEventListener('click', async e => {
                 e.preventDefault();
-                const nuevaPagina = parseInt(enlace.dataset.pagina);
+                const nuevaPagina = parseInt(enlace.dataset.pagina, 10);
                 if (nuevaPagina >= 1 && nuevaPagina <= totalPaginas && nuevaPagina !== paginaActual) {
                     paginaActual = nuevaPagina;
                     await obtenerDatosPreview();
@@ -245,9 +407,7 @@ const Reportes = (() => {
 
     function mostrarCargando(mostrar) {
         const spinner = document.getElementById('loading-spinner');
-        if (spinner) {
-            spinner.classList.toggle('d-none', !mostrar);
-        }
+        if (spinner) spinner.classList.toggle('d-none', !mostrar);
     }
 
     function mostrarError(mensaje) {
@@ -256,6 +416,35 @@ const Reportes = (() => {
         } else {
             alert(mensaje);
         }
+    }
+
+    function mostrarExito(mensaje) {
+        if (typeof mostrarNotificacion === 'function') {
+            mostrarNotificacion(mensaje, 'success');
+        }
+    }
+
+    async function procesarRespuestaExportacion(respuesta) {
+        const tipo = respuesta.headers.get('Content-Type') || '';
+        if (tipo.includes('application/json')) {
+            const datos = await respuesta.json();
+            if (!datos.success) throw new Error(datos.error || datos.message || 'Error al exportar');
+            return datos;
+        }
+
+        const blob = await respuesta.blob();
+        const disposicion = respuesta.headers.get('Content-Disposition') || '';
+        const match = disposicion.match(/filename="?([^";]+)"?/i);
+        const nombre = match ? match[1] : 'reporte_rem';
+        const url = window.URL.createObjectURL(blob);
+        const enlace = document.createElement('a');
+        enlace.href = url;
+        enlace.download = nombre;
+        document.body.appendChild(enlace);
+        enlace.click();
+        enlace.remove();
+        window.URL.revokeObjectURL(url);
+        return { success: true };
     }
 
     async function exportarDatos() {
@@ -276,68 +465,68 @@ const Reportes = (() => {
         mostrarCargando(true);
 
         try {
-            const token = localStorage.getItem('csrf_token');
-            const respuesta = await fetch('api/export.php', {
+            const respuesta = await fetch(`${API_BASE}api/export.php`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': token || ''
-                },
-                body: JSON.stringify({
-                    ...filtros,
-                    formato: formato,
-                    tipo_reporte: tipoReporte
-                })
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': getCsrfToken() },
+                body: JSON.stringify({ ...filtros, formato, tipo_reporte: tipoReporte })
             });
 
-            const datos = await respuesta.json();
-
-            if (respuesta.status >= 200 && respuesta.status < 300) {
-                if (datos.success) {
-                    if (datos.data.en_cola) {
-                        document.getElementById('exportColaMensaje').classList.remove('d-none');
-                        mostrarNotificacion(datos.data.mensaje, 'info', 6000);
-                    } else {
-                        mostrarNotificacion('Exportación completada exitosamente', 'success');
-                    }
-                } else {
-                    mostrarError(datos.error || 'Error al exportar');
-                }
+            const datos = await procesarRespuestaExportacion(respuesta);
+            if (datos.data?.en_cola) {
+                document.getElementById('exportColaMensaje').classList.remove('d-none');
+                mostrarExito(datos.data.mensaje || 'Reporte encolado correctamente');
             } else {
-                mostrarError(datos.error || `Error HTTP ${respuesta.status}`);
+                mostrarExito('Exportación completada exitosamente');
             }
         } catch (error) {
             console.error('Error al exportar:', error);
-            mostrarError('Error de conexión al exportar');
+            mostrarError(error.message || 'Error de conexión al exportar');
         } finally {
             mostrarCargando(false);
         }
     }
 
+    async function exportarReporteAnalitico(categoria) {
+        const reporte = datosAnaliticos[categoria];
+        if (!reporte || !reporte.resultados || reporte.resultados.length === 0) {
+            mostrarError('No hay datos para exportar en esta categoría');
+            return;
+        }
+
+        try {
+            const respuesta = await fetch(`${API_BASE}api/export.php`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': getCsrfToken() },
+                body: JSON.stringify({ ...obtenerFiltrosAnaliticos(), formato: 'excel', tipo_reporte: categoria })
+            });
+            await procesarRespuestaExportacion(respuesta);
+            mostrarExito('Reporte analítico exportado correctamente');
+        } catch (error) {
+            console.error('Error al exportar reporte analítico:', error);
+            mostrarError(error.message || 'No fue posible exportar la categoría');
+        }
+    }
+
     async function generarInforme() {
         const tipo = document.getElementById('informeTipo').value;
-        const trimestre = tipo === 'trimestral' ? parseInt(document.getElementById('informeTrimestre').value) : null;
-        const anio = parseInt(document.getElementById('informeAnio').value);
+        const trimestre = tipo === 'trimestral' ? parseInt(document.getElementById('informeTrimestre').value, 10) : null;
+        const anio = parseInt(document.getElementById('informeAnio').value, 10);
         const formato = document.getElementById('informeFormato').value;
 
         mostrarCargando(true);
 
         try {
-            let url = `api/informe_errores.php?tipo=${tipo}&anio=${anio}&formato=${formato}`;
+            let url = `${API_BASE}api/informe_errores.php?tipo=${tipo}&anio=${anio}&formato=${formato}`;
             if (trimestre) url += `&trimestre=${trimestre}`;
 
             if (formato === 'pdf') {
                 window.open(url, '_blank');
-                mostrarNotificacion('Generando PDF del informe...', 'info');
+                mostrarExito('Generando PDF del informe...');
             } else {
                 const respuesta = await fetch(url);
                 const datos = await respuesta.json();
-
-                if (datos.success) {
-                    renderizarInforme(datos.data);
-                } else {
-                    mostrarError(datos.error || 'Error al generar informe');
-                }
+                if (datos.success) renderizarInforme(datos.data);
+                else mostrarError(datos.error || 'Error al generar informe');
             }
         } catch (error) {
             console.error('Error al generar informe:', error);
@@ -350,87 +539,33 @@ const Reportes = (() => {
     function renderizarInforme(datos) {
         const contenedor = document.getElementById('informeResultado');
         contenedor.classList.remove('d-none');
-
         const periodo = datos.periodo || '';
         const total = datos.total || 0;
-
-        let html = `
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title">Informe: ${escapeHtml(periodo)}</h3>
-                    <span class="badge bg-purple">${total} errores encontrados</span>
-                </div>
-                <div class="card-body">
-                    <p class="text-muted">Emitido: ${escapeHtml(datos.emitido || '')}</p>
-        `;
+        let html = `<div class="card"><div class="card-header"><h3 class="card-title">Informe: ${escapeHtml(periodo)}</h3><span class="badge bg-purple">${total} errores encontrados</span></div><div class="card-body"><p class="text-muted">Emitido: ${escapeHtml(datos.emitido || '')}</p>`;
 
         if (datos.por_comuna && Object.keys(datos.por_comuna).length > 0) {
-            html += `<h5 class="mt-3">Resumen por Comuna</h5>
-                     <div class="table-responsive">
-                         <table class="table table-sm table-vcenter">
-                             <thead><tr><th>Comuna</th><th class="text-end">Errores</th></tr></thead>
-                             <tbody>`;
+            html += '<h5 class="mt-3">Resumen por Comuna</h5><div class="table-responsive"><table class="table table-sm table-vcenter"><thead><tr><th>Comuna</th><th class="text-end">Errores</th></tr></thead><tbody>';
             Object.entries(datos.por_comuna).forEach(([comuna, cantidad]) => {
                 html += `<tr><td>${escapeHtml(comuna)}</td><td class="text-end">${cantidad}</td></tr>`;
             });
-            html += `</tbody></table></div>`;
+            html += '</tbody></table></div>';
         }
 
         if (datos.por_establecimiento && Object.keys(datos.por_establecimiento).length > 0) {
-            html += `<h5 class="mt-3">Resumen por Establecimiento</h5>
-                     <div class="table-responsive">
-                         <table class="table table-sm table-vcenter">
-                             <thead><tr><th>Establecimiento</th><th class="text-end">Errores</th></tr></thead>
-                             <tbody>`;
-            Object.entries(datos.por_establecimiento)
-                .sort((a, b) => b[1] - a[1])
-                .slice(0, 20)
-                .forEach(([est, cantidad]) => {
-                    html += `<tr><td>${escapeHtml(est)}</td><td class="text-end">${cantidad}</td></tr>`;
-                });
-            html += `</tbody></table></div>`;
-        }
-
-        if (datos.datos && datos.datos.length > 0) {
-            html += `<h5 class="mt-3">Detalle de Errores</h5>
-                     <div class="table-responsive">
-                         <table class="table table-sm table-vcenter">
-                             <thead>
-                                 <tr>
-                                     <th>Comuna</th>
-                                     <th>Establecimiento</th>
-                                     <th>Mes</th>
-                                     <th>Serie</th>
-                                     <th>Hoja</th>
-                                     <th>Detalle</th>
-                                     <th>Estado</th>
-                                 </tr>
-                             </thead>
-                             <tbody>`;
-            datos.datos.slice(0, 50).forEach(fila => {
-                const claseEstado = obtenerClaseEstado(fila.estado_actual);
-                html += `<tr>
-                    <td>${escapeHtml(fila.comuna_nombre || '')}</td>
-                    <td>${escapeHtml(fila.nombre_corto || fila.establecimiento_nombre || '')}</td>
-                    <td>${escapeHtml(fila.mes || '')}</td>
-                    <td>${escapeHtml(fila.codigo_serie || '')}</td>
-                    <td>${escapeHtml(fila.codigo_hoja || '')}</td>
-                    <td class="text-truncate" style="max-width: 250px;" title="${escapeHtml(fila.detalle_observacion || '')}">${escapeHtml(fila.detalle_observacion || '')}</td>
-                    <td><span class="badge ${claseEstado}">${escapeHtml(fila.estado_actual || '')}</span></td>
-                </tr>`;
+            html += '<h5 class="mt-3">Resumen por Establecimiento</h5><div class="table-responsive"><table class="table table-sm table-vcenter"><thead><tr><th>Establecimiento</th><th class="text-end">Errores</th></tr></thead><tbody>';
+            Object.entries(datos.por_establecimiento).sort((a, b) => b[1] - a[1]).slice(0, 20).forEach(([est, cantidad]) => {
+                html += `<tr><td>${escapeHtml(est)}</td><td class="text-end">${cantidad}</td></tr>`;
             });
-            html += `</tbody></table></div>`;
-            if (datos.datos.length > 50) {
-                html += `<p class="text-muted small">Mostrando 50 de ${datos.datos.length} registros. Exporte a PDF para ver el informe completo.</p>`;
-            }
+            html += '</tbody></table></div>';
         }
 
-        html += `</div></div>`;
+        html += '</div></div>';
         contenedor.innerHTML = html;
     }
 
     function limpiarFiltros() {
         document.getElementById('filtroAnio').value = document.querySelector('#filtroAnio option[selected]')?.value || new Date().getFullYear();
+        document.getElementById('filtroTrimestre').value = '';
         document.getElementById('filtroMes').value = '';
         document.getElementById('filtroEstado').value = '';
         document.getElementById('filtroComuna').value = '';
@@ -440,44 +575,55 @@ const Reportes = (() => {
 
         paginaActual = 1;
         conteoActual = 0;
+        renderizarIndicadores({});
+        setEstadoAnaliticoTodos('Aplique filtros para cargar esta categoría.');
+        Object.keys(CATEGORIAS_ANALITICAS).forEach(categoria => {
+            destruirGrafico(categoria);
+            renderizarTablaAnalitica(categoria, []);
+            setBotonExportarAnalitico(categoria, true);
+            delete datosAnaliticos[categoria];
+        });
 
         document.getElementById('exportInfo').textContent = 'Aplique filtros para ver el conteo';
         document.getElementById('exportInfo').className = 'text-muted small';
         document.getElementById('btnExportar').disabled = true;
         document.getElementById('previewTotal').textContent = '0 registros';
-
-        document.getElementById('cuerpoTablaPreview').innerHTML = `
-            <tr>
-                <td colspan="12" class="text-center text-muted py-4">
-                    Aplique filtros para ver la vista previa
-                </td>
-            </tr>
-        `;
+        document.getElementById('cuerpoTablaPreview').innerHTML = '<tr><td colspan="12" class="text-center text-muted py-4">Aplique filtros para ver la vista previa</td></tr>';
         document.getElementById('paginacionPreview').style.display = 'none';
     }
 
     function inicializar() {
         document.getElementById('filtroComuna').addEventListener('change', cargarEstablecimientos);
         document.getElementById('btnAplicarFiltros').addEventListener('click', () => {
+            if (!validarMesTrimestre()) return;
             cargarVistaPrevia();
             actualizarConteo();
+            cargarReportesAnaliticos();
         });
+        document.getElementById('btnActualizarAnaliticos')?.addEventListener('click', cargarReportesAnaliticos);
         document.getElementById('btnLimpiarFiltros').addEventListener('click', limpiarFiltros);
         document.getElementById('btnExportar').addEventListener('click', exportarDatos);
         document.getElementById('btnGenerarInforme')?.addEventListener('click', generarInforme);
 
+        document.querySelectorAll('[data-categoria]').forEach(tab => {
+            tab.addEventListener('click', () => seleccionarCategoria(tab.dataset.categoria));
+        });
+
+        document.querySelectorAll('[data-exportar-analitico]').forEach(boton => {
+            boton.addEventListener('click', () => exportarReporteAnalitico(boton.dataset.exportarAnalitico));
+        });
+
         const informeTipo = document.getElementById('informeTipo');
         if (informeTipo) {
             informeTipo.addEventListener('change', function () {
-                document.getElementById('informeTrimestre').parentElement.style.display =
-                    this.value === 'trimestral' ? '' : 'none';
+                document.getElementById('informeTrimestre').parentElement.style.display = this.value === 'trimestral' ? '' : 'none';
             });
         }
+
+        cargarReportesAnaliticos();
     }
 
-    return {
-        inicializar
-    };
+    return { inicializar };
 })();
 
 document.addEventListener('DOMContentLoaded', () => {

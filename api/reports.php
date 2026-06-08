@@ -27,13 +27,82 @@ if (!isset($_SESSION['autenticado']) || $_SESSION['autenticado'] !== true) {
 
 $userId = $_SESSION['usuario_id'];
 $userRole = $_SESSION['rol'];
-$year = $_GET['year'] ?? $_SESSION['anio_trabajo'] ?? date('Y');
+$year = $_GET['anio'] ?? $_GET['year'] ?? $_SESSION['anio_trabajo'] ?? date('Y');
 $report = $_GET['report'] ?? 'all';
+
+function obtenerFiltrosAnaliticos()
+{
+    $mesesPorTrimestre = [
+        1 => ['Enero', 'Febrero', 'Marzo'],
+        2 => ['Abril', 'Mayo', 'Junio'],
+        3 => ['Julio', 'Agosto', 'Septiembre'],
+        4 => ['Octubre', 'Noviembre', 'Diciembre']
+    ];
+
+    $trimestre = isset($_GET['trimestre']) && $_GET['trimestre'] !== '' ? (int)$_GET['trimestre'] : null;
+    $mes = trim($_GET['mes'] ?? '');
+
+    if ($trimestre !== null && !isset($mesesPorTrimestre[$trimestre])) {
+        jsonResponse(false, null, 'Trimestre no válido', 400);
+    }
+
+    if ($trimestre !== null && $mes !== '' && !in_array($mes, $mesesPorTrimestre[$trimestre], true)) {
+        jsonResponse(false, null, 'El mes seleccionado no corresponde al trimestre indicado', 400);
+    }
+
+    return [
+        'anio' => (int)($_GET['anio'] ?? $_GET['year'] ?? $_SESSION['anio_trabajo'] ?? date('Y')),
+        'trimestre' => $trimestre,
+        'mes' => $mes !== '' ? $mes : null,
+        'meses' => $mes !== '' ? [$mes] : ($trimestre !== null ? $mesesPorTrimestre[$trimestre] : []),
+        'comuna_id' => !empty($_GET['comuna_id']) ? (int)$_GET['comuna_id'] : null,
+        'establecimiento_id' => !empty($_GET['establecimiento_id']) ? (int)$_GET['establecimiento_id'] : null
+    ];
+}
+
+function jsonReporteAnalitico(Observation $obsModel, $categoria, array $filtros, $userId, $userRole)
+{
+    $categoriasPermitidas = [
+        'reportes-analiticos',
+        'errores_establecimiento',
+        'plazos_entrega',
+        'uso_validador',
+        'errores_serie',
+        'errores_hoja'
+    ];
+
+    if (!in_array($categoria, $categoriasPermitidas, true)) {
+        jsonResponse(false, null, 'Categoría de reporte no válida', 400);
+    }
+
+    if (!empty($filtros['comuna_id']) && !empty($filtros['establecimiento_id']) && !$obsModel->establecimientoPerteneceAComuna($filtros['establecimiento_id'], $filtros['comuna_id'])) {
+        jsonResponse(false, null, 'El establecimiento no pertenece a la comuna seleccionada', 400);
+    }
+
+    if ($categoria === 'reportes-analiticos') {
+        jsonResponse(true, $obsModel->getReportesAnaliticos($filtros['anio'], $filtros, $userId, $userRole));
+    }
+
+    jsonResponse(true, [
+        'filtros' => $filtros,
+        'totales_globales' => $obsModel->getTotalesAnaliticos($filtros['anio'], $filtros, $userId, $userRole),
+        'reportes' => [$obsModel->getReporteAnaliticoCategoria($categoria, $filtros['anio'], $filtros, $userId, $userRole)]
+    ]);
+}
 
 try {
     $obsModel = new Observation();
 
     switch ($report) {
+        case 'reportes-analiticos':
+        case 'errores_establecimiento':
+        case 'plazos_entrega':
+        case 'uso_validador':
+        case 'errores_serie':
+        case 'errores_hoja':
+            jsonReporteAnalitico($obsModel, $report, obtenerFiltrosAnaliticos(), $userId, $userRole);
+            break;
+
         // Reportes existentes
         case 'mes':
             jsonResponse(true, $obsModel->reportePorMes($year, $userId, $userRole));

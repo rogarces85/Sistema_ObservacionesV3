@@ -49,6 +49,17 @@ $listaEstados = [
                     </div>
 
                     <div class="col-md-2">
+                        <label class="form-label">Trimestre</label>
+                        <select id="filtroTrimestre" class="form-select">
+                            <option value="">Todos</option>
+                            <option value="1">1° Trimestre</option>
+                            <option value="2">2° Trimestre</option>
+                            <option value="3">3° Trimestre</option>
+                            <option value="4">4° Trimestre</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-2">
                         <label class="form-label">Mes</label>
                         <select id="filtroMes" class="form-select">
                             <option value="">Todos</option>
@@ -108,6 +119,110 @@ $listaEstados = [
                             </button>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <?php echo tablerIcon('chart-bar'); ?>
+                    Reportes Analíticos
+                </h3>
+                <div class="ms-auto">
+                    <button id="btnActualizarAnaliticos" class="btn btn-primary btn-sm">
+                        <?php echo tablerIcon('refresh'); ?>
+                        Actualizar análisis
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row g-3 mb-4" id="indicadoresAnaliticos">
+                    <div class="col-sm-6 col-lg-3">
+                        <div class="card card-sm reportes-analytics__metric">
+                            <div class="card-body">
+                                <div class="text-muted">Observaciones analizadas</div>
+                                <div class="h2 mb-0" data-indicador="total_observaciones">0</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-lg-3">
+                        <div class="card card-sm reportes-analytics__metric">
+                            <div class="card-body">
+                                <div class="text-muted">Errores</div>
+                                <div class="h2 mb-0 text-danger" data-indicador="total_errores">0</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-lg-3">
+                        <div class="card card-sm reportes-analytics__metric">
+                            <div class="card-body">
+                                <div class="text-muted">Fuera de plazo</div>
+                                <div class="h2 mb-0 text-warning" data-indicador="total_fuera_plazo">0</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-lg-3">
+                        <div class="card card-sm reportes-analytics__metric">
+                            <div class="card-body">
+                                <div class="text-muted">Sin validador</div>
+                                <div class="h2 mb-0 text-purple" data-indicador="total_sin_validador">0</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <ul class="nav nav-tabs mb-3" id="reportesAnaliticosTabs" role="tablist">
+                    <li class="nav-item" role="presentation"><button class="nav-link active" data-categoria="errores_establecimiento" type="button">Errores por establecimiento</button></li>
+                    <li class="nav-item" role="presentation"><button class="nav-link" data-categoria="plazos_entrega" type="button">Plazos de entrega</button></li>
+                    <li class="nav-item" role="presentation"><button class="nav-link" data-categoria="uso_validador" type="button">Uso de validador</button></li>
+                    <li class="nav-item" role="presentation"><button class="nav-link" data-categoria="errores_serie" type="button">Errores por serie</button></li>
+                    <li class="nav-item" role="presentation"><button class="nav-link" data-categoria="errores_hoja" type="button">Errores por hoja</button></li>
+                </ul>
+
+                <div id="reportesAnaliticosContenido">
+                    <?php
+                    $categoriasAnaliticas = [
+                        'errores_establecimiento' => 'Errores por establecimiento',
+                        'plazos_entrega' => 'Plazos de entrega',
+                        'uso_validador' => 'Uso de validador',
+                        'errores_serie' => 'Errores por serie',
+                        'errores_hoja' => 'Errores por hoja'
+                    ];
+                    foreach ($categoriasAnaliticas as $categoria => $titulo):
+                    ?>
+                    <section class="reportes-analytics__panel <?php echo $categoria === 'errores_establecimiento' ? '' : 'd-none'; ?>" data-panel-categoria="<?php echo $categoria; ?>">
+                        <div class="d-flex flex-column flex-md-row justify-content-between gap-2 mb-3">
+                            <div>
+                                <h4 class="mb-1"><?php echo $titulo; ?></h4>
+                                <p class="text-muted mb-0">Resumen visual y tabla calculados con los filtros activos.</p>
+                            </div>
+                            <button class="btn btn-outline-success btn-sm" data-exportar-analitico="<?php echo $categoria; ?>" disabled>
+                                <?php echo tablerIcon('file-spreadsheet'); ?>
+                                Exportar categoría
+                            </button>
+                        </div>
+                        <div class="reportes-analytics__estado text-muted" data-estado-categoria="<?php echo $categoria; ?>">Aplique filtros para cargar esta categoría.</div>
+                        <div class="reportes-analytics__chart" id="grafico-<?php echo $categoria; ?>"></div>
+                        <div class="table-responsive mt-3">
+                            <table class="table table-vcenter table-sm card-table" data-tabla-categoria="<?php echo $categoria; ?>">
+                                <thead>
+                                    <tr>
+                                        <th>Dimensión</th>
+                                        <th>Comuna</th>
+                                        <th class="text-end">Total</th>
+                                        <th class="text-end">%</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td colspan="4" class="text-center text-muted py-4">Sin datos cargados</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+                    <?php endforeach; ?>
                 </div>
             </div>
         </div>
@@ -267,4 +382,5 @@ $listaEstados = [
 
 </div>
 
+<script src="assets/libs/apexcharts/dist/apexcharts.min.js"></script>
 <script src="assets/js/reportes.js"></script>
