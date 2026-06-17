@@ -102,47 +102,72 @@ class Exporter
         $pdf->SetAutoPageBreak(true, 15);
 
         // Fuente
-        $pdf->SetFont('helvetica', '', 10);
+        $pdf->SetFont('helvetica', '', 8);
 
         // Agregar página
         $pdf->AddPage();
 
         // Título
-        $pdf->SetFont('helvetica', 'B', 16);
+        $pdf->SetFont('helvetica', 'B', 14);
         $pdf->Cell(0, 10, $title, 0, 1, 'C');
 
         // Fecha
-        $pdf->SetFont('helvetica', '', 10);
+        $pdf->SetFont('helvetica', '', 8);
         $pdf->Cell(0, 5, 'Generado: ' . date('d/m/Y H:i'), 0, 1, 'C');
         $pdf->Ln(5);
 
-        // Tabla HTML
-        $html = '<table border="1" cellpadding="4" cellspacing="0" width="100%">';
+        $columnCount = max(1, count($headers));
+        $usableWidth = 277;
+        $widths = $columnCount === 4 ? [132, 70, 35, 40] : array_fill(0, $columnCount, $usableWidth / $columnCount);
+        $this->writeFixedPdfHeader($pdf, $headers, $widths);
 
-        // Headers
-        $html .= '<tr style="background-color: #4B5563; color: #FFFFFF; font-weight: bold;">';
-        foreach ($headers as $header) {
-            $html .= '<th>' . htmlspecialchars($header) . '</th>';
-        }
-        $html .= '</tr>';
-
-        // Datos
-        foreach ($data as $record) {
-            $html .= '<tr>';
-            foreach ($record as $value) {
-                $html .= '<td>' . htmlspecialchars($value) . '</td>';
+        foreach ($data as $index => $record) {
+            if ($pdf->GetY() > 190) {
+                $pdf->AddPage();
+                $this->writeFixedPdfHeader($pdf, $headers, $widths);
             }
-            $html .= '</tr>';
+            $this->writeFixedPdfRow($pdf, array_values($record), $widths, $index % 2 === 0 ? [250, 250, 250] : [255, 255, 255]);
         }
-
-        $html .= '</table>';
-
-        // Escribir HTML
-        $pdf->writeHTML($html, true, false, true, false, '');
 
         // Salida
         $pdf->Output($filename, 'D');
         exit;
+    }
+
+    private function writeFixedPdfHeader($pdf, array $headers, array $widths)
+    {
+        $pdf->SetFont('helvetica', 'B', 7);
+        $pdf->SetFillColor(0, 82, 136);
+        $pdf->SetTextColor(255, 255, 255);
+        foreach ($headers as $index => $header) {
+            $pdf->Cell($widths[$index], 7, $this->truncatePdfText($header, $widths[$index]), 1, 0, 'C', true);
+        }
+        $pdf->Ln();
+        $pdf->SetTextColor(30, 41, 59);
+        $pdf->SetFont('helvetica', '', 7);
+    }
+
+    private function writeFixedPdfRow($pdf, array $record, array $widths, array $fill)
+    {
+        $pdf->SetFillColor($fill[0], $fill[1], $fill[2]);
+        foreach ($widths as $index => $width) {
+            $value = $record[$index] ?? '';
+            $align = $index >= count($widths) - 2 ? 'R' : 'L';
+            $pdf->Cell($width, 7, $this->truncatePdfText($value, $width), 1, 0, $align, true);
+        }
+        $pdf->Ln();
+    }
+
+    private function truncatePdfText($text, $width)
+    {
+        $text = trim(preg_replace('/\s+/', ' ', (string)$text));
+        $max = max(8, (int)floor($width * 0.95));
+        $length = function_exists('mb_strlen') ? mb_strlen($text, 'UTF-8') : strlen($text);
+        if ($length <= $max) {
+            return $text;
+        }
+        $truncated = function_exists('mb_substr') ? mb_substr($text, 0, max(1, $max - 1), 'UTF-8') : substr($text, 0, max(1, $max - 1));
+        return $truncated . '…';
     }
 
     /**

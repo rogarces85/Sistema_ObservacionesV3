@@ -1,10 +1,16 @@
 <!--
-  Sync Impact Report
-  - Version change: (nueva) → 1.0.0
-  - Principios: todos nuevos (5 principios definidos desde README existente)
-  - Secciones agregadas: Stack Tecnológico, Convenciones de Código
-  - Templates actualizados: ✅ constitution-template (completado)
-  - No se modifican otros templates (mantienen compatibilidad)
+  Sync Impact Report (v1.1.0)
+  - Version change: 1.0.0 → 1.1.0 (minor; sin breaking changes)
+  - Principios: sin cambios en los existentes (I–V); se agregan VI y VII.
+  - Principios nuevos:
+      VI. Trazabilidad documental
+      VII. Sistema desde 0 (para nuevos SpecKits)
+  - Secciones actualizadas:
+      Stack Tecnológico — agregado @tabler/core (npm) y versiones Composer.
+      Gobernanza — agregado ciclo SpecKit (discover → constitution → specify
+        → plan → tasks → implement → archive) y referencia al README.md.
+  - Templates actualizados: ninguno (compatibles).
+  - Fuente de verdad: README.md (v2.3.0, generado por /speckit.discover).
 -->
 # Sistema de Observaciones REM — Constitución
 
@@ -73,6 +79,34 @@ El frontend usa exclusivamente Tabler Core 1.4 (Bootstrap 5) y Tabler Icons:
 - **Migraciones SQL**: Cada cambio de esquema DB debe tener su propio archivo
   SQL en `config/`, numerado y fechado.
 
+### VI. Trazabilidad documental
+- **Manuales con mockups**: Cada módulo del sistema debe contar con su manual
+  de usuario en `docs/manuales/{modulo}.md`, con mockups en ASCII-art o SVG
+  (referenciados relativos al `.md`).
+- **Cambios SpecKit documentados**: Cada cambio se registra en
+  `openspec/changes/{nombre}/` con `proposal.md`, `tasks.md` y, al archivarse,
+  delta aplicado en `openspec/specs/`.
+- **README como fuente de verdad**: El `README.md` raíz (generado vía
+  `/speckit.discover`) es la descripción viva del sistema. Toda sección nueva
+  debe enlazar a la spec o manual correspondiente.
+- **Specs en `specs/`**: Cada módulo del sistema tiene su spec funcional en
+  `specs/{modulo}.md` o `specs/mod-{modulo}.md`, indexada por
+  `specs/INDICE.md`.
+
+### VII. Sistema desde 0 (para nuevos SpecKits)
+- Por convención del proyecto (`AGENTS.md`), cada nuevo SpecKit trata el
+  código existente como **referencia documental**, no como restricción de
+  implementación. Esto habilita refactors disruptivos, renames, y
+  consolidaciones sin ataduras al pasado.
+- **Excepción — BD intocable**: El esquema y los datos existentes son
+  inmutables salvo migración explícita aprobada y versionada en `config/`.
+  Ningún SpecKit puede añadir/modificar columnas o tablas sin una migración
+  `migration_YYYY_MM_DD_*.sql` aprobada.
+- **Excepción — manuales vivos**: Los manuales en `docs/manuales/` deben
+  mantenerse sincronizados con cualquier cambio que afecte la UX del módulo.
+  Si un SpecKit cambia un flujo visible al usuario, el manual correspondiente
+  se actualiza en el mismo cambio.
+
 ## Stack Tecnológico
 
 | Categoría | Tecnologías |
@@ -84,6 +118,14 @@ El frontend usa exclusivamente Tabler Core 1.4 (Bootstrap 5) y Tabler Icons:
 | **Gráficos** | ApexCharts 3.45 |
 | **Librerías PHP** | PhpSpreadsheet 5.4 (Excel), TCPDF 6.10 (PDF) |
 | **Servidor** | Apache (XAMPP) |
+
+**Dependencias declaradas (no inferir, leer de los lockfiles):**
+- `composer.json` → `phpoffice/phpspreadsheet ^5.4`, `tecnickcom/tcpdf ^6.10`.
+  Versiones exactas en `composer.lock`.
+- `package.json` → `@tabler/core ^1.4.0`. Versiones exactas en
+  `package-lock.json`. Las demás librerías JS viven en `assets/libs/`
+  (vendor preempaquetado) y se consideran inmutables salvo migración
+  explícita.
 
 - PHP 7.4+ es el mínimo soportado. No migrar a versiones modernas sin
   aprobación explícita.
@@ -130,4 +172,20 @@ El frontend usa exclusivamente Tabler Core 1.4 (Bootstrap 5) y Tabler Icons:
 - La complejidad debe justificarse: si una solución requiere más archivos o
   capas de lo esperable, documentar por qué.
 
-**Versión**: 1.0.0 | **Ratificado**: 2026-06-01 | **Última enmienda**: 2026-06-01
+### Ciclo SpecKit canónico
+Los cambios al sistema siguen el flujo:
+
+```
+/speckit.discover    →  README.md (fuente de verdad)
+/speckit.constitution → .specify/memory/constitution.md (este archivo)
+/speckit.specify     →  specs/{NNN}-{nombre}/spec.md
+/speckit.plan        →  specs/{NNN}-{nombre}/plan.md + data-model.md + contracts/
+/speckit.tasks       →  specs/{NNN}-{nombre}/tasks.md
+/speckit.implement   →  código + tests + migración a docs/manuales/
+/speckit.archive     →  mover change a openspec/changes/archive/ + delta a openspec/specs/
+```
+
+Antes de ejecutar `/speckit.specify` debe existir un `/speckit.discover`
+vigente (no más de 90 días) y esta constitución ratificada.
+
+**Versión**: 1.1.0 | **Ratificado**: 2026-06-01 | **Última enmienda**: 2026-06-17

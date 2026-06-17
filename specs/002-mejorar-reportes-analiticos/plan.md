@@ -1,6 +1,6 @@
 # Implementation Plan: Mejorar Reportes Analiticos
 
-**Branch**: `[001-unificar-specs]` | **Date**: 2026-06-08 | **Spec**: [spec.md](spec.md)
+**Branch**: `[002-mejorar-reportes-analiticos]` | **Date**: 2026-06-08 | **Last re-validated**: 2026-06-17 | **Spec**: [spec.md](spec.md)
 
 **Input**: Feature specification from `/specs/002-mejorar-reportes-analiticos/spec.md`
 
@@ -32,13 +32,17 @@ Mejorar la seccion de reportes para convertirla en una vista analitica con cinco
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-**Gates derivados de la Constitución del proyecto:**
+**Gates derivados de la Constitución v1.1.0 (2026-06-17) del proyecto:**
 
-1. **Seguridad**: PASS. La feature requiere endpoints de lectura/exportacion que deben verificar sesion y rol en backend; POST debe validar CSRF.
-2. **Arquitectura**: PASS. La vista renderiza estructura, la API valida/coordina y los modelos concentran consultas PDO.
-3. **Idioma**: PASS. UI, mensajes, contratos y documentacion se redactan en español.
-4. **Stack**: PASS. Se usan Tabler, Tabler Icons, ApexCharts y librerias PHP ya permitidas; no se agregan dependencias.
-5. **Base de Datos**: PASS. No hay cambios de esquema; se reutilizan tablas existentes.
+1. **I. Seguridad**: PASS. La feature requiere endpoints de lectura/exportacion que deben verificar sesion y rol en backend; POST debe validar CSRF.
+2. **II. Arquitectura**: PASS. La vista renderiza estructura, la API valida/coordina y los modelos concentran consultas PDO.
+3. **III. Idioma**: PASS. UI, mensajes, contratos y documentacion se redactan en español.
+4. **IV. Stack (Tabler + ApexCharts)**: PASS. Se usan Tabler, Tabler Icons, ApexCharts y librerias PHP ya permitidas; no se agregan dependencias. CSS personalizado solo en `assets/css/tabler-override.css`.
+5. **V. Mantenibilidad y convenciones**: PASS. Commits con prefijo conventional; modularidad JS en `assets/js/reportes.js`; migraciones no requeridas.
+6. **VI. Trazabilidad documental**: PASS. Manual del modulo afectado en `docs/manuales/reportes-exportacion.md`; spec en `specs/002-mejorar-reportes-analiticos/spec.md`; cambio bajo `openspec/changes/` (futuro archivado).
+7. **VII. Sistema desde 0 (BD intocable)**: PASS. Assumption explicita: sin cambios de esquema; verificado en T053.
+8. **Stack Tecnologico**: PASS. Sin nuevas dependencias; versiones declaradas en `composer.json` y `package.json`.
+9. **Gobernanza (ciclo SpecKit)**: PASS. Producido en el orden correcto: `discover` (README v2.3.0) → `constitution` (v1.1.0) → `specify` → `plan` (este documento).
 
 ## Project Structure
 
@@ -95,8 +99,12 @@ Ver [data-model.md](data-model.md), [contracts/reportes-analiticos.openapi.yaml]
 
 ## Constitution Check Post-Design
 
-1. **Seguridad**: PASS. Los contratos exigen autenticacion, control de rol y CSRF para exportacion por POST.
-2. **Arquitectura**: PASS. Los contratos separan vista, API y modelo; no se propone logica de negocio en la vista.
-3. **Idioma**: PASS. Los textos visibles y documentacion estan en español.
-4. **Stack**: PASS. No hay nuevas librerias; los graficos usan ApexCharts ya permitido.
-5. **Base de Datos**: PASS. El modelo de datos es logico y no requiere migraciones.
+1. **I. Seguridad**: PASS. Los contratos exigen autenticacion, control de rol y CSRF para exportacion por POST.
+2. **II. Arquitectura**: PASS. Los contratos separan vista, API y modelo; no se propone logica de negocio en la vista.
+3. **III. Idioma**: PASS. Los textos visibles y documentacion estan en español.
+4. **IV. Stack (Tabler + ApexCharts)**: PASS. Sin nuevas librerias; los graficos usan ApexCharts ya permitido; CSS override en `tabler-override.css`.
+5. **V. Mantenibilidad**: PASS. Sin duplicacion de codigo; la consulta reutilizable de T009 evita divergencia entre reportes.
+6. **VI. Trazabilidad documental**: PASS. T047 actualiza el manual con mockups de las cinco categorias.
+7. **VII. Sistema desde 0 (BD intocable)**: PASS. T053 verifica que no se crearon archivos en `config/` que alteren esquema.
+8. **Stack Tecnologico**: PASS. Endpoints documentados en `contracts/reportes-analiticos.openapi.yaml`; UI en `contracts/ui-reportes-analiticos.md`.
+9. **Gobernanza (ciclo SpecKit)**: PASS. Artefactos completos: `spec.md`, `plan.md`, `research.md`, `data-model.md`, `contracts/`, `quickstart.md`, `tasks.md`.

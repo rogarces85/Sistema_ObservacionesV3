@@ -1,585 +1,863 @@
 # Sistema de Observaciones REM
 
-Sistema de gestión de observaciones del Resumen Estadístico Mensual (REM) para el **Servicio de Salud Osorno (SSO)** — Departamento de Estadística (DEGI).
+> **Fuente de la verdad (Spec Kit — Paso 0 / `/speckit.discover`)**
+> Este documento es el resultado de ingeniería inversa del sistema en producción y constituye la base para todos los comandos posteriores de Spec Kit (`/speckit.constitution`, `/speckit.specify`, `/speckit.plan`, etc.).
 
-**Versión:** 2.3.0 — **Última actualización:** Junio 2026
+**Versión del sistema:** 2.3.0 — **Última actualización:** Junio 2026
+**Organización:** Servicio de Salud Osorno (SSO) — Departamento de Estadística (DEGI)
+**Dominio:** Salud pública chilena — Resumen Estadístico Mensual (REM)
 
 ---
 
 ## Tabla de Contenidos
 
-1. [Tecnologías](#tecnologías)
-2. [Estructura del Proyecto](#estructura-del-proyecto)
-3. [Base de Datos](#base-de-datos)
-4. [APIs del Sistema](#apis-del-sistema)
-5. [Modelos (Lógica de Negocio)](#modelos-lógica-de-negocio)
-6. [Vistas](#vistas)
-7. [Funcionalidades por Módulo](#funcionalidades-por-módulo)
-8. [Series REM Soportadas](#series-rem-soportadas)
-9. [Tipos de Error](#tipos-de-error)
-10. [Roles y Permisos](#roles-y-permisos)
-11. [Seguridad](#seguridad)
-12. [Instalación](#instalación)
-13. [Migraciones](#migraciones)
-14. [Usuarios del Sistema](#usuarios-del-sistema)
-15. [Manejo de Versiones](#manejo-de-versiones)
-16. [Historial de Versiones](#historial-de-versiones)
+1. [Descripción General](#1-descripción-general)
+2. [Arquitectura y Stack Tecnológico](#2-arquitectura-y-stack-tecnológico)
+3. [Dominio del Negocio REM](#3-dominio-del-negocio-rem)
+4. [Roles y Matriz de Permisos](#4-roles-y-matriz-de-permisos)
+5. [Estructura del Proyecto](#5-estructura-del-proyecto)
+6. [Modelos de Datos (Esquema BD)](#6-modelos-de-datos-esquema-bd)
+7. [APIs y Endpoints](#7-apis-y-endpoints)
+8. [Flujos Principales](#8-flujos-principales)
+9. [Lógica de Negocio (Modelos PHP)](#9-lógica-de-negocio-modelos-php)
+10. [Configuración del Entorno](#10-configuración-del-entorno)
+11. [Instalación y Despliegue](#11-instalación-y-despliegue)
+12. [Seguridad y Auditoría](#12-seguridad-y-auditoría)
+13. [Manuales de Usuario](#13-manuales-de-usuario)
+14. [Convenciones y Patrones de Código](#14-convenciones-y-patrones-de-código)
+15. [Roadmap y Mejoras Pendientes](#15-roadmap-y-mejoras-pendientes)
+16. [Historial de Versiones](#16-historial-de-versiones)
+17. [Solución de Problemas](#17-solución-de-problemas)
+18. [Recursos Adicionales](#18-recursos-adicionales)
 
 ---
 
-## Tecnologías
+## 1. Descripción General
 
-| Categoría | Tecnologías |
-|-----------|-------------|
-| **Backend** | PHP 7.4+, PDO MySQL (Singleton) |
-| **Base de Datos** | MySQL 5.7+ (InnoDB, utf8mb4) |
-| **Frontend** | HTML5, CSS3, JavaScript ES6+ |
-| **UI Framework** | Tabler Core 1.4 (Bootstrap 5), Tabler Icons |
-| **Gráficos** | ApexCharts 3.45 |
-| **Librerías PHP** | PhpSpreadsheet 5.4 (Excel), TCPDF 6.10 (PDF) |
-| **Servidor** | Apache (XAMPP) |
+El **Sistema de Observaciones REM** es una aplicación web institucional del Servicio de Salud Osorno (SSO) que gestiona, supervisa y reporta las **observaciones** detectadas en los reportes **REM (Resumen Estadístico Mensual)** enviados por los establecimientos de salud de la red asistencial. Cada observación documenta una incidencia — error, fuera de plazo, falta de uso del validador o confirmación de sin observación — y sigue un ciclo de vida supervisado por el Departamento de Estadística (DEGI).
+
+El sistema resuelve tres problemas operativos del SSO:
+
+1. **Trazabilidad de la calidad del dato REM** a nivel de cada establecimiento, comuna, serie y hoja REM.
+2. **Ciclo de supervisión** entre registradores (que reportan) y supervisores (que aprueban, cancelan o mueven a papelera).
+3. **Reportería institucional** con tableros, gráficos, informes trimestrales/anuales en PDF y exportación masiva en Excel/CSV.
+
+### Tabla resumen de módulos
+
+| Módulo | Propósito | Rol primario |
+|--------|-----------|---------------|
+| Autenticación | Login, logout, cambio de año de trabajo, sesión PHP + CSRF | Ambos |
+| Observaciones | CRUD, importación Excel, historial, filtros | Registrador (escribe) / Supervisor (lee todo) |
+| Supervisión | Aprobar/cancelar, mover a papelera, aprobar con selector S/OBSERVACION/ERROR | Supervisor |
+| Reportes | 5 tabs analíticas (Errores Establecimiento, Plazos, Validador, Serie, Hoja) | Ambos |
+| Informe de Errores REM | Generación trimestral/anual en PDF institucional | Supervisor |
+| Usuarios | CRUD, roles, contraseñas, auditoría | Supervisor |
+| Asignaciones | Vinculación anual + reasignación temporal por meses | Supervisor |
+| Establecimientos y Referentes | Catálogo + contactos por establecimiento | Supervisor |
+| Importación | Carga masiva desde Excel con preview | Registrador |
+| Exportación | Excel / PDF / CSV (general + detallado + sub-reportes) | Ambos |
+| Papelera | Soft-delete con restauración y eliminación permanente | Supervisor |
+| Versionado | Snapshots del código fuente y rollback | Supervisor |
+| Cola de Reportes | Procesamiento asíncrono vía `worker_reportes.php` | Ambos |
+
+> **Alcance (no-objetivos):** El sistema no reemplaza al REM propiamente tal (origen de los datos), no se integra con DEIS ministerial directamente, y no incluye firma electrónica avanzada. Su alcance es la **gestión interna de observaciones** dentro del SSO.
 
 ---
 
-## Estructura del Proyecto
+## 2. Arquitectura y Stack Tecnológico
+
+### Patrón general
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│                         index.php (Router)                       │
+│  • Verifica sesión                                               │
+│  • Aplica whitelist de páginas                                   │
+│  • Aplica guard de permisos por rol                              │
+└──────────────────────────────────────────────────────────────────┘
+                │
+        ┌───────┴───────┐
+        ▼               ▼
+   includes/         views/                  api/ (REST JSON)
+   ─────────         ──────                  ───────────────
+   header.php        dashboard.php           auth.php
+   footer.php        observaciones.php       observations.php
+   sidebar.php       supervision.php         supervision.php
+   csrf.php          reportes.php            reports.php
+   icons.php         usuarios.php            export.php
+                     ...                     informe_errores.php
+                                             ...
+                │
+                ▼
+           models/  ─────────►  config/database.php  ─────────►  MySQL
+           ────────             ───────────────────              ─────
+           Database.php         Conexión PDO Singleton
+           User.php             (utf8mb4, emulate_prepares=false)
+           Observation.php
+           ... 17 modelos
+```
+
+### Stack
+
+| Capa | Tecnología | Versión | Notas |
+|------|-----------|---------|-------|
+| Backend | PHP | 7.4+ | Vanilla, sin framework |
+| Persistencia | MySQL / MariaDB | 5.7+ | InnoDB, utf8mb4_unicode_ci |
+| Acceso a datos | PDO | — | Singleton en `models/Database.php` |
+| Frontend | HTML5 + CSS3 + JS ES6+ | — | Vanilla, sin framework SPA |
+| UI Kit | Tabler Core | 1.4.x | Bootstrap 5 + Tabler Icons |
+| Gráficos | ApexCharts | 3.45 | `assets/js/charts-apex.js` |
+| Tablas dinámicas | Tom-Select | última en `assets/libs/` | Selects enriquecidos |
+| Calendarios | FullCalendar, Litepicker | — | Selector de fechas |
+| Firma | Signature Pad | — | Captura de rúbrica en informe |
+| Excel | PhpSpreadsheet | 5.4 | Importación + exportación |
+| PDF | TCPDF | 6.10 | Informe de Errores + detallado |
+| Servidor | Apache | — | Vía XAMPP |
+| Gestor de dependencias PHP | Composer | — | `composer.json` |
+| Gestor de dependencias JS | npm | — | `package.json` (solo `@tabler/core`) |
+
+### Patrones arquitectónicos identificados
+
+- **MVC sin framework:** `index.php` enruta → carga `views/*.php` (vistas) → estas consumen `models/*.php` (lógica de datos) → AJAX llama a `api/*.php` (endpoints JSON).
+- **Singleton PDO:** `Database::getInstance()` única conexión por request.
+- **Front Controller parcial:** `index.php` centraliza login y permisos; cada endpoint en `api/` es autocontenido (no hay dispatcher de rutas REST).
+- **Token Bucket CSRF:** `random_bytes(32)` → hex → meta tag + header `X-CSRF-TOKEN` → validación servidor.
+- **Soft Delete híbrido:** API `DELETE` por defecto = hard delete; `supervision/delete` = soft delete (mueve a `observaciones_eliminadas`).
+- **Cola asíncrona:** `ReportQueue` + `worker_reportes.php` ejecutado por cron.
+
+---
+
+## 3. Dominio del Negocio REM
+
+### Glosario mínimo
+
+- **REM (Resumen Estadístico Mensual):** reporte mensual obligatorio que cada establecimiento de salud envía al DEGI/DEIS con estadísticas de producción asistencial.
+- **Serie REM:** clasificación temática del reporte. Sistema soporta **6 series**: A, BS, BM, P, ANEXO, D.
+- **Hoja REM:** sub-formulario dentro de una serie (ej. A01, A23, BM18a, Hoja Control, Renombre archivo).
+- **Observación:** nota de calidad sobre una hoja REM en un establecimiento/mes específico. Tiene ciclo de vida y estado.
+
+### Estados de una observación
+
+| Estado (`estado_actual`) | Significado | Color UI |
+|----|----|----|
+| `pendiente` | Registrada, esperando revisión | Amarillo |
+| `aprobado` | Supervisor aprobó (S/OBSERVACION) | Verde |
+| `rechazado` | Supervisor canceló | Rojo |
+| `error` | Supervisor aprobó como error | Rojo oscuro |
+| `justificado` | Con respuesta válida del establecimiento | Azul |
+
+### Tipos de error (`tipo_error`)
+
+| Valor | Significado |
+|-------|-------------|
+| `S/OBSERVACION` | Sin observación (estado `aprobado`) |
+| `ERROR` | Error detectado (estado `error`) |
+| `REVISAR` | Requiere revisión |
+| `F/PLAZO` | Fuera de plazo |
+
+### Clasificaciones (al aprobar como error)
+
+- Corregido
+- Error
+- Sin respuesta del Establecimiento
+- Respuesta incorrecta de Establecimiento
+
+### Plazo de entrega y uso de validador
+
+- **Plazo:** `dentro_plazo` / `fuera_plazo` (binario).
+- **Validador:** `si` / `no` (¿el establecimiento usó el software validador REM?).
+
+### Series y Hojas REM soportadas (extracto)
+
+- **SERIE A** (28 hojas): A01–A09, A11, A11a, A19a, A19b, A21, A23–A34, A30AR, Hoja Nombre, Hoja Control, Renombre archivo.
+- **SERIE BS** (3): B, B17, Hoja Nombre, Hoja Control, Renombre archivo.
+- **SERIE BM** (2): BM18, BM18a, Hoja Nombre, Hoja Control, Renombre archivo.
+- **SERIE P** (8): P01–P07, P09, Hoja Nombre, Hoja Control, Renombre archivo.
+- **SERIE ANEXO** (10): Parto_RN, S_Infancia, I.T.S, Rechazos, Farmacia, S_Mental, S_Adolescencia, Laboratorio, Intercultural, S_Familiar, Hoja Nombre, Hoja Control, Renombre archivo.
+- **SERIE D** (2): D15, D16, Hoja Nombre, Hoja Control, Renombre archivo.
+
+> Detalle completo en `config/constants.php` (variable `$HOJAS_POR_SERIE`).
+
+---
+
+## 4. Roles y Matriz de Permisos
+
+### Roles
+
+- **Supervisor** (Cecilia) — Acceso total. Gestiona usuarios, asignaciones, supervisa observaciones, ve y restaura papelera, accede a versionado e informes.
+- **Registrador** (Rodrigo, Victoria, Roxana, Marcelo) — Crea/edita solo sus observaciones, importa Excel, ve reportes propios, cambia su contraseña.
+
+### Matriz consolidada
+
+| Capacidad | Registrador | Supervisor |
+|-----------|:-----------:|:----------:|
+| Autenticación y cambio de año | ✅ | ✅ |
+| Crear observación | ✅ (solo establecimientos asignados para el mes) | ❌ |
+| Ver observaciones | ✅ (solo propias) | ✅ (todas) |
+| Editar observación | ✅ (solo propias en `pendiente`) | ✅ (todas) |
+| Aprobar / Cancelar (selector S/OBSERVACION / ERROR) | ❌ | ✅ |
+| Mover a papelera (soft-delete) | ❌ | ✅ |
+| Restaurar / Eliminar permanente | ❌ | ✅ |
+| Importar Excel | ✅ | ❌ |
+| Exportar reportes | ✅ (alcance propio) | ✅ (alcance total) |
+| Generar Informe de Errores PDF | ❌ | ✅ |
+| Gestionar usuarios | ❌ | ✅ |
+| Gestionar asignaciones (anual + temporal) | ❌ | ✅ |
+| Gestionar establecimientos y referentes | ❌ | ✅ |
+| Acceder a versionado (snapshots / rollback) | ❌ | ✅ |
+| Cambiar su propia contraseña | ✅ | ✅ |
+
+> **Regla de oro:** toda restricción se valida en el **backend** (no confiar en el frontend). Ejemplo: `api/observations.php` rechaza con 403 si un registrador intenta crear para un establecimiento no asignado en el mes.
+
+---
+
+## 5. Estructura del Proyecto
 
 ```
 ObservacionesREM_V2/
-├── api/                              # Endpoints REST (13 archivos)
-│   ├── auth.php                      # Autenticación (login, logout, check, change_year)
-│   ├── observations.php              # CRUD observaciones (GET, POST, PUT, DELETE)
-│   ├── supervision.php               # Operaciones supervisoras (approve, cancel, delete, update_status, get_filtered, get_detail)
-│   ├── reports.php                   # Datos agregados para reportes (20+ dimensiones)
-│   ├── export.php                    # Exportación Excel/PDF/CSV + reportes específicos
-│   ├── informe_errores.php           # Informe trimestral/anual de errores (JSON + PDF)
-│   ├── locations.php                 # CRUD comunas y establecimientos (GET, POST)
-│   ├── import.php                    # Importación masiva Excel con preview/confirm
-│   ├── import_template.php           # Generación plantilla Excel con instrucciones
-│   ├── users.php                     # CRUD usuarios + cambio/reset contraseña
-│   ├── assignments.php               # Asignación anual/temporal de establecimientos
-│   ├── deleted.php                   # Papelera (list, restore, permanent_delete)
-│   └── versioning.php                # Snapshots y rollback del sistema
+├── index.php                        # Router principal (auth + whitelist + guard de rol)
+├── composer.json                    # phpoffice/phpspreadsheet ^5.4, tecnickcom/tcpdf ^6.10
+├── composer.lock
+├── package.json                     # @tabler/core ^1.4.0
+├── package-lock.json
+├── worker_reportes.php              # Worker CLI de la cola de reportes (cron)
+├── MANUAL_REGISTRO_OBSERVACIONES.html   # Manual HTML extenso (legacy)
+├── MÓDULOS PRINCIPALES DEL SISTEMA.txt # Resumen en texto plano
+│
+├── api/                             # Endpoints REST JSON (un archivo por recurso)
+│   ├── auth.php                     # login, logout, check, change_year
+│   ├── observations.php             # CRUD observaciones
+│   ├── supervision.php              # approve, cancel, delete, update_status, get_filtered, get_detail
+│   ├── reports.php                  # ~20 reportes (mes, establecimiento, comuna, serie, hoja, plazos, validador, errores, agregados)
+│   ├── export.php                   # Excel/PDF/CSV + reportes específicos
+│   ├── informe_errores.php          # Informe trimestral/anual (JSON + PDF)
+│   ├── locations.php                # Comunas y establecimientos
+│   ├── import.php                   # Importación Excel con preview/confirm
+│   ├── import_template.php          # Generación de plantilla
+│   ├── users.php                    # CRUD usuarios + password management
+│   ├── assignments.php              # Asignación anual/temporal de establecimientos
+│   ├── deleted.php                  # Papelera (list, restore, permanent_delete)
+│   ├── versioning.php               # Snapshots y rollback
+│   ├── update_estado.php            # Cambio genérico de estado
+│   └── versiones.php                # (legacy) Snapshots
+│
+├── views/                           # Vistas server-rendered (PHP + HTML)
+│   ├── auth/login.php               # Formulario de inicio de sesión
+│   ├── dashboard.php                # Stats + gráficos + últimas observaciones + alertas
+│   ├── observaciones.php            # CRUD + importación
+│   ├── supervision.php              # Panel supervisor con acciones masivas
+│   ├── reportes.php                 # 5 tabs analíticas
+│   ├── usuarios.php                 # CRUD usuarios
+│   ├── perfil.php                   # Perfil y cambio de contraseña
+│   ├── asignaciones.php             # Asignar establecimientos (anual/temporal)
+│   ├── papelera.php                 # (servida como `?pagina=eliminadas`)
+│   ├── establecimientos.php         # Gestión establecimientos y referentes
+│   ├── importacion.php              # Vista de importación
+│   └── versionado.php               # Snapshots y rollback
+│
+├── models/                          # Capa de datos (17 modelos)
+│   ├── Database.php                 # Singleton PDO
+│   ├── User.php / Usuario.php
+│   ├── Observation.php / Observacion.php
+│   ├── Location.php / Comuna.php / Establecimiento.php
+│   ├── Asignacion.php / EstablecimientoAsignacion.php
+│   ├── Referente.php
+│   ├── HistorialEstado.php / HistorialUsuario.php
+│   ├── PapeleraEliminada.php / DeletedObservation.php
+│   ├── Exporter.php
+│   ├── ReportQueue.php
+│   └── VersionSistema.php / Version.php
+│
+├── includes/                        # Componentes reutilizables
+│   ├── header.php                   # Meta CSRF + nav + selector de año
+│   ├── footer.php                   # Scripts Tabler, ApexCharts, toasts, app
+│   ├── sidebar.php                  # Menú lateral agrupado por rol
+│   ├── csrf.php                     # Clase CSRF (gen, val, regen)
+│   └── icons.php                    # Helper tablerIcon() con SVG inline
+│
+├── config/
+│   ├── config.php                   # Conexión BD, entornos prod/dev, sesión, timezone
+│   ├── constants.php                # Estados, roles, series, hojas, meses, colores
+│   ├── database.php
+│   ├── init_db.sql                  # Creación de BD + datos semilla
+│   ├── create_asignaciones_table.sql
+│   ├── sprint3_migration.sql        # Tabla observaciones_eliminadas
+│   ├── update_establecimientos.sql  # 93 registros oficiales DEIS
+│   ├── migration_2026_02_06.sql     # Documentación cambio semántico (SERIE/TIPO/REM)
+│   ├── migration_2026_05_08_limpieza_comunas.sql
+│   ├── migration_2026_05_08_reportes.sql    # 6 índices compuestos
+│   └── migrations/
+│       └── add_tipo_asignacion.sql  # Columna tipo_asignacion (anual/temporal)
 │
 ├── assets/
 │   ├── css/
-│   │   └── tabler-override.css       # Override de Tabler (paleta SSO, BEM, responsive)
-│   └── js/
-│       ├── app.js                    # Lógica principal (fetchAPI, modals, CSRF, logout)
-│       ├── charts-apex.js            # Gráficos ApexCharts (dashboard + reportes)
-│       ├── toasts.js                 # Sistema de notificaciones toast (Bootstrap)
-│       └── notifications.js          # Sistema legacy de notificaciones (reemplazado por toasts.js)
+│   │   └── tabler-override.css      # Paleta SSO, BEM, responsive
+│   ├── js/
+│   │   ├── app.js                   # fetchAPI, modals, CSRF, logout
+│   │   ├── charts-apex.js           # Inicialización ApexCharts
+│   │   ├── toasts.js                # Notificaciones (sistema nuevo)
+│   │   ├── notifications.js         # (legacy, reemplazado)
+│   │   ├── dashboard.js
+│   │   ├── asignaciones.js
+│   │   ├── establecimientos.js
+│   │   ├── importacion.js
+│   │   ├── papelera.js
+│   │   ├── reportes.js
+│   │   ├── supervision.js
+│   │   ├── usuarios.js
+│   │   └── versionado.js
+│   └── libs/                        # Librerías JS third-party (vendor)
+│       ├── @tabler/core/            # UI kit
+│       ├── @hotwired/turbo/
+│       ├── apexcharts/              # Gráficos
+│       ├── tom-select/              # Selects enriquecidos
+│       ├── fullcalendar/
+│       ├── signature_pad/
+│       ├── litepicker/
+│       ├── dropzone/
+│       ├── list.js/
+│       ├── fslightbox/
+│       ├── nouislider/
+│       ├── imask/
+│       ├── plyr/
+│       ├── star-rating.js/
+│       ├── hugerte/                 # Editor rich-text
+│       ├── countup.js/
+│       ├── @melloware/coloris/      # Color picker
+│       └── typed.js/
 │
-├── config/                           # Configuración y SQL
-│   ├── config.php                    # Conexión BD, rutas, sesión, zona horaria (America/Santiago)
-│   ├── constants.php                 # Constantes: estados, roles, series, hojas, meses, colores
-│   ├── init_db.sql                   # Script inicial: tablas + datos semilla (5 usuarios, 7 comunas, 23+ establecimientos)
-│   ├── migration_2026_02_06.sql      # Documentación de cambio semántico (SERIE/TIPO/REM)
-│   ├── migration_2026_05_08_reportes.sql  # 6 índices compuestos para optimización
-│   ├── migration_2026_05_08_limpieza_comunas.sql  # Unificación comunas duplicadas
-│   ├── sprint3_migration.sql         # Creación tabla observaciones_eliminadas + índices
-│   ├── create_asignaciones_table.sql # Creación tabla asignaciones_establecimientos
-│   ├── update_establecimientos.sql   # Reemplazo completo del listado de establecimientos (93 registros)
-│   └── migrations/
-│       └── add_tipo_asignacion.sql   # Agrega columna tipo_asignacion a asignaciones (anual/temporal)
+├── uploads/                         # Archivos subidos (gitignored)
+│   └── versiones/                   # Snapshots del sistema (creado en runtime)
 │
-├── includes/                         # Componentes reutilizables
-│   ├── header.php                    # Header con meta CSRF, navegación, selector de año
-│   ├── footer.php                    # Footer, scripts JS (Tabler, ApexCharts, toasts, app)
-│   ├── sidebar.php                   # Menú lateral con grupos por rol
-│   ├── csrf.php                      # Clase CSRF (generación, validación, regeneración)
-│   └── icons.php                     # Función tablerIcon() con SVGs inline
+├── docs/                            # Documentación
+│   ├── auditoria-seguridad.md      # Auditoría CSRF/permisos (T-040, 2026-06-02)
+│   └── manuales/                    # 12 manuales de usuario + mockups SVG
 │
-├── models/                           # Capa de datos (9 modelos)
-│   ├── Database.php                  # Conexión PDO Singleton (query, queryOne, execute, transacciones)
-│   ├── User.php                      # Usuarios (create, authenticate, update, delete, password management)
-│   ├── Observation.php               # Observaciones (CRUD, 20+ reportes, historial, filtros)
-│   ├── Location.php                  # Comunas y establecimientos (CRUD, búsqueda, toggle activo)
-│   ├── EstablecimientoAsignacion.php # Asignaciones (anual/temporal, conflictos, copia anual)
-│   ├── Exporter.php                  # Exportación Excel/PDF/CSV/PDF Detallado/PDF Informe Errores
-│   ├── DeletedObservation.php        # Papelera (moveToTrash, restore, permanentDelete, stats)
-│   ├── Version.php                   # Snapshots (directorio uploads/versiones/, rollback)
-│   ├── ReportQueue.php               # Cola de reportes asíncronos (enqueue, worker, estados)
-│   └── UserAudit.php                 # Auditoría de cambios en usuarios (logAction, getHistory)
+├── specs/                           # Especificaciones SpecKit + specs legacy
+│   ├── INDICE.md                    # Índice maestro de 11 módulos
+│   ├── login.md / mod-auth.md
+│   ├── obs-modulo.md / obs-crear-observacion.md
+│   ├── mod-supervision.md
+│   ├── mod-asignaciones.md
+│   ├── mod-establecimientos.md
+│   ├── mod-importacion.md
+│   ├── mod-exportacion.md
+│   ├── mod-usuarios.md
+│   ├── mod-eliminadas.md
+│   ├── versiones.md
+│   ├── 001-unificar-specs/
+│   └── 002-mejorar-reportes-analiticos/   # Cambio activo SpecKit
 │
-├── views/                            # Vistas del sistema (10 vistas)
-│   ├── login.php                     # Página de inicio de sesión
-│   ├── dashboard.php                 # Panel de control con stats, gráficos, alertas, informe errores
-│   ├── observaciones.php             # CRUD observaciones (1,102 líneas con filtros, modal, importación)
-│   ├── supervision.php               # Panel supervisión (filtros, selección masiva, modal detalle con historial)
-│   ├── reportes.php                  # Reportes con 5 tabs (Errores, Plazos, Validador, Serie, Hoja)
-│   ├── usuarios.php                  # Gestión usuarios CRUD (solo supervisor)
-│   ├── perfil.php                    # Perfil y cambio de contraseña
-│   ├── asignaciones.php              # Asignar establecimientos (anual/temporal/referentes)
-│   ├── eliminadas.php                # Papelera con restauración/eliminación permanente
-│   └── establecimientos.php          # Gestión establecimientos y referentes
+├── openspec/                        # Cambios Spec Kit
+│   ├── config.yaml                  # Reglas proposal/tasks
+│   ├── changes/
+│   │   ├── archive/                 # 13 cambios ya aplicados
+│   │   │   ├── 2026-05-25-actualizar-docs-y-config/
+│   │   │   ├── 2026-05-25-mejorar-modal-aprobacion-observaciones/
+│   │   │   ├── 2026-05-25-reportes-errores-rediseno/
+│   │   │   ├── 2026-05-25-selector-estado-aprobacion/
+│   │   │   ├── 2026-05-27-modularizar-reportes-nav-tabs/
+│   │   │   ├── 2026-05-27-refactor-reportes-ui-filtros/
+│   │   │   ├── 2026-05-29-detalle-observacion-completo/
+│   │   │   ├── 2026-05-29-filtro-trimestre-reportes/
+│   │   │   ├── 2026-05-29-hoja-nombre-select/
+│   │   │   ├── 2026-05-29-informe-errores-rem/
+│   │   │   ├── 2026-05-29-mejora-reportes-plazo-validador/
+│   │   │   ├── 2026-05-29-refinar-graficos-chartjs/
+│   │   │   └── 2026-06-01-dashboard-tabler-features/
+│   │   ├── arreglos-post-rediseno/  # Cambio en curso (no archivado)
+│   │   ├── boxed-layout-tabler/
+│   │   ├── migrar-tabler-dashboard/
+│   │   ├── rediseno-tabler-admin/
+│   │   └── refactor-observation-modal/
+│   └── specs/                       # Specs aprobadas (delta de cambios archivados)
 │
-├── uploads/                          # Archivos importados/subidos (gitignored)
-│   └── versiones/                    # Snapshots del sistema (creado automáticamente)
+├── .specify/                        # Templates SpecKit puros
+│   ├── templates/                   # spec/plan/tasks/constitution/checklist
+│   ├── memory/                      # Constitución del proyecto
+│   ├── scripts/
+│   ├── workflows/
+│   ├── integrations/
+│   ├── extensions/
+│   ├── extensions.yml
+│   ├── feature.json
+│   ├── init-options.json
+│   └── integration.json
 │
-├── vendor/                           # Dependencias PHP (Composer)
-├── index.php                         # Router principal (login check + page routing + permisos)
-├── composer.json                     # phpoffice/phpspreadsheet ^5.4, tecnickcom/tcpdf ^6.10
-├── .gitignore                        # node_modules, uploads, .env, IDE, logs, etc.
-└── README.md                         # Este archivo
+├── .opencode/                       # Configuración de opencode (skill tool)
+│   ├── commands/                    # 18 comandos (specify, plan, tasks, etc.)
+│   ├── skills/                      # Skills disponibles
+│   └── package.json
+│
+├── .gitignore
+└── AGENTS.md                        # Contexto del agente (SPECKIT block)
 ```
+
+### Resumen funcional de carpetas
+
+| Carpeta | Responsabilidad |
+|---------|-----------------|
+| `api/` | Endpoints REST JSON consumidos por fetch desde el frontend. |
+| `views/` | Plantillas PHP que renderizan HTML server-side; incluyen header/footer/sidebar. |
+| `models/` | Capa de datos con PDO; encapsula queries, validaciones y reglas de negocio. |
+| `includes/` | Layout transversal (header, footer, sidebar) + helpers globales (CSRF, iconos). |
+| `config/` | Configuración, conexión BD y **scripts SQL de inicialización/migración**. |
+| `assets/` | CSS, JS de aplicación, librerías vendor JS. |
+| `uploads/` | Archivos generados (snapshots de versionado, archivos importados temporales). |
+| `docs/` | Auditoría + manuales de usuario con mockups. |
+| `specs/` | Especificaciones funcionales en Markdown (módulos + cambios SpecKit). |
+| `openspec/` | Cambios SpecKit en curso y archivados (delta + tareas). |
+| `.specify/` | Templates y constitución de SpecKit (framework). |
+| `.opencode/` | Comandos y skills de opencode. |
 
 ---
 
-## Base de Datos
+## 6. Modelos de Datos (Esquema BD)
 
-Base de datos `observaciones_rem` con charset `utf8mb4_unicode_ci`.
+Base de datos: **`observaciones_rem`** — charset `utf8mb4_unicode_ci` — engine InnoDB.
 
 ### Tablas
 
 | Tabla | Propósito | Columnas clave |
 |-------|-----------|----------------|
-| **usuarios** | Usuarios del sistema | id, username, password_hash (bcrypt), nombre_completo, rol (registrador/supervisor), activo |
-| **comunas** | Comunas del SSO (7 registros oficiales) | id, codigo_comuna (DEIS), nombre |
-| **establecimientos** | Establecimientos de salud (93 registros) | id, codigo_establecimiento, nombre, nombre_corto, comuna_id (FK), activo |
-| **observaciones** | Observaciones REM | id, anio, mes, establecimiento_id (FK), codigo_serie, codigo_hoja, tipo_error, detalle_observacion, plazo_entrega, usa_validador, estado_actual, clasificacion, detalle_error, respuesta_establecimiento, usuario_registro_id (FK), usuario_supervisor_id (FK) |
-| **historial_estados** | Historial de cambios de estado | id, observacion_id (FK), estado_anterior, estado_nuevo, usuario_id (FK), comentario |
-| **asignaciones_establecimientos** | Asignación establecimientos a registradores | id, usuario_id (FK), establecimiento_id (FK), anio, meses (ALL o lista 1-12), tipo_asignacion (anual/temporal) |
-| **observaciones_eliminadas** | Papelera de reciclaje (soft-delete) | id, observacion_id, +copia completa de datos + motivo_eliminacion, fecha_eliminacion |
-| **versiones_sistema** | Snapshots del sistema | id, version_tag, descripcion, snapshot_path, archivos_json (manifest), usuario_id |
-| **reportes_pendientes** | Cola de reportes asíncronos | id, usuario_id, tipo_reporte, formato, parametros (JSON), estado (PENDIENTE/PROCESANDO/LISTO/ERROR) |
-| **historial_usuarios** | Auditoría de cambios en usuarios | id, usuario_id, accion (CREACION/ACTIVACION/DESACTIVACION/CAMBIO_PASSWORD/etc), detalles |
-| **referentes_establecimientos** | Contactos de establecimientos | id, establecimiento_id, cargo, nombre, telefono, email, activo |
-| **logs** | Logs del sistema | id, usuario_id, accion, detalle, ip_address, user_agent |
-
-### Índices de Optimización (migration_2026_05_08)
-
-- `idx_anio_tipo_error` — (anio, tipo_error)
-- `idx_anio_plazo` — (anio, plazo_entrega)
-- `idx_anio_validador` — (anio, usa_validador)
-- `idx_anio_serie_error` — (anio, codigo_serie, tipo_error)
-- `idx_anio_hoja` — (anio, codigo_hoja)
-- `idx_anio_estado` — (anio, estado_actual)
-
----
-
-## APIs del Sistema
-
-### `api/auth.php` — Autenticación
-| Acción | Método | Descripción |
-|--------|--------|-------------|
-| `login` | POST | Autenticar usuario (username + password + year). Inicia sesión PHP |
-| `logout` | POST | Destruir sesión |
-| `check` | GET | Verificar sesión activa y retornar datos del usuario |
-| `change_year` | POST | Cambiar año de trabajo en sesión (válida 2020~año_siguiente) |
-
-### `api/observations.php` — Observaciones CRUD
-| Acción | Método | Descripción |
-|--------|--------|-------------|
-| — | GET | Listar observaciones del año (filtro por rol: registrador ve solo las suyas) |
-| — | GET + `?id=N` | Obtener observación por ID (con permisos) |
-| `historial` | GET + `?id=N` | Historial de cambios de una observación |
-| `stats` | GET | Estadísticas agregadas (por estado, mes, tipo de error) |
-| — | POST | Crear observación (solo registradores, valida asignación mensual) |
-| — | PUT + `?id=N` | Actualizar observación (registrador: solo propias pendientes; supervisor: todo) |
-| — | DELETE + `?id=N` | Eliminar observación (solo supervisores) |
-
-**Campos requeridos al crear:** mes, establecimiento_id, codigo_serie, tipo_error, detalle_observacion, plazo_entrega, usa_validador. codigo_hoja requerido excepto para S/OBSERVACION.
-
-**Validación backend:** Registradores solo pueden crear/editar observaciones en establecimientos asignados para el mes específico (validación anual + temporal).
-
-### `api/supervision.php` — Supervisión (solo supervisores)
-| Acción | Método | Descripción |
-|--------|--------|-------------|
-| `approve` | POST | Aprobar observación(es). Acepta `estado_resultante` (`sin_observacion` → estado=aprobado/tipo_error=S/OBSERVACION, `error` → estado=error/tipo_error=ERROR). Incluye clasificación y detalle_error |
-| `cancel` | POST | Cancelar observación(es) (estado=rechazado) |
-| `delete` | POST | Mover a papelera (soft-delete) |
-| `update_status` | POST | Cambio de estado genérico |
-| `get_filtered` | GET | Observaciones con filtros (año, mes, estado, establecimiento, registrador, búsqueda texto, paginación) |
-| `get_detail` | GET | Detalle completo + historial de una observación |
-
-### `api/reports.php` — Reportes
-| Reporte | Descripción |
-|---------|-------------|
-| `mes` | Observaciones por mes |
-| `establecimiento` | Por establecimiento |
-| `comuna` | Por comuna |
-| `serie` | Por serie REM |
-| `plazo` | Por plazo de entrega |
-| `validador` | Por uso de validador |
-| `errores_mes/establecimiento/comuna` | Solo tipo_error = 'ERROR' |
-| `fuera_plazo_mes/establecimiento/comuna` | Solo plazo_entrega = 'fuera_plazo' |
-| `validador_mes/establecimiento/comuna` | Solo usa_validador = 'si' |
-| `serie_detalle` | Matriz Serie × Tipo Error |
-| `hoja_detalle` | Top hojas REM más frecuentes |
-| `plazo-agregado` | Plazo agregado por establecimiento+mes (agregación binaria) |
-| `validador-agregado` | Validador agregado por establecimiento+mes |
-| `error-reports` | Reporte unificado con filtros (meses, comuna, establecimiento) — 5 sub-reportes |
-
-### `api/export.php` — Exportación
-| Parámetro `report_type` | Formatos | Descripción |
-|-------------------------|----------|-------------|
-| `general` (default) | Excel, PDF, CSV | Exportación general con filtros |
-| `detallado` | PDF | Reporte jerárquico Comuna→Establecimiento→Mes con rowspan, colores por estado |
-| `errores_*`, `fuera_plazo_*`, `validador_*`, `serie_detalle`, `hoja_detalle` | Excel | Exportación individual por sub-reporte |
-
-### `api/informe_errores.php` — Informe de Errores REM (solo supervisores)
-| Parámetro | Descripción |
-|-----------|-------------|
-| `tipo=trimestral` + `trimestre=1-4` | Informe trimestral filtrado |
-| `tipo=anual` | Informe anual completo |
-| `format=json` | Vista web con paginación (20 por página) |
-| `format=pdf` | PDF profesional con logo, diseño institucional, firma |
-
-### `api/locations.php` — Ubicaciones
-| Acción | Método | Descripción |
-|--------|--------|-------------|
-| `comunas` | GET | Listar todas las comunas |
-| `establecimientos` | GET | Listar establecimientos (filtro por comuna_id o por comuna_nombre) |
-| `establecimientos_all` | GET | Todos los establecimientos (incluye inactivos, solo supervisor) |
-| `create` | POST | Crear establecimiento (solo supervisor) |
-| `update` | POST | Actualizar establecimiento (solo supervisor) |
-| `toggle` | POST | Activar/desactivar establecimiento (solo supervisor) |
-
-### `api/users.php` — Usuarios (solo supervisores, excepto cambio de contraseña propia)
-| Acción | Método | Descripción |
-|--------|--------|-------------|
-| — | GET | Listar usuarios (solo supervisor) |
-| — | GET + `?id=N` | Obtener usuario por ID |
-| — | POST | Crear usuario (solo supervisor, con generación de contraseña aleatoria opcional) |
-| `action=update` | PUT | Actualizar datos (solo supervisor) |
-| `action=password` | PUT | Cambiar contraseña (propia o de otros si es supervisor) |
-| `action=reset_password` | PUT | Reset a `admin123` (solo supervisor, no a sí mismo) |
-| `action=toggle` | PUT | Activar/desactivar (solo supervisor, no a sí mismo) |
-| — | DELETE | Eliminar usuario (solo supervisor, no a sí mismo) |
-
-**Política de contraseñas:** mínimo 8 caracteres, al menos 1 mayúscula, al menos 1 número.
-
-### `api/assignments.php` — Asignaciones (solo supervisores)
-| Acción | Método | Descripción |
-|--------|--------|-------------|
-| `list` | GET | Estadísticas de asignaciones por registrador |
-| `registradores` | GET | Listar registradores activos |
-| `establecimientos` | GET | Establecimientos con info de asignación |
-| `asignados` | GET | Establecimientos asignados a un registrador |
-| `asignar` | POST | Asignar establecimiento (anual o temporal con meses) |
-| `asignar_multiple` | POST | Asignación masiva |
-| `remover` | POST | Remover asignación (completa o parcial por meses) |
-| `copiar_anio` | POST | Copiar asignaciones de un año a otro |
-| `temporales` | POST | Listar asignaciones temporales activas con titular anual |
-
-### `api/deleted.php` — Papelera (solo supervisores)
-| Acción | Método | Descripción |
-|--------|--------|-------------|
-| `list` | GET | Listar eliminadas con filtros (año, mes, comuna, establecimiento, registrador, búsqueda) |
-| `stats` | GET | Estadísticas de eliminadas (total, por estado, por mes, por eliminador) |
-| `restore` | POST | Restaurar observación (vuelve a tabla original + historial) |
-| `permanent_delete` | POST | Eliminación permanente |
-| `restore_multiple` | POST | Restauración masiva |
-| `permanent_delete_multiple` | POST | Eliminación permanente masiva |
-
-### `api/versioning.php` — Versionado (solo supervisores)
-| Acción | Método | Descripción |
-|--------|--------|-------------|
-| `list` | GET | Listar versiones disponibles |
-| `detail` | GET + `?id=N` | Detalle de una versión (manifest de archivos) |
-| `create` | POST | Crear snapshot (copia archivos a uploads/versiones/vXXX/) |
-| `rollback` | POST + `?id=N` | Restaurar archivos desde snapshot + crea nueva versión |
-
----
-
-## Modelos (Lógica de Negocio)
-
-### `Database.php` — Conexión PDO Singleton
-- `getInstance()` — Obtener instancia única
-- `query(sql, params)` — SELECT múltiple
-- `queryOne(sql, params)` — SELECT único
-- `execute(sql, params)` — INSERT/UPDATE/DELETE
-- `lastInsertId()` — Último ID insertado
-- `beginTransaction()`, `commit()`, `rollback()` — Transacciones
-
-### `User.php` — Usuarios
-- `authenticate(username, password)` — Login con bcrypt
-- `getById(id)`, `getAll()`, `getByRole(rol)` — Consultas
-- `isActive(id)` — Verificar si está activo
-- `create(username, password, nombreCompleto, rol)` — Crear con hash bcrypt
-- `update(id, nombreCompleto, rol)` — Actualizar datos
-- `updatePassword(id, newPassword)` — Cambiar contraseña
-- `setActive(id, activo)` — Activar/desactivar
-- `delete(id)` — Eliminar usuario
-- `getByIdWithPassword(id)` — Para verificación de contraseña actual
-- `usernameExists(username, excludeId)` — Verificar duplicado
-
-### `Observation.php` — Observaciones (20+ reportes)
-**CRUD:** `getAll`, `getById`, `create`, `update`, `delete`, `deleteWithAudit`, `getHistorial`
-**Supervisión:** `updateStatus` (con extraData: clasificación, detalle_error, tipo_error), `bulkUpdateStatus`, `getWithFilters`, `getStats`
-**Reportes generales:** `reportePorMes`, `reportePorEstablecimiento`, `reportePorComuna`, `reportePorSerie`, `reportePorPlazo`, `reportePorValidador`
-**Reportes errores:** `reporteErroresPorMes/Establecimiento/Comuna`, `reporteErroresPorSerie`, `reporteErroresPorHoja`
-**Reportes fuera de plazo:** `reporteFueraPlazoPorMes/Establecimiento/Comuna`
-**Reportes validador:** `reporteValidadorPorMes/Establecimiento/Comuna`
-**Reportes detalle:** `reportePorSerieDetalle`, `reportePorHojaDetalle`
-**Reportes agregados:** `reportePlazoAgregado/Mensual`, `reporteValidadorAgregado/Mensual`, `reporteNoValidadorPorEstablecimiento`
-**PDF:** `reporteDetalladoPDF`, `getErroresInforme`
-**Utilidades:** `getComunasConDatos`, `getEstablecimientosConDatos`
-
-### `Location.php` — Ubicaciones
-- `getAllComunas()`, `getComunaById(id)`, `getComunaByNombre(nombre)`
-- `getAllEstablecimientos()`, `getEstablecimientosByComuna(comunaId)`, `getEstablecimientoById(id)`
-- `getAllEstablecimientosConInactivos()` — Incluye desactivados
-- `searchEstablecimientos(searchTerm)` — Búsqueda por nombre
-- `createComuna(codigo, nombre)`, `createEstablecimiento(codigo, nombre, nombreCorto, comunaId)`
-- `updateEstablecimiento(id, data)`, `toggleEstablecimiento(id, activo)`
-- `codigoEstablecimientoExiste(codigo, excludeId)` — Validar unicidad
-
-### `EstablecimientoAsignacion.php` — Asignaciones (585 líneas)
-
-**Lógica core:**
-- Asignación **anual**: base para todo el año, puede ser ALL o meses específicos
-- Asignación **temporal**: reasignación por meses con prioridad sobre la anual
-- Validación de **solapamiento**: temporales no pueden solaparse entre sí; temporales pueden solapares con anuales
-- Fusión de meses si ya existe asignación del mismo tipo
-- Resta de meses para remoción parcial
-
-**Métodos:**
-- `getAllRegistradores()`, `getAllEstablecimientos()`
-- `getEstablecimientosByRegistrador(registradorId, anio)` — Asignaciones de un registrador
-- `getEstablecimientosConAsignacion(registradorId, anio)` — Todos los establecimientos con info de quién está asignado
-- `asignar(usuarioId, establecimientoId, anio, meses, tipo)` — Asignar (anual o temporal)
-- `asignarMultiple(usuarioId, establecimientoIds, anio, meses, tipo)` — Asignación masiva
-- `remover(usuarioId, establecimientoId, anio, meses, tipo)` — Remover completa o parcial
-- `removerTodas(usuarioId, anio)` — Remover todas las de un registrador
-- `tieneAsignacionParaMes(usuarioId, establecimientoId, anio, mesNombre)` — Validación mensual (prioridad temporal sobre anual)
-- `tieneAsignaciones(usuarioId, anio)` — Verificar si tiene al menos una
-- `getRegistradoresSinAsignaciones(anio)` — Alertas de dashboard
-- `getEstadisticasAsignaciones(anio)` — Resumen por registrador
-- `copiarAsignaciones(anioOrigen, anioDestino)` — Copia anual (incluye temporales)
-- `getAsignacionesTemporalesActivas(anio)` — Listar temporales con titular anual
-- `getTitularAnual(establecimientoId, anio)` — Obtener dueño anual
-- `getReferentes(establecimientoId)`, `getReferentesMultiple(ids)` — Referentes de contacto
-
-### `Exporter.php` — Exportación (739 líneas)
-
-**Formatos:**
-- `exportToExcel(data, filename, headers)` — Excel general con título, fecha, auto-width
-- `exportToPDF(data, filename, headers, title)` — PDF horizontal con tabla HTML
-- `exportToCSV(data, filename, headers)` — CSV con BOM UTF-8 y separador `;`
-- `exportDetalladoPDF(data, filename, filters)` — PDF jerárquico Comuna→Establecimiento→Mes con rowspan, códigos de color por estado, header rojo oscuro, paginación cada 35 filas
-- `exportErroresExcel(data, filename, reportType)` — Excel para reportes específicos con títulos descriptivos
-- `exportInformeErroresPDF(data, periodo, filename)` — PDF vertical institucional con logo SSO, diseño profesional, tabla jerárquica, sección de firma
-
-**Helpers:** `prepareObservationsData`, `getObservationsHeaders`
-
-### `DeletedObservation.php` — Papelera
-- `moveToTrash(observacionId, supervisorId, reason)` — Soft-delete (copia a tabla eliminadas + elimina original)
-- `getAll(filters)` — Listar con filtros (año, mes, comuna, establecimiento, registrador, búsqueda)
-- `restore(deletedId, supervisorId)` — Restaurar (reinserta en observaciones + historial + elimina de papelera)
-- `permanentDelete(deletedId)` — Eliminación definitiva
-- `getStats(year)` — Estadísticas (total, por estado original, por mes, por eliminador)
-
-### `Version.php` — Snapshots
-- `createVersion(descripcion, userId)` — Crea tag vXXX, copia archivos a `uploads/versiones/vXXX/`, genera manifiesto con hashes MD5
-- `getAllVersions()` — Listar con autor
-- `getVersionDetails(id)` — Detalle con manifiesto decodificado
-- `rollback(versionId, userId)` — Restaura archivos desde snapshot + crea nueva versión de registro
-
-### `ReportQueue.php` — Cola de Reportes
-- `enqueue(userId, tipoReporte, formato, parametros)` — Encolar nuevo reporte
-- `getUserReports(userId)` — Reportes de un usuario
-- `getNextPending()` — Siguiente pendiente (SELECT FOR UPDATE)
-- `updateStatus`, `markProcessing`, `markReady`, `markError` — Ciclo de vida
-
-### `UserAudit.php` — Auditoría de Usuarios
-- `logAction(userId, action, details)` — Registrar acción
-- `getHistory(userId)` — Obtener historial de un usuario
-
----
-
-## Vistas
-
-| Vista | Archivo | Rol | Descripción |
-|-------|---------|-----|-------------|
-| login | `views/login.php` | Público | Formulario de inicio de sesión |
-| dashboard | `views/dashboard.php` | Todos | Panel con stats cards (total, pendientes, aprobados, problemas), gráficos ApexCharts (distribución por estado, top tipos de error, tendencia por mes), últimas 5 observaciones, acciones rápidas, alertas de asignación, modal Informe de Errores |
-| observaciones | `views/observaciones.php` | Todos | CRUD completo con tabla responsive, filtros, modal de creación/edición, importación Excel con preview, selector de series/hojas, validación de asignación |
-| supervision | `views/supervision.php` | Supervisor | Panel con filtros (estado, mes, comuna, establecimiento, registrador, búsqueda), selección masiva con checkboxes, botones de acción masiva (aprobar/cancelar/eliminar), modal de detalle con historial, selector `estado_resultante` (Sin Observación / Error) con campos de clasificación |
-| reportes | `views/reportes.php` | Todos | 5 tabs (Errores por Establecimiento, Plazos Entrega, Uso Validador, Errores por Serie, Errores por Hoja) con gráficos ApexCharts y tabla de datos, filtros por año/trimestre/mes/comuna/establecimiento |
-| usuarios | `views/usuarios.php` | Supervisor | CRUD con tabla de usuarios, modal creación con generación de contraseña aleatoria, edición, activación/desactivación, reseteo de contraseña |
-| perfil | `views/perfil.php` | Todos | Información del usuario, cambio de contraseña (con validación de política) |
-| asignaciones | `views/asignaciones.php` | Supervisor | Panel por año con selector, cards por registrador, árbol de establecimientos con checkboxes, asignación anual/temporal por meses, copia de año anterior, gestión de referentes por establecimiento |
-| eliminadas | `views/eliminadas.php` | Supervisor | Papelera con filtros, tabla de eliminadas con motivo, botones de restauración individual/masiva, eliminación permanente, estadísticas |
-| establecimientos | `views/establecimientos.php` | Supervisor | Listado completo con activos/inactivos, stats, CRUD con modal, toggle activo/inactivo, código de establecimiento |
-
----
-
-## Funcionalidades por Módulo
-
-### Gestión de Observaciones
-- CRUD completo con campos: clasificación, detalle error, establecimiento, mes, serie, hoja, tipo de error, plazo de entrega, uso de validador, respuesta del establecimiento
-- Importación masiva desde Excel (.xlsx/.xls) con preview (validación previa) y confirmación
-- Mapeo inteligente de establecimientos: prioridad por código, fallback por nombre
-- Compatibilidad hacia atrás: acepta nombres de columna antiguos (tipo_error, codigo_serie, codigo_hoja)
-- Plantilla descargable con hoja de instrucciones y ejemplos
-- Filtros por estado, mes, establecimiento y búsqueda de texto
-- Exportación a Excel, PDF y CSV
-- Historial de cambios de estado por observación
-- Papelera de eliminadas con restauración y eliminación permanente
-
-### Supervisión (Selector de Estado)
-- Al aprobar, el supervisor elige entre **"Sin Observación"** (→ estado=aprobado, tipo_error=S/OBSERVACION) o **"Error"** (→ estado=error, tipo_error=ERROR)
-- Campos adicionales: clasificación (Corregido, Error, Sin respuesta del Establecimiento, Respuesta incorrecta de Establecimiento), Detalle Error
-- Operaciones masivas: aprobar/cancelar/eliminar múltiples observaciones
-- Modal de detalle con: Serie REM, Hoja REM, Respuesta del Establecimiento, historial completo de cambios
-
-### Dashboard
-- Estadísticas en tiempo real (total, pendientes, aprobados, con problemas)
-- Gráficos interactivos ApexCharts: distribución por estado (donut), top tipos de error (barra), tendencia por mes (línea)
-- Lista de últimas 5 observaciones
-- Alertas de asignación: supervisor ve registradores sin establecimientos; registrador ve si no tiene asignaciones
-- Acceso rápido a Informe de Errores REM (trimestral/anual)
-
-### Reportes (5 Tabs)
-1. **Errores por Establecimiento** — Gráfico horizontal + tabla
-2. **Plazos Entrega** — Gráfico de fuera de plazo por establecimiento + tabla con dentro/fuera/total meses
-3. **Uso Validador** — Gráfico de no usa validador + tabla con usa/no-usa/total meses
-4. **Errores por Serie** — Gráfico horizontal + tabla
-5. **Errores por Hoja** — Gráfico vertical + tabla
-
-### Informe de Errores REM
-- Generación de informes trimestrales o anuales
-- Vista web con paginación (20 registros por página)
-- PDF profesional en formato vertical (portrait) con:
-  - Logo del Servicio de Salud Osorno
-  - Tabla jerárquica Comuna→Establecimiento con rowspan
-  - Código de colores por estado (verde/aprobado, amarillo/pendiente, rojo/rechazado)
-  - Serie y Hoja REM destacadas en azul institucional (#005288)
-  - Sección de firma de la Jefa de Subdepto.
-
-### Asignación de Establecimientos
-- Asignación **anual** (titular): establecimientos base para el año completo
-- **Reasignación temporal** por meses: vacaciones, licencias, con prioridad sobre anual
-- Sin solapamiento: validación de conflictos entre temporales del mismo período
-- Vista por año con selector
-- Asignación individual y múltiple (checkboxes)
-- Fusión de meses si ya existe asignación
-- Remoción individual, parcial (por meses) y masiva
-- Copiar asignaciones del año anterior (incluye anuales y temporales)
-- Gestión de **referentes** por establecimiento: cargo, nombre, teléfono, email
-
-### Gestión de Establecimientos y Referentes
-- CRUD completo de establecimientos (nombre, código, comuna)
-- Toggle activo/inactivo (soft-delete)
-- Listado completo (incluye inactivos para administración)
-- Validación de código único
-- CRUD de referentes (cargo, nombre, teléfono, email)
-- Ordenamiento por cargo (Encargado Estadísticas → Digitador Estadísticas)
-
-### Gestión de Usuarios
-- CRUD completo con validación de username único
-- Creación con generación de contraseña aleatoria (12 caracteres)
-- Política de contraseñas: 8+ caracteres, 1 mayúscula, 1 número
-- Cambio de contraseña propia (requiere contraseña actual)
-- Reset de contraseña por supervisor (a `admin123`)
-- Activar/desactivar usuarios (no a sí mismo)
-- Eliminación de usuarios (no a sí mismo)
-- Auditoría completa: todas las acciones quedan registradas en `historial_usuarios`
-
-### Versionado (Snapshots)
-- Creación de snapshots del código fuente
-- Almacenamiento en `uploads/versiones/vXXX/` con manifiesto MD5
-- Rollback a cualquier versión anterior
-- Listado cronológico con autor
-
-### Seguridad
-- Autenticación con sesiones PHP (httponly, secure configurable)
-- Permisos basados en roles (supervisor/registrador) verificados en backend
-- Protección CSRF: tokens generados por `random_bytes(32)`, validados en todos los endpoints POST/PUT/DELETE
-- Contraseñas hasheadas con `password_hash` (bcrypt)
-- Consultas preparadas PDO (sin inyección SQL)
-- Validación backend de asignaciones (403 si registrador usa establecimiento no asignado para el mes)
-- API_BASE dinámica desde `window.location.pathname` (sin rutas hardcodeadas)
-- Selector de año en sesión con validación (2020 ~ año_siguiente)
-- `error_reporting(E_ERROR | E_PARSE)` en APIs de producción
-
----
-
-## Series REM Soportadas
-
-| Serie | Hojas |
-|-------|-------|
-| **SERIE A** | Hoja Nombre, A01–A09, A11, A11a, A19a, A19b, A21, A23–A34, A30ar, Hoja Control, Renombre archivo |
-| **SERIE BS** | Hoja Nombre, B, B17, Hoja Control, Renombre archivo |
-| **SERIE BM** | Hoja Nombre, BM18, BM18a, Hoja Control, Renombre archivo |
-| **SERIE P** | Hoja Nombre, P01–P07, P09, P11–P13, Hoja Control, Renombre archivo |
-| **SERIE ANEXO** | Hoja Nombre, Hoja Parto_RN, Hoja S_Infancia, Hoja I.T.S, Hoja Rechazos, Hoja Farmacia, Hoja S_Mental, Hoja S_Adolescencia, Hoja Laboratorio, Hoja Intercultural, Hoja S_Familiar, Hoja Control, Renombre archivo |
-| **SERIE D** | Hoja Nombre, D15, D16, Hoja Control, Renombre archivo |
-
----
-
-## Tipos de Error
-
-| Valor | Significado |
-|-------|-------------|
-| `S/OBSERVACION` | Sin observación (aprobado) |
-| `ERROR` | Error detectado |
-| `REVISAR` | Requiere revisión |
-| `F/PLAZO` | Fuera de plazo |
-
----
-
-## Roles y Permisos
-
-### Supervisor
-- Panel de supervisión exclusivo con filtros y acciones masivas
-- Aprobar observaciones con selector "Sin Observación" / "Error"
-- Cancelar y eliminar observaciones (a papelera)
-- Ver y restaurar observaciones eliminadas
-- Gestionar usuarios (CRUD completo)
-- Asignar establecimientos (anual y temporal)
-- Gestionar referentes por establecimiento
-- Gestionar establecimientos (CRUD + toggle activo)
-- Generar Informe de Errores REM (trimestral/anual en PDF)
-- Ver todas las observaciones del sistema
-- Acceso a versionado (snapshots y rollback)
-- Exportar en todos los formatos
-
-### Registrador
-- Crear y editar observaciones propias (solo pendientes)
-- Importación masiva desde Excel
-- Ver solo sus propias observaciones
-- Restringido a establecimientos asignados (validación mensual)
-- Reportes (solo datos propios)
-- Descargar plantilla de importación
-- Cambiar su propia contraseña
-
----
-
-## Seguridad
-
-- **Autenticación:** Sesiones PHP con cookie httponly
-- **CSRF:** Token de 32 bytes (bin2hex(random_bytes)) en meta tag + header X-CSRF-TOKEN
-- **Contraseñas:** password_hash con bcrypt (PASSWORD_DEFAULT)
-- **SQL Injection:** Consultas preparadas PDO (emulate_prepares = false)
-- **Validación de asignación:** Backend verifica que registrador tenga el establecimiento asignado para el mes exacto
-- **Ruta dinámica:** API_BASE calculada desde `window.location.pathname` (sin hardcodeo)
-- **Roles:** Verificación en cada endpoint y vista; redirección a dashboard si no tiene permiso
-
----
-
-## Instalación
-
-### 1. Requisitos
-- PHP >= 7.4
-- MySQL >= 5.7
-- Apache con mod_rewrite
-- XAMPP o similar
-
-### 2. Configurar base de datos
-Editar `config/config.php` con credenciales MySQL. Soporta entornos `production` y `development`.
-
-```php
-define('ENVIRONMENT', 'production'); // o 'development'
+| `usuarios` | Cuentas del sistema | `id`, `username`, `password_hash` (bcrypt), `nombre_completo`, `rol` (`registrador`/`supervisor`), `activo` |
+| `comunas` | 7 comunas oficiales SSO | `id`, `codigo_comuna` (DEIS), `nombre` |
+| `establecimientos` | 93 establecimientos DEIS | `id`, `codigo_establecimiento`, `nombre`, `nombre_corto`, `comuna_id` (FK), `activo` |
+| `observaciones` | Tabla principal | `id`, `anio`, `mes`, `establecimiento_id` (FK), `codigo_serie`, `codigo_hoja`, `tipo_error`, `detalle_observacion`, `plazo_entrega` (`dentro_plazo`/`fuera_plazo`), `usa_validador` (`si`/`no`), `estado_actual`, `clasificacion`, `detalle_error`, `respuesta_establecimiento`, `usuario_registro_id` (FK), `usuario_supervisor_id` (FK) |
+| `historial_estados` | Trazabilidad | `id`, `observacion_id` (FK), `estado_anterior`, `estado_nuevo`, `usuario_id` (FK), `comentario`, `created_at` |
+| `asignaciones_establecimientos` | Vinculación registrador↔estab. | `id`, `usuario_id` (FK), `establecimiento_id` (FK), `anio`, `meses` (ALL o CSV 1-12), `tipo_asignacion` (`anual`/`temporal`) |
+| `observaciones_eliminadas` | Papelera (soft-delete) | `id`, `observacion_id` (origen), copia completa de campos + `motivo_eliminacion`, `fecha_eliminacion`, `usuario_elimina_id` |
+| `versiones_sistema` | Snapshots | `id`, `version_tag` (vXXX), `descripcion`, `snapshot_path`, `archivos_json` (manifest MD5), `usuario_id` |
+| `reportes_pendientes` | Cola asíncrona | `id`, `usuario_id`, `tipo_reporte`, `formato`, `parametros` (JSON), `estado` (`PENDIENTE`/`PROCESANDO`/`LISTO`/`ERROR`) |
+| `historial_usuarios` | Auditoría de usuarios | `id`, `usuario_id`, `accion` (`CREACION`/`ACTIVACION`/`DESACTIVACION`/`CAMBIO_PASSWORD`/...), `detalles`, `created_at` |
+| `referentes_establecimientos` | Contactos por establecimiento | `id`, `establecimiento_id` (FK), `cargo`, `nombre`, `telefono`, `email`, `activo` |
+| `logs` | Log general | `id`, `usuario_id`, `accion`, `detalle`, `ip_address`, `user_agent`, `created_at` |
+
+### Índices de optimización (migration_2026_05_08_reportes)
+
+```
+idx_anio_tipo_error     (anio, tipo_error)
+idx_anio_plazo          (anio, plazo_entrega)
+idx_anio_validador      (anio, usa_validador)
+idx_anio_serie_error    (anio, codigo_serie, tipo_error)
+idx_anio_hoja           (anio, codigo_hoja)
+idx_anio_estado         (anio, estado_actual)
 ```
 
-### 3. Ejecutar scripts de inicialización
+### Cardinalidades (resumen ER)
+
+```
+usuarios (1) ──< (N) observaciones [usuario_registro_id]
+usuarios (1) ──< (N) observaciones [usuario_supervisor_id]
+usuarios (1) ──< (N) asignaciones_establecimientos
+establecimientos (1) ──< (N) observaciones
+establecimientos (1) ──< (N) asignaciones_establecimientos
+establecimientos (1) ──< (N) referentes_establecimientos
+comunas (1) ──< (N) establecimientos
+observaciones (1) ──< (N) historial_estados
+observaciones (1) ──< (1) observaciones_eliminadas [soft-delete]
+```
+
+---
+
+## 7. APIs y Endpoints
+
+> Todas las llamadas mutativas (POST/PUT/DELETE) requieren **CSRF** vía header `X-CSRF-TOKEN` o campo `_csrf`. La validación de permisos por rol se aplica en cada endpoint.
+
+### `api/auth.php`
+| Acción | Método | Descripción |
+|--------|--------|-------------|
+| `login` | POST | Autentica (`username`+`password`+`year`); inicia sesión PHP |
+| `logout` | POST | Destruye sesión |
+| `check` | GET | Verifica sesión activa y retorna datos del usuario |
+| `change_year` | POST | Cambia año de trabajo (rango válido 2020 ~ año_siguiente) |
+
+### `api/observations.php`
+| Acción | Método | Descripción |
+|--------|--------|-------------|
+| `—` | GET | Lista del año (filtro por rol: registrador ve solo las suyas) |
+| `?id=N` | GET | Detalle por ID (con permisos) |
+| `historial?id=N` | GET | Historial de cambios |
+| `stats` | GET | Agregados (por estado, mes, tipo de error) |
+| `—` | POST | Crear (solo registrador; valida asignación mensual) |
+| `?id=N` PUT | Actualizar (registrador: solo propias en `pendiente`; supervisor: todo) |
+| `?id=N` DELETE | Eliminar (solo supervisor) |
+
+**Campos requeridos al crear:** `mes`, `establecimiento_id`, `codigo_serie`, `tipo_error`, `detalle_observacion`, `plazo_entrega`, `usa_validador`. `codigo_hoja` requerido excepto para `S/OBSERVACION`.
+
+### `api/supervision.php` (solo supervisor)
+| Acción | Método | Descripción |
+|--------|--------|-------------|
+| `approve` | POST | Aprobar con selector `estado_resultante` (`sin_observacion` → `aprobado`+`S/OBSERVACION`; `error` → `error`+`ERROR`) + `clasificacion` + `detalle_error` |
+| `cancel` | POST | Cancelar (`estado=rechazado`) |
+| `delete` | POST | Mover a papelera (soft-delete) |
+| `update_status` | POST | Cambio de estado genérico |
+| `get_filtered` | GET | Lista con filtros (año, mes, estado, establecimiento, registrador, texto) + paginación |
+| `get_detail` | GET | Detalle completo + historial |
+
+### `api/reports.php` (solo GET)
+20+ reportes: `mes`, `establecimiento`, `comuna`, `serie`, `plazo`, `validador`, `errores_mes/establecimiento/comuna`, `errores_por_serie`, `errores_por_hoja`, `fuera_plazo_mes/establecimiento/comuna`, `validador_mes/establecimiento/comuna`, `serie_detalle`, `hoja_detalle`, `plazo-agregado`, `validador-agregado`, `error-reports` (unificado con 5 sub-reportes).
+
+### `api/export.php`
+| `report_type` | Formatos | Descripción |
+|----------------|----------|-------------|
+| `general` (default) | Excel, PDF, CSV | General con filtros |
+| `detallado` | PDF | Jerárquico Comuna→Establecimiento→Mes con rowspan + colores |
+| `errores_*`, `fuera_plazo_*`, `validador_*`, `serie_detalle`, `hoja_detalle` | Excel | Sub-reportes individuales |
+
+### `api/informe_errores.php` (solo supervisor)
+| Parámetros | Descripción |
+|------------|-------------|
+| `tipo=trimestral&trimestre=1-4` | Informe trimestral |
+| `tipo=anual` | Informe anual completo |
+| `format=json` | Vista web paginada (20/pág) |
+| `format=pdf` | PDF profesional vertical con logo SSO y firma |
+
+### `api/locations.php`
+`comunas` (GET), `establecimientos` (GET, con `comuna_id` o `comuna_nombre`), `establecimientos_all` (GET, incluye inactivos), `create`/`update`/`toggle` (POST, solo supervisor).
+
+### `api/users.php` (mayoría solo supervisor)
+GET lista/detalle, POST crear (con generación aleatoria opcional de password), PUT `update`/`password`/`reset_password`/`toggle`, DELETE (no a sí mismo).
+
+**Política de contraseñas:** ≥ 8 caracteres, ≥ 1 mayúscula, ≥ 1 número.
+
+### `api/assignments.php` (solo supervisor)
+`list`, `registradores`, `establecimientos`, `asignados`, `asignar` (anual o temporal con meses), `asignar_multiple`, `remover` (completa o parcial), `copiar_anio`, `temporales`.
+
+### `api/deleted.php` (solo supervisor)
+`list` (filtros: año, mes, comuna, establecimiento, registrador, texto), `stats`, `restore`, `permanent_delete`, `restore_multiple`, `permanent_delete_multiple`.
+
+### `api/versioning.php` (solo supervisor)
+`list`, `detail?id=N`, `create` (snapshot → `uploads/versiones/vXXX/` con manifest MD5), `rollback?id=N` (restaura + crea nueva versión de registro).
+
+### `api/import.php` / `api/import_template.php`
+`import.php` recibe Excel → validación → `preview` (datos en sesión) → `confirm` (commit transaccional).
+`import_template.php` genera `.xlsx` con hoja de instrucciones y ejemplos.
+
+---
+
+## 8. Flujos Principales
+
+Esta sección combina **diagramas de secuencia** (visiones técnicas de los actores y servicios) con **narrativas paso a paso** (acompañadas de mockups SVG en `docs/manuales/`).
+
+---
+
+### 8.1. Flujo: Crear observación manual (Registrador)
+
+#### Diagrama de secuencia
+
+```
+Registrador  │   Browser   │   index.php   │  api/observations.php  │  models/Observation  │  BD MySQL
+             │             │               │                        │  models/Asignacion   │
+   1: GET /observaciones ──▶ index.php (auth OK, rol=registrador) ──▶ views/observaciones.php
+             │             │               │                        │                       │
+   2: ──▶ click "+ Nueva"   │               │                        │                       │
+   3: ──▶ submit form ──────────────────────────────────────────▶ validarCsrfToken() ✅
+             │             │               │                        │                       │
+   4:                                              ────────────────▶ tieneAsignacionParaMes(mes)
+             │             │               │                        │  ◀──── SELECT ─────▶
+   5:                                              ◀──────────── ok  │                       │
+   6:                                              ────────────────▶ INSERT observaciones + historial_estados
+             │             │               │                        │  ◀──── INSERT ─────▶
+   7: ◀─── 201 + JSON {ok:true, id} ──────────────────────────────────│                       │
+   8: toast.success() + reload tabla ◀─                              │                       │
+```
+
+#### Narrativa paso a paso
+
+1. Registrador autenticado navega a **Observaciones** desde el sidebar.
+2. Pulsa **+ Nueva Observación** → se abre el modal con tabs (Datos, Detalle, Respuesta).
+3. Completa los campos requeridos (`mes`, `establecimiento` (filtrado por sus asignaciones), `serie`, `hoja`, `tipo_error`, `plazo`, `validador`, `detalle`).
+4. Al enviar, el frontend añade el token CSRF desde `<meta name="csrf-token">` y hace `POST /api/observations.php`.
+5. Backend: valida CSRF → consulta `Asignacion::tieneAsignacionParaMes(usuario, establecimiento, anio, mes)` → 403 si no tiene.
+6. Backend: inicia transacción → inserta en `observaciones` → inserta en `historial_estados` (`estado_anterior=null`, `estado_nuevo=pendiente`) → commit.
+7. Frontend recibe 201 → toast verde → recarga la tabla → cierra el modal.
+
+**Mockup:** `docs/manuales/observaciones.md` (vista principal + modal).
+
+---
+
+### 8.2. Flujo: Importación masiva desde Excel (Registrador)
+
+#### Diagrama de secuencia
+
+```
+Registrador │  Browser  │  api/import.php        │  PhpSpreadsheet  │  BD (preview en sesión)  │  BD (commit)
+            │           │                        │                  │                          │
+   1: POST (multipart .xlsx) ─▶ validarCsrf + validar mime ───▶ leer + validar
+            │           │                        │                  │                          │
+   2: ◀─── 200 {preview:[{fila, ok|error, ...}], stats} ────────│                          │
+   3: muestra modal preview (errores resaltados) │                  │                          │
+   4: POST {action:confirm, payload} ──────────▶ iniciar transacción                                          │
+            │           │                        │                  │                          │
+   5:                                             INSERT masivo en observaciones ────────────────────────▶
+            │           │                        │                  │                          │
+   6: ◀─── 200 {insertados:N, omitidos:M} ──────────────────────────────────────────────────────── commit │
+```
+
+#### Narrativa paso a paso
+
+1. En `views/observaciones.php` el usuario abre el panel **Importar** y sube un `.xlsx` o `.xls`.
+2. `api/import.php` valida CSRF, valida MIME, lee con `PhpSpreadsheet\IOFactory`, valida fila por fila:
+   - Mapeo de establecimiento por **código** (prioridad) o **nombre** (fallback).
+   - Compatibilidad hacia atrás con nombres de columna antiguos (`tipo_error`, `codigo_serie`, `codigo_hoja`).
+3. Devuelve un `preview` con cada fila marcada como `ok` / `error` (motivo).
+4. El usuario revisa y confirma → segundo POST con `action=confirm`.
+5. Backend abre transacción, inserta masivamente, registra historial, commit.
+6. Toast con `insertados: N, omitidos: M`.
+
+**Mockup:** `docs/manuales/importacion.md`.
+
+---
+
+### 8.3. Flujo: Aprobar con selector S/OBSERVACION/ERROR (Supervisor)
+
+#### Diagrama de secuencia
+
+```
+Supervisor  │  Browser  │  api/supervision.php  │  models/Observation  │  models/UserAudit   │  BD
+            │           │                       │                      │                     │
+   1: selecciona N observaciones (checkboxes)                            │                     │
+   2: click "Aprobar" → modal con selector "estado_resultante"        │                     │
+            │  (sin_observacion | error) + clasificacion + detalle_error                     │
+   3: POST {action:approve, ids:[..], estado_resultante, ...} ─▶ validarCsrf + permiso rol   │
+            │           │                       │                      │                     │
+   4:                                       bulkUpdateStatus(extraData)                      │
+            │           │                       │   UPDATE estado_actual + extraData          │
+            │           │                       │   INSERT historial_estados (x N)            │
+            │           │                       │   logAction(supervisor) ──────────────────▶
+            │           │                       │                      │                     │
+   5: ◀─── 200 {actualizadas:N, omitidas:M} ──│                      │                     │
+```
+
+#### Narrativa paso a paso
+
+1. Supervisor entra a **Supervisión**, aplica filtros (estado, mes, comuna, establecimiento, registrador, búsqueda).
+2. Selecciona una o varias observaciones con checkbox.
+3. Pulsa **Aprobar** → se abre el modal con:
+   - Selector `estado_resultante`: `Sin Observación` (→ `aprobado` + `S/OBSERVACION`) o `Error` (→ `error` + `ERROR`).
+   - Si eligió `Error`: combo `clasificacion` (Corregido / Error / Sin respuesta / Respuesta incorrecta) + textarea `detalle_error`.
+4. POST a `api/supervision.php?action=approve` con token CSRF y payload.
+5. Backend valida CSRF + rol, ejecuta `bulkUpdateStatus` con `extraData`, registra historial, registra auditoría.
+6. Frontend recibe respuesta, actualiza la tabla, toast con conteo.
+
+**Mockup:** `docs/manuales/supervision.md` y `docs/manuales/supervision-aprobar.svg`.
+
+---
+
+### 8.4. Flujo: Asignación anual + reasignación temporal (Supervisor)
+
+#### Diagrama de secuencia
+
+```
+Supervisor │  api/assignments.php  │  models/EstablecimientoAsignacion  │  BD
+           │                       │                                    │
+   1: GET ?action=list ──────────▶ getEstadisticasAsignaciones(anio) ──▶
+   2: ◀─── {registrador: {anual, temporales, conflictos}} ─────────────│
+   3: POST {action:asignar, usuario, establecimiento, anio, meses, tipo} │
+           │                       │                                    │
+   4:                       validar solapamiento (temporales) ─────────▶
+           │                       │                                    │
+   5:                       INSERT con prioridad: temporales sobre anuales │
+           │                       │                                    │
+   6: ◀─── 201 {ok, asignacion_id} ─│                                    │
+   7: Para remover parcial: POST {action:remover, meses:[3,4]}          │
+   8:                       UPDATE con resta de meses ────────────────▶
+```
+
+#### Narrativa paso a paso
+
+1. Supervisor abre **Asignaciones** y selecciona el año.
+2. Ve cards por registrador con conteo de anuales y temporales.
+3. Para asignar: elige registrador + establecimiento + meses (checkboxes) + tipo (`anual` o `temporal`).
+   - **Validación:** temporales del mismo período no pueden solaparse entre sí; las temporales pueden solapar con la anual.
+   - Si ya existe asignación del mismo tipo, **fusiona** los meses.
+4. Para remover: elegir asignación → marcar meses a remover → backend hace resta de meses.
+5. "Copiar año anterior" toma todas las asignaciones (anuales + temporales) y las replica en el año destino.
+6. "Ver temporales activas" muestra quién está cubriendo y quién es el titular anual.
+
+**Mockup:** `docs/manuales/asignaciones.md`.
+
+---
+
+### 8.5. Flujo: Informe de Errores REM trimestral (Supervisor)
+
+```
+Supervisor │  Browser  │  api/informe_errores.php  │  models/Observation  │  TCPDF
+          │           │                            │                      │
+  1: GET ?tipo=trimestral&trimestre=2&anio=2026&format=pdf ─▶ getErroresInforme()
+          │           │                            │                      │
+  2:                                              SELECT JOIN observaciones + establecimientos + comunas
+          │           │                            │                      │
+  3: ◀────── stream PDF (vertical, logo SSO, jerárquico) ────────────── renderInformePDF()
+```
+
+Pasos: supervisor en dashboard → clic en **Informe de Errores** → elige trimestre/año/formato → recibe PDF vertical con tabla jerárquica **Comuna→Establecimiento**, código de colores por estado, **Serie/Hoja REM** en azul institucional (#005288) y sección de firma.
+
+**Mockup:** `docs/manuales/reportes-exportacion.md`.
+
+---
+
+### 8.6. Flujo: Papelera → Restaurar (Supervisor)
+
+1. Supervisor entra a **Eliminadas** (papelera).
+2. Ve observaciones con `motivo_eliminacion` y `fecha_eliminacion`.
+3. Selecciona una o varias → **Restaurar**.
+4. `api/deleted.php?action=restore` reinserta en `observaciones`, reinserta fila en `historial_estados`, elimina de papelera.
+5. Toast con confirmación y conteo.
+
+**Mockup:** `docs/manuales/papelera-eliminadas.md`.
+
+---
+
+### 8.7. Flujo: Snapshot + Rollback (Supervisor)
+
+1. **Crear versión:** `POST /api/versioning.php?action=create&descripcion=...` → backend genera `vXXX`, copia archivos del proyecto a `uploads/versiones/vXXX/`, calcula MD5 de cada archivo, guarda manifest.
+2. **Listar:** `GET ?action=list` devuelve versiones cronológicas con autor.
+3. **Rollback:** `POST ?action=rollback&id=N` → restaura archivos desde snapshot + crea nueva versión de registro.
+
+**Mockup:** `docs/manuales/versionado.md` + `versionado-crear.svg` + `versionado-lista.svg`.
+
+---
+
+## 9. Lógica de Negocio (Modelos PHP)
+
+Catálogo de **métodos públicos** por modelo. Útil como referencia rápida; las firmas completas están en el código fuente.
+
+### `Database` (`models/Database.php`)
+| Método | Firma | Propósito |
+|--------|-------|-----------|
+| `getInstance()` | `: Database` | Singleton PDO |
+| `query` | `(string $sql, array $params=[]): array` | SELECT múltiple |
+| `queryOne` | `(string $sql, array $params=[]): ?array` | SELECT único |
+| `execute` | `(string $sql, array $params=[]): int` | INSERT/UPDATE/DELETE (filas afectadas) |
+| `lastInsertId` | `(): string` | Último ID |
+| `beginTransaction` / `commit` / `rollback` | `(): bool` | Transacciones |
+
+### `User` (`models/User.php`)
+| Método | Firma | Propósito |
+|--------|-------|-----------|
+| `authenticate` | `(string $u, string $p): ?array` | Login con `password_verify` |
+| `getById` / `getAll` / `getByRole` | `(...): ?array / array` | Consultas |
+| `isActive` | `(int $id): bool` | Estado activo |
+| `create` | `(string $u, string $p, string $n, string $rol): int` | Crea con `password_hash` |
+| `update` | `(int $id, string $n, string $rol): bool` | Actualiza datos |
+| `updatePassword` | `(int $id, string $p): bool` | Cambia password |
+| `setActive` | `(int $id, bool $a): bool` | Toggle activo |
+| `delete` | `(int $id): bool` | Elimina (no a sí mismo en API) |
+| `getByIdWithPassword` | `(int $id): ?array` | Para verificar password actual |
+| `usernameExists` | `(string $u, ?int $exclude=null): bool` | Validar duplicado |
+
+### `Observation` (`models/Observation.php`) — núcleo del sistema
+**CRUD:** `getAll`, `getById`, `create`, `update`, `delete`, `deleteWithAudit`, `getHistorial`.
+**Supervisión:** `updateStatus(extraData)`, `bulkUpdateStatus`, `getWithFilters`, `getStats`.
+**Reportes generales:** `reportePorMes`, `reportePorEstablecimiento`, `reportePorComuna`, `reportePorSerie`, `reportePorPlazo`, `reportePorValidador`.
+**Reportes errores:** `reporteErroresPorMes`, `…PorEstablecimiento`, `…PorComuna`, `reporteErroresPorSerie`, `reporteErroresPorHoja`.
+**Reportes fuera de plazo:** `reporteFueraPlazoPorMes/Establecimiento/Comuna`.
+**Reportes validador:** `reporteValidadorPorMes/Establecimiento/Comuna`.
+**Reportes detalle:** `reportePorSerieDetalle`, `reportePorHojaDetalle`.
+**Reportes agregados:** `reportePlazoAgregado`, `reportePlazoMensual`, `reporteValidadorAgregado`, `reporteValidadorMensual`, `reporteNoValidadorPorEstablecimiento`.
+**PDF:** `reporteDetalladoPDF`, `getErroresInforme`.
+**Utilidades:** `getComunasConDatos`, `getEstablecimientosConDatos`.
+
+### `Location` (`models/Location.php`)
+`getAllComunas`, `getComunaById`, `getComunaByNombre`, `getAllEstablecimientos`, `getEstablecimientosByComuna`, `getEstablecimientoById`, `getAllEstablecimientosConInactivos`, `searchEstablecimientos`, `createComuna`, `createEstablecimiento`, `updateEstablecimiento`, `toggleEstablecimiento`, `codigoEstablecimientoExiste`.
+
+### `EstablecimientoAsignacion` (`models/EstablecimientoAsignacion.php`) — núcleo de reglas
+`getAllRegistradores`, `getAllEstablecimientos`, `getEstablecimientosByRegistrador`, `getEstablecimientosConAsignacion`, **`asignar(usuario, establecimiento, anio, meses, tipo)`** (anual o temporal con prioridad sobre anual + fusión de meses), `asignarMultiple`, `remover` (completa o parcial por meses), `removerTodas`, **`tieneAsignacionParaMes(usuario, establecimiento, anio, mes)`** (validación mensual), `tieneAsignaciones`, `getRegistradoresSinAsignaciones` (alerta dashboard), `getEstadisticasAsignaciones`, `copiarAsignaciones` (anual + temporal), `getAsignacionesTemporalesActivas`, `getTitularAnual`, `getReferentes`, `getReferentesMultiple`.
+
+### `Exporter` (`models/Exporter.php`)
+`exportToExcel(data, filename, headers)`, `exportToPDF(data, filename, headers, title)`, `exportToCSV(data, filename, headers)` (BOM UTF-8, separador `;`), `exportDetalladoPDF(data, filename, filters)` (Comuna→Establecimiento→Mes, rowspan, colores), `exportErroresExcel`, `exportInformeErroresPDF(data, periodo, filename)` (vertical institucional con logo SSO + firma). Helpers: `prepareObservationsData`, `getObservationsHeaders`.
+
+### `DeletedObservation` (`models/DeletedObservation.php`)
+`moveToTrash(observacionId, supervisorId, reason)` (copia a papelera + borra original), `getAll(filters)`, `restore(deletedId, supervisorId)`, `permanentDelete(deletedId)`, `getStats(year)`.
+
+### `Version` (`models/Version.php`)
+`createVersion(descripcion, userId)` (genera `vXXX`, copia a `uploads/versiones/vXXX/`, manifest MD5), `getAllVersions`, `getVersionDetails(id)`, `rollback(versionId, userId)`.
+
+### `ReportQueue` (`models/ReportQueue.php`)
+`enqueue(userId, tipoReporte, formato, parametros)`, `getUserReports(userId)`, `getNextPending()` (con `SELECT FOR UPDATE`), `updateStatus`, `markProcessing`, `markReady`, `markError`.
+
+### `UserAudit` (`models/UserAudit.php`)
+`logAction(userId, action, details)`, `getHistory(userId)`.
+
+### Modelos auxiliares
+
+`Comuna`, `Establecimiento`, `Asignacion`, `Referente`, `HistorialEstado`, `HistorialUsuario`, `PapeleraEliminada`, `VersionSistema`, `Usuario`, `Observacion` — duplicados o wrappers del núcleo para consumo en vistas/APIs. Su contrato es un subconjunto de los modelos principales.
+
+---
+
+## 10. Configuración del Entorno
+
+Toda la configuración centralizada en `config/`.
+
+### `config/config.php`
+
+```php
+define('ENVIRONMENT', 'production');  // o 'development'
+
+$dbConfig = [
+    'production'  => ['host'=>'10.8.152.199','port'=>'3306',
+                      'name'=>'observaciones_rem','user'=>'root','pass'=>'estadi2021',
+                      'charset'=>'utf8mb4'],
+    'development' => ['host'=>'localhost','port'=>'3306',
+                      'name'=>'observaciones_rem','user'=>'root','pass'=>'',
+                      'charset'=>'utf8mb4'],
+];
+```
+
+Define: `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASS`, `DB_CHARSET`, `BASE_PATH`, `UPLOAD_PATH`, `ASSETS_PATH`, `APP_NAME`, `APP_VERSION` (2.0.0 en archivo; el README documenta 2.3.0), `SESSION_NAME` (`rem_session`).
+
+**Zona horaria:** `America/Santiago`.
+**Sesión:** `cookie_httponly=1`, `use_only_cookies=1`, `cookie_secure=0` (cambiar a 1 bajo HTTPS).
+**Inicio de sesión:** `session_name(SESSION_NAME); session_start();` si no hay sesión activa.
+
+### `config/constants.php`
+
+- **Estados:** `ESTADO_PENDIENTE`, `ESTADO_APROBADO`, `ESTADO_RECHAZADO`, `ESTADO_ERROR`, `ESTADO_JUSTIFICADO`.
+- **Roles:** `ROL_REGISTRADOR`, `ROL_SUPERVISOR`.
+- **Plazo:** `PLAZO_DENTRO`, `PLAZO_FUERA`.
+- **Validador:** `USA_VALIDADOR_SI`, `USA_VALIDADOR_NO`.
+- **`$TIPOS_ERROR`:** `['S/OBSERVACION','ERROR','REVISAR','F/PLAZO']`.
+- **`$SERIES_REM`:** `['SERIE A','SERIE BS','SERIE BM','SERIE P','SERIE ANEXO','SERIE D']`.
+- **`$HOJAS_POR_SERIE`:** array asociativo serie→lista de `['codigo','nombre']`.
+- **`$COLORES_ESTADOS`, `$COLORES_SSO`, `$MESES`, …** (paleta, etiquetas, meses del año).
+
+### Variables de entorno
+
+El sistema **no usa `.env`** por diseño (es PHP vanilla sobre XAMPP). El "entorno" se controla con `define('ENVIRONMENT', ...)` en `config/config.php`. Para producción real, se recomienda migrar a `.env` con `vlucas/phpdotenv`.
+
+---
+
+## 11. Instalación y Despliegue
+
+### Requisitos
+
+- PHP ≥ 7.4 con extensiones: `pdo_mysql`, `mbstring`, `gd`, `zip` (para PhpSpreadsheet).
+- MySQL ≥ 5.7 o MariaDB ≥ 10.3.
+- Apache 2.4 con `mod_rewrite` (XAMPP sirve ambos).
+- Composer 2.x.
+- npm 8+ (solo para `@tabler/core`; el resto de JS está preempaquetado en `assets/libs/`).
+
+### 1. Clonar y posicionar en XAMPP
+
+```bash
+cd C:\xampp\htdocs
+git clone <repo> ObservacionesREM_V2
+```
+
+### 2. Configurar base de datos
+
+Editar `config/config.php` y poner `define('ENVIRONMENT', 'development')` para entorno local.
+
+### 3. Crear esquema y datos semilla
+
 ```bash
 mysql -h localhost -u root -p < config/init_db.sql
 ```
 
-### 4. Ejecutar migraciones en orden
+### 4. Aplicar migraciones en orden
+
 ```bash
 mysql -h localhost -u root -p observaciones_rem < config/create_asignaciones_table.sql
 mysql -h localhost -u root -p observaciones_rem < config/sprint3_migration.sql
@@ -589,141 +867,455 @@ mysql -h localhost -u root -p observaciones_rem < config/migration_2026_05_08_re
 mysql -h localhost -u root -p observaciones_rem < config/migrations/add_tipo_asignacion.sql
 ```
 
-### 5. Instalar dependencias PHP
+### 5. Instalar dependencias
+
 ```bash
 composer install
+npm install
 ```
 
-### 6. Acceder al sistema
+### 6. Permisos de escritura
+
+`uploads/` debe ser escribible por Apache (en Windows con XAMPP suele ser por defecto).
+
+### 7. Primer acceso
+
 `http://localhost/ObservacionesREM_V2/`
 
----
+**Usuarios semilla (cambiar inmediatamente en producción):**
+- `supervisor1` / `admin123` (Cecilia)
+- `registrador1` / `admin123` (Rodrigo Garcés)
+- `registrador2` / `admin123` (Victoria Martínez)
+- `registrador3` / `admin123` (Roxana Mancilla)
+- `registrador4` / `admin123` (Marcelo Horstmeier)
 
-## Migraciones
+### 8. Worker de reportes (opcional, producción)
 
-| Archivo | Fecha | Descripción |
-|---------|-------|-------------|
-| `init_db.sql` | — | Creación de BD, tablas (usuarios, comunas, establecimientos, observaciones, historial_estados, logs) y datos semilla |
-| `create_asignaciones_table.sql` | — | Creación de tabla `asignaciones_establecimientos` |
-| `sprint3_migration.sql` | — | Creación de tabla `observaciones_eliminadas` con índices |
-| `update_establecimientos.sql` | — | Reemplazo completo de establecimientos (93 registros oficiales DEIS) |
-| `migration_2026_02_06.sql` | 2026-02-06 | Documentación de cambio semántico de columnas (serie/tipo/hoja) |
-| `migration_2026_05_08_limpieza_comunas.sql` | 2026-05-08 | Unificación de comunas duplicadas (códigos 10001→10301, etc.) |
-| `migration_2026_05_08_reportes.sql` | 2026-05-08 | 6 índices compuestos para optimización de reportes |
-| `migrations/add_tipo_asignacion.sql` | 2026-05-20 | Agregar columna `tipo_asignacion` (anual/temporal) a asignaciones |
+Configurar cron cada minuto:
 
----
+```cron
+* * * * * php /var/www/ObservacionesREM_V2/worker_reportes.php
+```
 
-## Usuarios del Sistema
+### 9. Despliegue a producción
 
-### Supervisor
-| Usuario | Nombre | Contraseña |
-|---------|--------|------------|
-| `supervisor1` | Cecilia (Supervisor) | admin123 |
+```bash
+git archive --format=zip --output=release.zip main
+# o git pull en el servidor
+```
 
-### Registradores
-| Usuario | Nombre | Contraseña |
-|---------|--------|------------|
-| `registrador1` | Rodrigo Garcés | admin123 |
-| `registrador2` | Victoria Martínez | admin123 |
-| `registrador3` | Roxana Mancilla | admin123 |
-| `registrador4` | Marcelo Horstmeier | admin123 |
+Etiquetar versiones:
 
----
-
-## Manejo de Versiones
-
-### Convención de commits
-| Prefijo | Uso |
-|---------|-----|
-| `feat:` | Nueva funcionalidad |
-| `fix:` | Corrección de bug |
-| `refactor:` | Refactorización |
-| `style:` | Cambios visuales |
-| `docs:` | Documentación |
-| `chore:` | Mantenimiento |
-| `perf:` | Mejora de rendimiento |
-
-### Etiquetado
 ```bash
 git tag -a v2.3.0 -m "Versión 2.3.0"
 git push origin v2.3.0
 ```
 
-### Despliegue
-```bash
-git archive --format=zip --output=release.zip main
-# o git pull en servidor
+---
+
+## 12. Seguridad y Auditoría
+
+### Mecanismos implementados
+
+- **Autenticación:** sesiones PHP con cookie `httponly` y `use_only_cookies`.
+- **CSRF:** token de 32 bytes hex (`bin2hex(random_bytes(32))`), emitido en `<meta name="csrf-token">` y consumido vía header `X-CSRF-TOKEN`. Validado por `includes/csrf.php` (`CSRF::validateRequest()`) en **todos** los POST/PUT/DELETE.
+- **Contraseñas:** `password_hash(PASSWORD_DEFAULT)` (bcrypt) — irreversible. Política: 8+ chars, 1 mayúscula, 1 número. Generación aleatoria de 12 caracteres disponible al crear usuarios.
+- **SQL Injection:** todas las queries usan PDO con `emulate_prepares=false` (consultas preparadas nativas).
+- **Validación de asignación backend:** `api/observations.php` consulta `Asignacion::tieneAsignacionParaMes(...)` antes de permitir crear/editar; responde 403 si no aplica.
+- **API_BASE dinámica:** calculado desde `window.location.pathname` (sin rutas hardcodeadas — bug corregido en v2.2).
+- **Roles:** verificados en `index.php` (whitelist + guard por página) y en cada endpoint de `api/`.
+- **Reportes de error:** `error_reporting(E_ERROR | E_PARSE)` en APIs de producción.
+
+### Auditoría (T-040, 2026-06-02 — `docs/auditoria-seguridad.md`)
+
+- **24 endpoints API auditados**, **20 modelos** analizados, configuración global revisada.
+- **8 problemas críticos** encontrados → todos corregidos.
+- **5 problemas medios** y **3 menores** documentados.
+- Correcciones CSRF aplicadas a: `api/users.php`, `api/assignments.php`, `api/versioning.php`, `api/update_estado.php`.
+
+### Tablas de auditoría
+
+- `historial_usuarios` — toda acción sobre usuarios (CREACION / ACTIVACION / DESACTIVACION / CAMBIO_PASSWORD / …) con timestamp y detalles.
+- `historial_estados` — todo cambio de estado de observación (estado_anterior, estado_nuevo, usuario, comentario).
+- `logs` — log general con IP y user agent.
+
+---
+
+## 13. Manuales de Usuario
+
+Doce manuales con mockups SVG/ASCII en `docs/manuales/`. Cada uno aplica a uno o más roles:
+
+| Manual | Ruta | Rol | Mockup |
+|--------|------|-----|--------|
+| Autenticación y sesión | `docs/manuales/auth-sesion.md` | Ambos | (embebido en markdown) |
+| Dashboard | `docs/manuales/dashboard.md` | Ambos | (embebido) |
+| Observaciones | `docs/manuales/observaciones.md` | Registrador (escritura) / Supervisor (lectura) | (tabla ASCII) |
+| Supervisión (lista) | `docs/manuales/supervision.md` | Supervisor | `docs/manuales/supervision-lista.svg` |
+| Supervisión (aprobar) | `docs/manuales/supervision.md` | Supervisor | `docs/manuales/supervision-aprobar.svg` |
+| Reportes y exportación | `docs/manuales/reportes-exportacion.md` | Ambos | (embebido) |
+| Importación | `docs/manuales/importacion.md` | Registrador | (embebido) |
+| Papelera | `docs/manuales/papelera-eliminadas.md` | Supervisor | (embebido) |
+| Asignaciones | `docs/manuales/asignaciones.md` | Supervisor | (embebido) |
+| Establecimientos | `docs/manuales/establecimientos.md` | Supervisor | (embebido) |
+| Usuarios | `docs/manuales/usuarios.md` | Supervisor | (embebido) |
+| Versionado (lista) | `docs/manuales/versionado.md` | Supervisor | `docs/manuales/versionado-lista.svg` |
+| Versionado (crear) | `docs/manuales/versionado.md` | Supervisor | `docs/manuales/versionado-crear.svg` |
+
+**Estándar de mockups:** los archivos `.svg` se generan desde los `.md` con bloques ASCII-art y se versionan juntos. Cada manual inicia con "Acceso desde el menú", describe la vista principal, columnas/acciones, modal(es) y casos borde.
+
+---
+
+## 14. Convenciones y Patrones de Código
+
+Reglas formales con ejemplos de "qué sí" vs "qué no" para los cuatro lenguajes del proyecto.
+
+### 14.1. PHP
+
+#### Naming
+- ✅ Clases en `PascalCase` (`EstablecimientoAsignacion`, `ReportQueue`).
+- ❌ `establecimientoAsignacion` para clases; `establecimiento_asignacion` (snake_case) para clases.
+- ✅ Métodos en `camelCase` (`getEstablecimientosByRegistrador`).
+- ❌ `get_establecimientos_by_registrador` (snake_case).
+- ✅ Constantes en `SCREAMING_SNAKE_CASE` (`ESTADO_PENDIENTE`, `ROL_SUPERVISOR`).
+- ❌ `estadoPendiente` para constantes globales.
+
+#### Modelos
+- ✅ Un modelo por tabla principal + lógica de negocio relacionada.
+- ❌ Mezclar acceso a datos de dos dominios distintos en un mismo modelo.
+
+#### Seguridad
+- ✅ `password_hash($p, PASSWORD_DEFAULT)` y `password_verify($p, $hash)`.
+- ❌ `md5($password)` o `sha1($password)`.
+- ✅ Consultas con `?` y `execute([...])`.
+- ❌ Concatenar variables en el SQL (`"WHERE id = $id"`).
+- ✅ Validar CSRF en cada endpoint POST/PUT/DELETE: `CSRF::validateRequest()`.
+- ❌ Confiar en que el frontend "ya verificó".
+
+#### Respuestas JSON
+- ✅ Estructura uniforme `{ok: bool, data: ..., error: string}`.
+- ❌ Mezclar HTML inline en respuestas que espera `fetch()`.
+
+#### Buenas prácticas
+- ✅ Iniciar transacción al hacer operaciones múltiples (`beginTransaction`).
+- ❌ Asumir rollback automático en errores.
+- ✅ Devolver 403/404 con cuerpo JSON.
+- ❌ Lanzar `die('...')` desde un endpoint.
+
+### 14.2. JavaScript
+
+#### Naming y estilo
+- ✅ Funciones y variables en `camelCase` (`fetchAPI`, `renderTabla`).
+- ❌ `snake_case` o `kebab-case` para variables JS.
+- ✅ Constantes en `SCREAMING_SNAKE_CASE` (`API_BASE`, `CSRF_TOKEN`).
+- ✅ Comillas simples por defecto, dobles solo en HTML inline.
+- ✅ Punto y coma al final de cada sentencia (consistencia con Tabler).
+- ❌ `var`; usar `const` y `let`.
+
+#### AJAX
+- ✅ Usar helper `fetchAPI(url, options)` (en `assets/js/app.js`) que adjunta CSRF automáticamente.
+- ❌ `fetch(url).then(r=>r.json()).then(...)` directo sin CSRF.
+- ✅ Manejar errores con `try/catch` y mostrar toast.
+- ❌ Ignorar el `catch` y dejar UI en estado roto.
+
+#### DOM
+- ✅ Cachear selectores en variables locales al inicio de la función.
+- ❌ `document.querySelector` repetido dentro de un loop.
+- ✅ Delegar eventos en contenedor cuando la tabla es dinámica.
+- ❌ `addEventListener` por cada fila renderizada.
+
+### 14.3. CSS (BEM + Tabler)
+
+#### Naming
+- ✅ Bloque `sidebar`, elemento `sidebar__nav-link`, modificador `sidebar__nav-link--active`.
+- ❌ Clases planas (`.nav-link-active`) sin bloque.
+- ✅ Modificadores siempre con `--` (doble guion).
+- ❌ Un solo guion (`-active`).
+
+#### Especificidad
+- ✅ Sobreescribir Tabler con selectores específicos en `assets/css/tabler-override.css`.
+- ❌ Usar `!important` salvo en último recurso.
+- ✅ Variables CSS de Tabler para tokens (`--tblr-primary`).
+- ❌ Hardcodear colores en cada selector.
+
+#### Responsive
+- ✅ Mobile-first con breakpoints de Tabler (`sm`, `md`, `lg`).
+- ❌ Media queries con valores arbitrarios (ej. `@media (max-width: 823px)`).
+
+### 14.4. SQL
+
+#### Convenciones
+- ✅ Palabras reservadas en MAYÚSCULAS (`SELECT`, `FROM`, `WHERE`).
+- ❌ `select * from observaciones`.
+- ✅ Alias descriptivos (`obs`, `est`, `com`).
+- ❌ `o`, `e`, `c` (ilegibles en queries grandes).
+- ✅ Joins explícitos (`INNER JOIN establecimientos est ON ...`).
+- ❌ Joins implícitos con comas en `FROM`.
+
+#### Índices
+- ✅ Crear índice compuesto en el orden de las columnas del `WHERE` más frecuente.
+- ❌ Índices redundantes con prefijos que ya cubre otro (`(a)` y `(a,b)`).
+- ✅ Usar los 6 índices de `migration_2026_05_08_reportes.sql` en queries de reportes.
+
+#### Migraciones
+- ✅ Un archivo por cambio semántico, nombrado `migration_YYYY_MM_DD_descripcion.sql`.
+- ❌ Modificar `init_db.sql` después del primer despliegue.
+- ✅ Toda migración debe ser idempotente o documentar su orden.
+
+#### Fechas y encoding
+- ✅ `created_at` y `updated_at` en todas las tablas de hechos.
+- ❌ Dejar timestamps implícitos en el código.
+- ✅ `utf8mb4_unicode_ci` en toda la BD.
+- ❌ `latin1_swedish_ci` (default de MySQL).
+
+### 14.5. Commits (Conventional Commits)
+
+| Prefijo | Uso |
+|---------|-----|
+| `feat:` | Nueva funcionalidad visible para el usuario |
+| `fix:` | Corrección de bug |
+| `refactor:` | Cambio interno sin alterar comportamiento |
+| `style:` | Solo formato, sin cambio lógico |
+| `docs:` | Documentación |
+| `chore:` | Mantenimiento (deps, configs) |
+| `perf:` | Mejora de rendimiento |
+
+---
+
+## 15. Roadmap y Mejoras Pendientes
+
+Lista priorizada de **deuda técnica y mejoras** identificadas por inspección del código y comentarios. Pendiente de triage por el equipo.
+
+### P1 — Crítico (afecta seguridad o mantenibilidad)
+
+- [ ] **Externalizar credenciales a `.env`:** hoy `config/config.php` tiene el password de producción hardcodeado (`estadi2021`). Migrar a `vlucas/phpdotenv` o variables de entorno del servidor.
+- [ ] **Consolidar modelos duplicados:** existen `User`/`Usuario`, `Observation`/`Observacion`, `Location`/`Comuna`+`Establecimiento`, `DeletedObservation`/`PapeleraEliminada`, `Version`/`VersionSistema`. Definir uno canónico y deprecar el otro (rompe APIs que importan el viejo).
+- [ ] **Consolidar endpoints duplicados:** conviven `api/versiones.php` y `api/versioning.php`; `api/update_estado.php` y `update_status` dentro de `api/supervision.php`. Centralizar en un único path por recurso.
+- [ ] **Forzar HTTPS en producción:** `cookie_secure=0` por defecto; cambiar a `1` con reverse proxy.
+- [ ] **Reemplazar contraseñas semilla** `admin123` y rotar al primer despliegue (los usuarios semilla se crean con esa password en `init_db.sql`).
+
+### P2 — Alto (mejora UX o reduce bugs recurrentes)
+
+- [ ] **Reemplazar Chart.js residual:** `openspec/config.yaml` aún referencia `Chart.js 4.4` como dependencia pero el código migró a ApexCharts en v2.3. Limpiar referencias y `assets/libs/`残留 (librerías que ya no se usan).
+- [ ] **Quitar `assets/js/notifications.js`** (legacy reemplazado por `toasts.js`) o marcarlo claramente como deprecado.
+- [ ] **Migrar assets/libs a npm real:** el repo tiene 18 librerías JS commiteadas en `assets/libs/`. Mover a `package.json` y servirlas vía bundler o CDN pinneado, para tener versionado y updates de seguridad centralizados.
+- [ ] **Validación de email y teléfono** en `referentes_establecimientos` (hoy `views/establecimientos.php:215` solo documenta el formato, no valida).
+- [ ] **Refactor `index.php`:** la guard de roles es una cadena de `if` repetitivos; reemplazar por un mapa `pagina → roles_permitidos`.
+- [ ] **Reemplazar el `Worker` de reportes** (`worker_reportes.php`) por una alternativa sin polling (cron es aceptable, pero documentar el intervalo mínimo y el manejo de procesos concurrentes con `SELECT FOR UPDATE` ya usado).
+
+### P3 — Medio (mejoras funcionales)
+
+- [ ] **API REST versionada:** hoy cada endpoint es un `.php` plano. Considerar prefijo `/api/v1/...` para evolución sin romper clientes.
+- [ ] **i18n:** textos hardcodeados en español en `views/`, `includes/`, `assets/js/`. Extraer a archivo de mensajes para futuro soporte bilingüe.
+- [ ] **WebSockets/SSE** para notificar al usuario cuando un reporte en cola queda LISTO (hoy requiere polling manual).
+- [ ] **Modo oscuro** (Tabler lo soporta nativamente; solo falta el toggle y la persistencia).
+- [ ] **Filtros guardados** en reportes (los analistas repiten combinaciones año/trimestre/comuna frecuentemente).
+- [ ] **Búsqueda full-text** en observaciones (hoy es `LIKE '%texto%'`; evaluar índice FULLTEXT o Meilisearch externo).
+- [ ] **Firma digital** en el Informe de Errores PDF (hoy usa imagen de rúbrica estática vía `Signature Pad`).
+- [ ] **Paginación cursor-based** en `api/supervision.php?action=get_filtered` (hoy es offset; con muchos registros degrada).
+
+### P4 — Bajo (nice-to-have)
+
+- [ ] **Dashboard configurable por usuario** (drag-and-drop de widgets).
+- [ ] **Exportación de papelera a Excel** (solo disponible en JSON).
+- [ ] **Notificaciones por email** cuando se asigna un establecimiento o se recibe una observación.
+- [ ] **Auditoría inmutable con hash chain** para `historial_estados` y `historial_usuarios`.
+- [ ] **Tests automatizados** (ver §14 — el repo no incluye suite de tests).
+
+### Cambio SpecKit en curso
+
+- **`002-mejorar-reportes-analiticos`:** generar 5 categorías independientes de reportes con filtros compartidos y exportación individual. Spec, plan, data-model, contracts y quickstart ya generados; pendiente `tasks.md` final y ejecución. Restricción AGENTS.md: **no modificar esquema BD** y tratar como sistema desde 0.
+
+### Cambios en `openspec/changes/` no archivados
+
+- `arreglos-post-rediseno` (correcciones menores tras el rediseño Tabler).
+- `boxed-layout-tabler`, `migrar-tabler-dashboard`, `rediseno-tabler-admin`, `refactor-observation-modal` (cambios de UI pendientes de archivo o descarte).
+
+---
+
+## 16. Historial de Versiones
+
+| Versión | Fecha | Resumen |
+|---------|-------|---------|
+| **v2.3.0** | Junio 2026 | Selector de estado en aprobación (S/OBSERVACION/ERROR), Informe de Errores PDF institucional, reportes 5 tabs, asignación anual+temporal, referentes por establecimiento, copia anual, cola de reportes, auditoría de usuarios, migración a ApexCharts y toasts. |
+| **v2.2.0** | Mayo 2026 | Limpieza de archivos de desarrollo, fix de ruta API dinámica (404), nueva vista de establecimientos, migración de unificación de comunas, 6 índices de reportes. |
+| **v2.1.0** | Mayo 2026 | Reportes con interfaz tabbed (6 vistas), PDF detallado jerárquico con rowspan, 15 nuevas dimensiones de reporte, fix `session_start()` en `api/export.php`. |
+| **v2.0.0** | Base | CRUD de observaciones, supervisión básica, asignación de establecimientos, importación Excel, dashboard con Chart.js, exportación Excel/PDF, autenticación con roles, protección CSRF. |
+
+> El changelog completo (bullets) está disponible en `git log --oneline --decorate` y en los `proposal.md` de cada cambio archivado en `openspec/changes/archive/`.
+
+---
+
+## 17. Solución de Problemas
+
+Catálogo de errores frecuentes con diagnóstico y solución paso a paso.
+
+---
+
+### 🔴 Error de conexión a base de datos
+
+**Síntoma:** pantalla en blanco, mensaje `SQLSTATE[HY000] [2002]`, o el dashboard no carga observaciones.
+
+**Diagnóstico:**
+1. ¿MySQL está corriendo? `mysqladmin -uroot -p ping` (Linux/XAMPP shell).
+2. ¿Las credenciales en `config/config.php` (sección `production` o `development`) coinciden con el servidor?
+3. ¿Existe la base de datos `observaciones_rem`? `mysql -uroot -p -e "SHOW DATABASES"`.
+
+**Solución:**
+- XAMPP: iniciar MySQL desde el panel.
+- Corregir `host` (en producción se usa `10.8.152.199`; en local, `localhost`).
+- Ajustar `define('ENVIRONMENT', 'development')` para apuntar a local.
+- Si es primera instalación: ejecutar `config/init_db.sql` y luego las 6 migraciones en orden (§11).
+
+---
+
+### 🔴 Página en blanco sin error visible
+
+**Síntoma:** `http://localhost/ObservacionesREM_V2/` muestra página vacía.
+
+**Diagnóstico:** `error_reporting` está silenciado en producción.
+
+**Solución:**
+1. Temporal: editar `config/config.php` y poner `define('ENVIRONMENT', 'development')`.
+2. Revisar `error_log` de Apache (`xampp/apache/logs/error.log`).
+3. Errores típicos: extensión `pdo_mysql` no habilitada (en `php.ini` quitar `;` de `extension=pdo_mysql`), archivo `.htaccess` con reglas inválidas, sesión no escribible.
+
+---
+
+### 🔴 "No autenticado" al exportar
+
+**Síntoma:** la descarga de Excel/PDF devuelve JSON `{"error":"no autenticado"}` en vez del archivo.
+
+**Diagnóstico:** `session_start()` llamado **después** de incluir `config.php` o de operaciones que requieren sesión.
+
+**Solución:** verificar que `api/export.php` y todos los endpoints hagan `session_start()` antes de cualquier `$_SESSION[...]` o `header(...)`. (Corregido en v2.1; verificar versión del archivo).
+
+---
+
+### 🔴 Error 404 al consumir `/api/...`
+
+**Síntoma:** todas las llamadas AJAX devuelven 404.
+
+**Diagnóstico:** ruta de la API hardcodeada en `assets/js/app.js` (versión anterior a v2.2).
+
+**Solución:** verificar que `app.js` calcule `API_BASE` con:
+```js
+const API_BASE = window.location.pathname.replace(/\/[^/]*$/, '/api/');
 ```
+No debe haber `const API_BASE = '/api';` ni similar hardcodeado.
 
 ---
 
-## Historial de Versiones
+### 🔴 Token CSRF inválido (error 403 "Invalid CSRF token")
 
-### v2.3.0 — Junio 2026
-- **Selector de estado en supervisión:** Al aprobar, supervisor elige "Sin Observación" (estado=aprobado) o "Error" (estado=error, tipo_error=ERROR)
-- **Modal detalle:** Nuevos campos visibles — Serie REM, Hoja REM y Respuesta del Establecimiento
-- **Informe de Errores REM:** Nuevo endpoint `api/informe_errores.php`, PDF profesional con logo SSO, tabla jerárquica, firma institucional
-- **Reportes renovados:** Nueva vista con 5 tabs (Errores, Plazos, Validador, Serie, Hoja) usando ApexCharts
-- **Reportes agregados:** Plazo y validador agregado por establecimiento+mes (agregación binaria)
-- **Migración `add_tipo_asignacion`:** Columna `tipo_asignacion` (anual/temporal) para asignaciones
-- **Gestión de referentes:** CRUD de contactos por establecimiento (cargo, nombre, teléfono, email)
-- **Copia de asignaciones:** Copia anual + temporal de un año a otro
-- **Asignaciones temporales:** Vista de temporales activas con titular anual
-- **Cola de reportes:** Modelo `ReportQueue` para procesamiento asíncrono
-- **Auditoría de usuarios:** Modelo `UserAudit` que registra todas las acciones sobre usuarios
-- **Refactor gráficos:** Migración de Chart.js a ApexCharts (`charts-apex.js`)
-- **Refactor toasts:** Nuevo sistema de notificaciones (`toasts.js`)
-- **Override CSS:** Archivo `tabler-override.css` con paleta SSO personalizada
+**Síntoma:** formularios o acciones devuelven 403 tras unos minutos de uso.
 
-### v2.2.0 — Mayo 2026
-- **Limpieza:** Eliminación de 24 archivos de desarrollo/testing/one-time scripts
-- **Bugfix logout:** Corrección de ruta API dinámica (evita 404)
-- **Nueva vista:** Gestión de establecimientos y referentes (supervisor)
-- **Mejora:** API_BASE calculada dinámicamente desde `window.location.pathname`
-- **Migración limpieza comunas:** Unificación de comunas duplicadas
-- **Migración reportes:** 6 índices compuestos nuevos
+**Diagnóstico:** token CSRF expirado o no rotado tras login.
 
-### v2.1.0 — Mayo 2026
-- **Reportes:** Interfaz tabbed con 6 vistas (General, Errores, Fuera de Plazo, Validador, Serie/Hoja, PDF Detallado)
-- **PDF Detallado:** Reporte jerárquico Comuna→Establecimiento→Mes con rowspan, colores, header rojo
-- **15 nuevas dimensiones de reportes:** errores/fuera_plazo/validador × mes/comuna/establecimiento
-- **Exportación individual:** Botones por sub-reporte
-- **Bugfix sesión:** Corrección session_start() en api/export.php
-
-### v2.0.0 — Versión base
-- CRUD completo de observaciones
-- Supervisión básica
-- Asignación de establecimientos
-- Importación masiva Excel
-- Dashboard con Chart.js
-- Exportación Excel/PDF
-- Autenticación con roles
-- Protección CSRF
+**Solución:** verificar que `includes/csrf.php` regenere el token tras `login` exitoso. Si el problema persiste, limpiar cookies del navegador y reintentar. Si está en HTTPS, confirmar que `cookie_secure=1` y que el sitio está detrás de HTTPS (no HTTP).
 
 ---
 
-## Solución de Problemas
+### 🔴 Registrador no puede crear observación (403 "Sin asignación para el mes")
 
-### Error de conexión
-1. Verificar MySQL ejecutándose
-2. Revisar credenciales en `config/config.php`
-3. Verificar que existe la base de datos `observaciones_rem`
+**Síntoma:** un registrador intenta crear observación para un establecimiento al que está asignado, pero recibe 403.
 
-### Página en blanco
-```php
-// Temporal en config/config.php
-define('ENVIRONMENT', 'development');
-```
+**Diagnóstico:** la asignación es **anual** con meses específicos, y el mes que intenta crear no está en `meses`.
 
-### "No autenticado" al exportar
-Causa: `session_start()` antes de incluir `config.php`. Corregido en v2.1.
-
-### Error 404 en APIs
-Causa: Ruta hardcodeada. Corregido en v2.2 con cálculo dinámico.
+**Solución:** en **Asignaciones** (supervisor), revisar la fila del registrador y:
+- Si la asignación es anual con `meses=ALL`, debería funcionar todo el año.
+- Si tiene meses específicos, ampliar la lista o cambiar a `ALL`.
+- Verificar que no hay una **reasignación temporal** activa que haya movido ese establecimiento a otro registrador en ese mes.
 
 ---
 
-## Licencia
+### 🔴 Importación Excel marca todas las filas como "no se encontró establecimiento"
 
-Sistema desarrollado para el **Servicio de Salud Osorno** — Departamento de Estadística (DEGI).
+**Síntoma:** preview de importación muestra 0 filas válidas aunque los nombres coinciden.
+
+**Diagnóstico:** las cabeceras del Excel son antiguas (lowercase, con espacios) o los códigos no coinciden con `establecimientos.codigo_establecimiento`.
+
+**Solución:**
+1. Descargar la **plantilla oficial** desde "Importar → Descargar plantilla" (asegura cabeceras correctas).
+2. Si la columna de código viene vacía, completar con el código DEIS del establecimiento.
+3. Si se importan nombres, verificar coincidencia exacta con `establecimientos.nombre` (sin abreviaciones).
+
+---
+
+### 🔴 Informe de Errores PDF en blanco o con caracteres rotos
+
+**Síntoma:** PDF se genera pero sin contenido o con `?` en vez de tildes.
+
+**Diagnóstico:** charset de la consulta o del template TCPDF mal configurado.
+
+**Solución:** verificar que la query y TCPDF usen `utf8mb4`. Si TCPDF pierde tildes, forzar en el constructor: `$pdf->SetFont('helvetica', '', 10);` y luego pasar los strings con `utf8_decode` o `iconv('UTF-8','Windows-1252', $texto)` según el caso. (El sistema usa TCPDF 6.10 con codificación por defecto `UTF-8`; debería funcionar, pero si la fuente instalada en el servidor no soporta el carácter,会发生 fallback.)
+
+---
+
+### 🔴 Worker de reportes no procesa la cola
+
+**Síntoma:** los reportes quedan eternamente en estado `PENDIENTE`.
+
+**Diagnóstico:** el cron no está configurado o el script falla.
+
+**Solución:**
+1. `crontab -l` debe contener la línea `* * * * * php /ruta/worker_reportes.php`.
+2. Ejecutar manualmente para ver el error: `php worker_reportes.php` desde la raíz del proyecto.
+3. Revisar permisos: el usuario que corre el cron debe tener acceso de lectura a todos los modelos y escritura a `uploads/`.
+
+---
+
+## 18. Recursos Adicionales
+
+### Documentación interna
+
+- **Manual HTML extenso:** `MANUAL_REGISTRO_OBSERVACIONES.html` (~67 KB, manual operativo clásico).
+- **Resumen en texto plano:** `MÓDULOS PRINCIPALES DEL SISTEMA.txt` — listado rápido de los 12 módulos.
+- **Auditoría de seguridad:** `docs/auditoria-seguridad.md` (T-040, 2026-06-02).
+- **Manuales de usuario:** `docs/manuales/` — 12 manuales con mockups SVG.
+
+### Especificaciones SpecKit y Spec
+
+- **Índice maestro de specs:** `specs/INDICE.md` — 11 módulos con descripción breve y link a la spec de cada uno.
+- **Specs por módulo:** `specs/mod-auth.md`, `specs/obs-modulo.md`, `specs/obs-crear-observacion.md`, `specs/mod-supervision.md`, `specs/mod-asignaciones.md`, `specs/mod-establecimientos.md`, `specs/mod-importacion.md`, `specs/mod-exportacion.md`, `specs/mod-usuarios.md`, `specs/mod-eliminadas.md`, `specs/versiones.md`.
+- **Cambio activo SpecKit:** `specs/002-mejorar-reportes-analiticos/` (spec.md, plan.md, data-model.md, research.md, quickstart.md, contracts/, checklists/, tasks.md).
+- **Cambio histórico (unificación de specs):** `specs/001-unificar-specs/`.
+
+### OpenSpec (changelog estructurado)
+
+- **Configuración:** `openspec/config.yaml` — reglas de proposal y tasks.
+- **Cambios archivados (13):** `openspec/changes/archive/2026-05-25-…` a `…/2026-06-01-dashboard-tabler-features/`.
+- **Cambios en curso:** `openspec/changes/arreglos-post-rediseno/`, `boxed-layout-tabler/`, `migrar-tabler-dashboard/`, `rediseno-tabler-admin/`, `refactor-observation-modal/`.
+- **Specs aprobadas (delta):** `openspec/specs/` (generadas al archivar cambios).
+
+### SpecKit framework
+
+- **Templates:** `.specify/templates/` — `spec-template.md`, `plan-template.md`, `tasks-template.md`, `constitution-template.md`, `checklist-template.md`.
+- **Comandos opencode:** `.opencode/commands/` — `speckit.constitution.md`, `speckit.specify.md`, `speckit.plan.md`, `speckit.tasks.md`, `speckit.implement.md`, `speckit.clarify.md`, `speckit.checklist.md`, `speckit.analyze.md`, `speckit.git.*`, `opsx-*` (4 comandos).
+- **AGENTS.md:** `AGENTS.md` — bloque SPECKIT que apunta al cambio activo y a las restricciones del proyecto.
+
+### Skills de opencode
+
+- `openspec-apply-change`, `openspec-archive-change`, `openspec-explore`, `openspec-propose` (en `.opencode/skills/`).
+- `leer-rem-anexo-excel` (en `~/.agents/skills/`) — lectura y validación de archivos Excel REM Serie Anexo.
+
+### Dependencias clave (versiones exactas)
+
+- `composer.json` → `phpoffice/phpspreadsheet ^5.4`, `tecnickcom/tcpdf ^6.10`.
+- `package.json` → `@tabler/core ^1.4.0`.
+- Ver `composer.lock` y `package-lock.json` para hashes exactos.
+
+### Convenciones SpecKit (recordatorio)
+
+- **AGENTS.md del proyecto** declara:
+  - BD existente y poblada — **no** modificar esquema ni migraciones para el cambio activo.
+  - Sistema siempre desde 0 — ignorar código existente al implementar el cambio.
+  - Cada módulo incluye manual de usuario con mockups en `docs/manuales/`.
+
+---
+
+## 📌 Cierre del Descubrimiento
+
+Este README es el resultado del comando `/speckit.discover` aplicado al sistema **ObservacionesREM_V2 v2.3.0** mediante ingeniería inversa. Captura la visión completa del sistema tal como existe en producción y constituye la **fuente de la verdad** para los siguientes comandos de SpecKit.
+
+> **¿Deseas usar este README.md como base para iniciar el comando `/speckit.constitution`?**
+> Si la respuesta es sí, el siguiente paso generará la constitución del proyecto (principios, valores, restricciones y governanza técnica) tomando este documento como input.

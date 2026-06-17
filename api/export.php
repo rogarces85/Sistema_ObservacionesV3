@@ -351,56 +351,46 @@ function exportarPDF($datos, $filtros, $timestamp, $tipoReporte)
     $pdf->Cell(0, 5, 'Generado: ' . date('d/m/Y H:i'), 0, 1, 'C');
     $pdf->Ln(2);
 
-    $anchoColumnas = [12, 14, 22, 28, 38, 22, 18, 18, 60, 20, 18, 22, 28, 28, 28];
+    $anchoColumnas = [8, 11, 16, 22, 28, 16, 14, 15, 50, 17, 15, 18, 20, 16, 15];
     $encabezados = ['ID', 'Año', 'Mes', 'Comuna', 'Establecimiento', 'Serie', 'Hoja', 'Tipo', 'Detalle', 'Plazo', 'Estado', 'Clasificación', 'Registrador', 'F. Creación', 'F. Actualización'];
 
-    $html = '<table border="1" cellpadding="2" cellspacing="0" width="100%">';
-    $html .= '<tr style="background-color: #8B1A1A; color: #FFFFFF; font-weight: bold; font-size: 6.5pt;">';
-    for ($i = 0; $i < count($encabezados); $i++) {
-        $html .= '<th width="' . $anchoColumnas[$i] . '" align="center">' . $encabezados[$i] . '</th>';
-    }
-    $html .= '</tr>';
-
+    escribirEncabezadoTablaPdf($pdf, $encabezados, $anchoColumnas);
+    $altoFila = 6;
+    $limiteY = 190;
     $contadorFilas = 0;
     foreach ($datos as $registro) {
         $estado = $registro['estado_actual'] ?? 'pendiente';
-        $colorFondo = obtenerColorFondoEstado($estado);
+        $valores = [
+            $registro['id'],
+            $registro['anio'],
+            $registro['mes'],
+            $registro['comuna_nombre'] ?? '',
+            $registro['nombre_corto'] ?? $registro['establecimiento_nombre'] ?? '',
+            $registro['codigo_serie'] ?? '',
+            $registro['codigo_hoja'] ?? '',
+            $registro['tipo_error'],
+            $registro['detalle_observacion'] ?? '',
+            $registro['plazo_entrega'] ?? '',
+            $estado,
+            $registro['clasificacion'] ?? '',
+            $registro['usuario_registro_nombre'] ?? '',
+            $registro['fecha_creacion'] ?? '',
+            $registro['fecha_actualizacion'] ?? ''
+        ];
 
-        $html .= '<tr style="background-color: ' . $colorFondo . '; font-size: 6pt;">';
-        $html .= '<td width="' . $anchoColumnas[0] . '" align="center">' . htmlspecialchars($registro['id']) . '</td>';
-        $html .= '<td width="' . $anchoColumnas[1] . '" align="center">' . htmlspecialchars($registro['anio']) . '</td>';
-        $html .= '<td width="' . $anchoColumnas[2] . '">' . htmlspecialchars($registro['mes']) . '</td>';
-        $html .= '<td width="' . $anchoColumnas[3] . '">' . htmlspecialchars($registro['comuna_nombre'] ?? '') . '</td>';
-        $html .= '<td width="' . $anchoColumnas[4] . '">' . htmlspecialchars($registro['nombre_corto'] ?? $registro['establecimiento_nombre'] ?? '') . '</td>';
-        $html .= '<td width="' . $anchoColumnas[5] . '">' . htmlspecialchars($registro['codigo_serie'] ?? '') . '</td>';
-        $html .= '<td width="' . $anchoColumnas[6] . '">' . htmlspecialchars($registro['codigo_hoja'] ?? '') . '</td>';
-        $html .= '<td width="' . $anchoColumnas[7] . '">' . htmlspecialchars($registro['tipo_error']) . '</td>';
-        $html .= '<td width="' . $anchoColumnas[8] . '">' . htmlspecialchars($registro['detalle_observacion'] ?? '') . '</td>';
-        $html .= '<td width="' . $anchoColumnas[9] . '" align="center">' . htmlspecialchars($registro['plazo_entrega'] ?? '') . '</td>';
-        $html .= '<td width="' . $anchoColumnas[10] . '" align="center">' . htmlspecialchars($estado) . '</td>';
-        $html .= '<td width="' . $anchoColumnas[11] . '">' . htmlspecialchars($registro['clasificacion'] ?? '') . '</td>';
-        $html .= '<td width="' . $anchoColumnas[12] . '">' . htmlspecialchars($registro['usuario_registro_nombre'] ?? '') . '</td>';
-        $html .= '<td width="' . $anchoColumnas[13] . '">' . htmlspecialchars($registro['fecha_creacion'] ?? '') . '</td>';
-        $html .= '<td width="' . $anchoColumnas[14] . '">' . htmlspecialchars($registro['fecha_actualizacion'] ?? '') . '</td>';
-        $html .= '</tr>';
+        if ($pdf->GetY() + $altoFila > $limiteY) {
+            $pdf->AddPage();
+            escribirEncabezadoTablaPdf($pdf, $encabezados, $anchoColumnas);
+        }
+
+        escribirFilaTablaPdf($pdf, $valores, $anchoColumnas, $altoFila, $contadorFilas % 2 === 0 ? [250, 250, 250] : [255, 255, 255]);
 
         $contadorFilas++;
-        if ($contadorFilas % 35 === 0) {
-            $html .= '</table>';
-            $pdf->writeHTML($html, true, false, true, false, '');
-            $pdf->AddPage();
-            $html = '<table border="1" cellpadding="2" cellspacing="0" width="100%">';
-            $html .= '<tr style="background-color: #8B1A1A; color: #FFFFFF; font-weight: bold; font-size: 6.5pt;">';
-            for ($i = 0; $i < count($encabezados); $i++) {
-                $html .= '<th width="' . $anchoColumnas[$i] . '" align="center">' . $encabezados[$i] . '</th>';
-            }
-            $html .= '</tr>';
-        }
     }
 
-    $html .= '</table>';
-    $html .= '<br/><p style="font-size: 7pt; color: #6B7280;">Total registros: ' . count($datos) . '</p>';
-    $pdf->writeHTML($html, true, false, true, false, '');
+    $pdf->Ln(2);
+    $pdf->SetFont('helvetica', '', 7);
+    $pdf->Cell(0, 5, 'Total registros: ' . count($datos), 0, 1, 'L');
 
     $nombreArchivo = "Observaciones_REM_{$timestamp}.pdf";
     $pdf->Output($nombreArchivo, 'D');
@@ -629,4 +619,45 @@ function obtenerColorFondoEstado($estado)
         default:
             return '#FFFFFF';
     }
+}
+
+function escribirEncabezadoTablaPdf($pdf, $encabezados, $anchos)
+{
+    $pdf->SetFont('helvetica', 'B', 5.8);
+    $pdf->SetFillColor(0, 82, 136);
+    $pdf->SetTextColor(255, 255, 255);
+    $pdf->SetDrawColor(190, 199, 210);
+    foreach ($encabezados as $i => $encabezado) {
+        $pdf->Cell($anchos[$i], 6, truncarTextoPdf($encabezado, $anchos[$i]), 1, 0, 'C', true);
+    }
+    $pdf->Ln();
+    $pdf->SetTextColor(30, 41, 59);
+    $pdf->SetFont('helvetica', '', 5.5);
+}
+
+function escribirFilaTablaPdf($pdf, $valores, $anchos, $alto, $relleno)
+{
+    $pdf->SetFillColor($relleno[0], $relleno[1], $relleno[2]);
+    $pdf->SetDrawColor(226, 232, 240);
+    foreach ($valores as $i => $valor) {
+        $alineacion = in_array($i, [0, 1, 9, 10], true) ? 'C' : 'L';
+        $pdf->Cell($anchos[$i], $alto, truncarTextoPdf($valor, $anchos[$i]), 1, 0, $alineacion, true);
+    }
+    $pdf->Ln();
+}
+
+function truncarTextoPdf($texto, $ancho)
+{
+    $texto = trim(preg_replace('/\s+/', ' ', (string)$texto));
+    $maximos = [
+        8 => 5, 11 => 6, 14 => 8, 15 => 9, 16 => 10, 17 => 11, 18 => 11,
+        20 => 13, 22 => 15, 28 => 20, 50 => 44
+    ];
+    $maximo = $maximos[$ancho] ?? max(8, (int)floor($ancho * 1.2));
+    $largo = function_exists('mb_strlen') ? mb_strlen($texto, 'UTF-8') : strlen($texto);
+    if ($largo <= $maximo) {
+        return $texto;
+    }
+    $corte = function_exists('mb_substr') ? mb_substr($texto, 0, max(1, $maximo - 1), 'UTF-8') : substr($texto, 0, max(1, $maximo - 1));
+    return $corte . '…';
 }

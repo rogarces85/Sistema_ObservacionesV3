@@ -228,11 +228,13 @@ const Reportes = (() => {
             destruirGrafico(categoria);
             setEstadoAnalitico(categoria, reporte.mensaje || 'No hay datos para los filtros seleccionados.', 'muted');
             renderizarTablaAnalitica(categoria, []);
+            renderizarDestacados(categoria, []);
             return;
         }
 
         setEstadoAnalitico(categoria, `${resultados.length.toLocaleString('es-CL')} filas agregadas`, 'success');
         renderizarGraficoAnalitico(categoria, resultados.slice(0, 15));
+        renderizarDestacados(categoria, resultados.slice(0, 3));
         renderizarTablaAnalitica(categoria, resultados);
     }
 
@@ -242,16 +244,100 @@ const Reportes = (() => {
 
         destruirGrafico(categoria);
         const config = CATEGORIAS_ANALITICAS[categoria] || {};
+
+        if (categoria === 'plazos_entrega' || categoria === 'uso_validador') {
+            const totalCritico = resultados.reduce((total, item) => total + Number(item.total || 0), 0);
+            const totalBueno = resultados.reduce((total, item) => {
+                if (categoria === 'plazos_entrega') return total + Number(item.dentro_plazo || 0);
+                return total + Number(item.usa_validador || 0);
+            }, 0);
+            const labels = categoria === 'plazos_entrega' ? ['Fuera de plazo', 'Dentro de plazo'] : ['Sin validador', 'Usa validador'];
+
+            graficos[categoria] = new ApexCharts(contenedor, {
+                chart: { type: 'donut', height: 320, toolbar: { show: false } },
+                series: [totalCritico, totalBueno],
+                labels,
+                colors: [config.color || '#ca8a04', '#16a34a'],
+                legend: { position: 'bottom' },
+                dataLabels: {
+                    formatter: valor => `${valor.toFixed(1)}%`
+                },
+                plotOptions: {
+                    pie: {
+                        donut: {
+                            size: '68%',
+                            labels: {
+                                show: true,
+                                total: {
+                                    show: true,
+                                    label: 'Total',
+                                    formatter: w => w.globals.seriesTotals.reduce((a, b) => a + b, 0).toLocaleString('es-CL')
+                                }
+                            }
+                        }
+                    }
+                },
+                tooltip: { y: { formatter: valor => Number(valor).toLocaleString('es-CL') } }
+            });
+            graficos[categoria].render();
+            return;
+        }
+
         graficos[categoria] = new ApexCharts(contenedor, {
-            chart: { type: 'bar', height: 320, toolbar: { show: false } },
+            chart: { type: 'bar', height: 340, toolbar: { show: false }, fontFamily: 'Inter, sans-serif' },
             series: [{ name: 'Total', data: resultados.map(item => Number(item.total || 0)) }],
-            xaxis: { categories: resultados.map(item => item.nombre || item.clave || 'Sin nombre') },
+            xaxis: {
+                categories: resultados.map(item => truncarEtiqueta(item.nombre || item.clave || 'Sin nombre', 36)),
+                labels: { style: { colors: '#64748b' } }
+            },
             colors: [config.color || '#0ea5e9'],
-            plotOptions: { bar: { horizontal: true, borderRadius: 4 } },
-            dataLabels: { enabled: true },
+            grid: { borderColor: '#e2e8f0', strokeDashArray: 4 },
+            plotOptions: { bar: { horizontal: true, borderRadius: 7, barHeight: '62%', distributed: false } },
+            dataLabels: {
+                enabled: true,
+                style: { fontWeight: 700 },
+                formatter: valor => Number(valor).toLocaleString('es-CL')
+            },
             tooltip: { y: { formatter: valor => Number(valor).toLocaleString('es-CL') } }
         });
         graficos[categoria].render();
+    }
+
+    function renderizarDestacados(categoria, resultados) {
+        const contenedor = document.querySelector(`[data-destacados-categoria="${categoria}"]`);
+        if (!contenedor) return;
+
+        if (!resultados.length) {
+            contenedor.innerHTML = '<div class="text-muted text-center py-4">Sin destacados</div>';
+            return;
+        }
+
+        contenedor.innerHTML = `
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <h5 class="mb-0">Top 3</h5>
+                <span class="badge bg-primary-lt">${escapeHtml(CATEGORIAS_ANALITICAS[categoria]?.titulo || 'Categoría')}</span>
+            </div>
+            ${resultados.map((item, indice) => `
+                <div class="reportes-analytics__top-item">
+                    <div class="d-flex align-items-start gap-2">
+                        <span class="reportes-analytics__top-rank">${indice + 1}</span>
+                        <div class="flex-fill">
+                            <div class="fw-bold">${escapeHtml(item.nombre || item.clave || 'Sin nombre')}</div>
+                            <div class="small text-muted">${escapeHtml(item.comuna || 'Sin comuna asociada')}</div>
+                            <div class="d-flex align-items-center justify-content-between mt-2">
+                                <span class="text-muted small">Total</span>
+                                <span class="h3 mb-0">${Number(item.total || 0).toLocaleString('es-CL')}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('')}
+        `;
+    }
+
+    function truncarEtiqueta(texto, maximo) {
+        const valor = String(texto || '');
+        return valor.length > maximo ? `${valor.substring(0, maximo - 1)}…` : valor;
     }
 
     function destruirGrafico(categoria) {

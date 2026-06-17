@@ -141,34 +141,58 @@ $listaEstados = [
             <div class="card-body">
                 <div class="row g-3 mb-4" id="indicadoresAnaliticos">
                     <div class="col-sm-6 col-lg-3">
-                        <div class="card card-sm reportes-analytics__metric">
+                        <div class="card card-sm reportes-analytics__metric reportes-analytics__metric--primary">
                             <div class="card-body">
-                                <div class="text-muted">Observaciones analizadas</div>
-                                <div class="h2 mb-0" data-indicador="total_observaciones">0</div>
+                                <div class="d-flex align-items-center gap-3">
+                                    <span class="reportes-analytics__metric-icon"><?php echo tablerIcon('database'); ?></span>
+                                    <div>
+                                        <div class="text-muted">Observaciones analizadas</div>
+                                        <div class="h2 mb-0" data-indicador="total_observaciones">0</div>
+                                        <div class="small text-muted">Base del análisis</div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                     <div class="col-sm-6 col-lg-3">
-                        <div class="card card-sm reportes-analytics__metric">
+                        <div class="card card-sm reportes-analytics__metric reportes-analytics__metric--danger">
                             <div class="card-body">
-                                <div class="text-muted">Errores</div>
-                                <div class="h2 mb-0 text-danger" data-indicador="total_errores">0</div>
+                                <div class="d-flex align-items-center gap-3">
+                                    <span class="reportes-analytics__metric-icon"><?php echo tablerIcon('alert-triangle'); ?></span>
+                                    <div>
+                                        <div class="text-muted">Errores</div>
+                                        <div class="h2 mb-0 text-danger" data-indicador="total_errores">0</div>
+                                        <div class="small text-muted">Observaciones con error</div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                     <div class="col-sm-6 col-lg-3">
-                        <div class="card card-sm reportes-analytics__metric">
+                        <div class="card card-sm reportes-analytics__metric reportes-analytics__metric--warning">
                             <div class="card-body">
-                                <div class="text-muted">Fuera de plazo</div>
-                                <div class="h2 mb-0 text-warning" data-indicador="total_fuera_plazo">0</div>
+                                <div class="d-flex align-items-center gap-3">
+                                    <span class="reportes-analytics__metric-icon"><?php echo tablerIcon('clock-exclamation'); ?></span>
+                                    <div>
+                                        <div class="text-muted">Fuera de plazo</div>
+                                        <div class="h2 mb-0 text-warning" data-indicador="total_fuera_plazo">0</div>
+                                        <div class="small text-muted">Entregas atrasadas</div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                     <div class="col-sm-6 col-lg-3">
-                        <div class="card card-sm reportes-analytics__metric">
+                        <div class="card card-sm reportes-analytics__metric reportes-analytics__metric--purple">
                             <div class="card-body">
-                                <div class="text-muted">Sin validador</div>
-                                <div class="h2 mb-0 text-purple" data-indicador="total_sin_validador">0</div>
+                                <div class="d-flex align-items-center gap-3">
+                                    <span class="reportes-analytics__metric-icon"><?php echo tablerIcon('shield-x'); ?></span>
+                                    <div>
+                                        <div class="text-muted">Sin validador</div>
+                                        <div class="h2 mb-0 text-purple" data-indicador="total_sin_validador">0</div>
+                                        <div class="small text-muted">Registros sin validación</div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -205,7 +229,16 @@ $listaEstados = [
                             </button>
                         </div>
                         <div class="reportes-analytics__estado text-muted" data-estado-categoria="<?php echo $categoria; ?>">Aplique filtros para cargar esta categoría.</div>
-                        <div class="reportes-analytics__chart" id="grafico-<?php echo $categoria; ?>"></div>
+                        <div class="row g-3 align-items-stretch">
+                            <div class="col-lg-8">
+                                <div class="reportes-analytics__chart" id="grafico-<?php echo $categoria; ?>"></div>
+                            </div>
+                            <div class="col-lg-4">
+                                <div class="reportes-analytics__top" data-destacados-categoria="<?php echo $categoria; ?>">
+                                    <div class="text-muted text-center py-4">Sin destacados</div>
+                                </div>
+                            </div>
+                        </div>
                         <div class="table-responsive mt-3">
                             <table class="table table-vcenter table-sm card-table" data-tabla-categoria="<?php echo $categoria; ?>">
                                 <thead>

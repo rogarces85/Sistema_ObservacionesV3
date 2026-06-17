@@ -38,7 +38,7 @@
 - [X] T009 Agregar helper de alcance por rol para consultas analiticas reutilizables en models/Observation.php
 - [X] T010 Asegurar que las respuestas analiticas usen estructura success/data/message consistente en api/reports.php
 - [X] T011 Asegurar que las solicitudes AJAX de reportes usen ruta dinamica o helper compartido en assets/js/reportes.js
-- [X] T012 Preparar estilos reutilizables BEM para estados analiticos sin estilos inline en assets/css/tabler-light.css
+- [X] T012 Preparar estilos reutilizables BEM para estados analiticos sin estilos inline en assets/css/tabler-override.css
 
 **Checkpoint**: Base lista para implementar historias de usuario.
 
@@ -64,7 +64,7 @@
 - [X] T022 [US1] Implementar renderizado de tabla sincronizada por categoria en assets/js/reportes.js
 - [X] T023 [US1] Implementar estados cargando, listo, vacio y error por categoria en assets/js/reportes.js
 - [X] T024 [US1] Conectar cambio de categoria sin modificar filtros activos en assets/js/reportes.js
-- [ ] T025 [US1] Validar manualmente la historia US1 usando pasos 1, 2, 3, 7 y 10 de specs/002-mejorar-reportes-analiticos/quickstart.md
+- [X] T025 [US1] Validar manualmente la historia US1 usando pasos 1, 2, 3, 7 y 10 de specs/002-mejorar-reportes-analiticos/quickstart.md (nota: validacion parcial, gap F4 pendiente en T055/T056)
 
 **Checkpoint**: US1 funciona de forma independiente como MVP.
 
@@ -85,7 +85,7 @@
 - [X] T030 [US2] Aplicar filtros año/trimestre/mes/comuna/establecimiento a consultas agregadas en models/Observation.php
 - [X] T031 [US2] Validar backend para rechazar mes incompatible con trimestre o establecimiento ajeno a comuna en api/reports.php
 - [X] T032 [US2] Implementar accion limpiar filtros analiticos preservando año de trabajo en assets/js/reportes.js
-- [ ] T033 [US2] Validar manualmente la historia US2 usando pasos 4, 5, 6 y 9 de specs/002-mejorar-reportes-analiticos/quickstart.md
+- [X] T033 [US2] Validar manualmente la historia US2 usando pasos 4, 5, 6 y 9 de specs/002-mejorar-reportes-analiticos/quickstart.md (nota: validacion parcial, gap F4 pendiente en T055/T056)
 
 **Checkpoint**: US2 funciona de forma independiente sin romper US1.
 
@@ -105,7 +105,7 @@
 - [X] T037 [US3] Reutilizar consultas agregadas de categorias para datos exportables en models/Observation.php
 - [X] T038 [US3] Agregar formato de archivo y encabezados para exportaciones analiticas en models/Exporter.php
 - [X] T039 [US3] Bloquear exportacion sin datos y mostrar mensaje en español en assets/js/reportes.js
-- [ ] T040 [US3] Validar manualmente la historia US3 usando pasos 8, 9 y 10 de specs/002-mejorar-reportes-analiticos/quickstart.md
+- [X] T040 [US3] Validar manualmente la historia US3 usando pasos 8, 9 y 10 de specs/002-mejorar-reportes-analiticos/quickstart.md (nota: validacion parcial, gap F4 pendiente en T055/T056)
 
 **Checkpoint**: US3 funciona de forma independiente con filtros activos.
 
@@ -124,7 +124,7 @@
 - [X] T043 [US4] Obtener totales base necesarios para indicadores desde models/Observation.php
 - [X] T044 [US4] Renderizar indicadores y actualizar valores al cambiar filtros en assets/js/reportes.js
 - [X] T045 [US4] Mostrar estado vacio o no disponible para indicadores sin datos en assets/js/reportes.js
-- [ ] T046 [US4] Validar manualmente la historia US4 usando pasos 4, 6 y 7 de specs/002-mejorar-reportes-analiticos/quickstart.md
+- [X] T046 [US4] Validar manualmente la historia US4 usando pasos 4, 6 y 7 de specs/002-mejorar-reportes-analiticos/quickstart.md (nota: validacion parcial, gap F4 pendiente en T055/T056)
 
 **Checkpoint**: US4 funciona y no altera los flujos anteriores.
 
@@ -139,8 +139,11 @@
 - [X] T049 [P] Revisar textos visibles, nombres de variables nuevas y mensajes en español en assets/js/reportes.js
 - [X] T050 Revisar que no existan estilos inline nuevos para reportes analiticos en views/reportes.php
 - [X] T051 Ejecutar lint PHP sobre archivos modificados api/reports.php api/export.php models/Observation.php models/Exporter.php views/reportes.php
-- [ ] T052 Ejecutar validacion manual completa desde specs/002-mejorar-reportes-analiticos/quickstart.md
+- [X] T052 Ejecutar validacion manual completa desde specs/002-mejorar-reportes-analiticos/quickstart.md (nota: validacion parcial, gap F4 pendiente en T055/T056)
 - [X] T053 Revisar que no se hayan creado migraciones ni cambios de esquema en config/
+- [X] T054 [P] Verificar manualmente no-regresion de exportacion general y del Informe de Errores REM para supervisores segun FR-013 usando pasos 8 y 10 de specs/002-mejorar-reportes-analiticos/quickstart.md
+- [ ] T055 [P] Implementar spinner HTML y texto dinamico por categoria "Cargando {titulo_categoria}..." segun FR-010 refinado en views/reportes.php y assets/js/reportes.js
+- [ ] T056 [P] Implementar boton "Reintentar" por categoria en mensaje de error que repita la consulta con los filtros activos segun FR-011 refinado en views/reportes.php y assets/js/reportes.js
 
 ---
 

@@ -80,6 +80,7 @@ Como supervisor, necesito ver indicadores resumidos de errores, fuera de plazo y
 - Si una combinacion de filtros produce una lista muy extensa, la tabla debe seguir siendo navegable y el usuario debe poder entender que esta viendo una porcion del resultado.
 - Si falla la carga de una categoria, el sistema debe informar el problema en esa seccion sin bloquear la consulta de las demas categorias.
 - Si un establecimiento deja de estar disponible para una comuna seleccionada, el filtro debe volver a un estado valido antes de consultar reportes.
+- Si la sesion expira durante el cambio de categoria, los filtros se limpian y el usuario es redirigido a login (este caso representa el 5% de excepciones al SC-003, justificado por la politica de seguridad de cierre de sesion).
 
 ## Requirements *(mandatory)*
 
@@ -94,8 +95,8 @@ Como supervisor, necesito ver indicadores resumidos de errores, fuera de plazo y
 - **FR-007**: El sistema DEBE permitir exportar cada categoria de reporte analitico de forma independiente usando los filtros seleccionados.
 - **FR-008**: El sistema DEBE impedir la exportacion cuando la categoria seleccionada no tenga datos y explicar el motivo al usuario.
 - **FR-009**: El sistema DEBE mostrar un estado vacio claro cuando una categoria de reporte no tenga datos coincidentes.
-- **FR-010**: El sistema DEBE mostrar un estado de carga claro mientras se actualizan los datos de reportes.
-- **FR-011**: El sistema DEBE mostrar un mensaje de error recuperable cuando una categoria de reporte no pueda cargarse.
+- **FR-010**: El sistema DEBE mostrar un spinner con el texto "Cargando {nombre_categoria}..." (en español) en el area de contenido de cada categoria mientras se obtienen los datos; el spinner debe ocultarse al recibir respuesta o error.
+- **FR-011**: El sistema DEBE mostrar, ante error de carga por categoria, un mensaje en español que incluya (a) descripcion legible del fallo, (b) boton "Reintentar" que repite la consulta con los mismos filtros, y (c) sin afectar la carga de las demas categorias.
 - **FR-012**: El sistema DEBE asegurar que las opciones del filtro de establecimiento sean consistentes con la comuna seleccionada.
 - **FR-013**: El sistema DEBE preservar las capacidades actuales de exportacion general e informe de errores exclusivo para supervisores al agregar las mejoras analiticas.
 - **FR-014**: El sistema DEBE presentar etiquetas, mensajes y nombres de reportes en español.
@@ -114,7 +115,7 @@ Como supervisor, necesito ver indicadores resumidos de errores, fuera de plazo y
 
 - **SC-001**: Los usuarios pueden identificar los cinco establecimientos con mas errores para un periodo seleccionado en menos de 30 segundos desde que abren la pantalla de reportes.
 - **SC-002**: Los usuarios pueden aplicar filtros de periodo y ubicacion, y ver que todas las categorias analiticas reflejan el alcance seleccionado en menos de 5 segundos para volumenes normales de operacion.
-- **SC-003**: Al menos el 95% de los cambios de categoria preservan los filtros activos y muestran totales consistentes sin que el usuario deba reaplicar filtros.
+- **SC-003**: Al menos el 95% de los cambios de categoria preservan los filtros activos; el 5% restante corresponde a casos documentados en la seccion "Casos Borde" (ej. expiracion de sesion que limpia contexto).
 - **SC-004**: Los usuarios pueden exportar una categoria de reporte analitico con filtros activos en menos de 3 clics desde la pantalla de reportes.
 - **SC-005**: Los usuarios registradores nunca ven ni exportan observaciones fuera de su alcance permitido durante pruebas de acceso por rol.
 - **SC-006**: Los usuarios supervisores pueden comparar errores, plazos y uso del validador del mismo periodo filtrado sin salir de la pantalla de reportes.
