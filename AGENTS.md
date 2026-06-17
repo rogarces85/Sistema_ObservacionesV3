@@ -1,9 +1,9 @@
 <!-- SPECKIT START -->
-Implementation plan: specs/002-mejorar-reportes-analiticos/plan.md
-Research: specs/002-mejorar-reportes-analiticos/research.md
-Data model: specs/002-mejorar-reportes-analiticos/data-model.md
-API contracts: specs/002-mejorar-reportes-analiticos/contracts/
-Quickstart: specs/002-mejorar-reportes-analiticos/quickstart.md
+Implementation plan: specs/003-f4-categoria-ux/plan.md
+Research: specs/003-f4-categoria-ux/research.md
+Data model: specs/003-f4-categoria-ux/data-model.md
+API contracts: specs/003-f4-categoria-ux/contracts/
+Quickstart: specs/003-f4-categoria-ux/quickstart.md
 
 Key constraints:
 - BD existente y poblada — NO modificar esquema ni migraciones
