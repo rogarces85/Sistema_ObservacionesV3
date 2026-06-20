@@ -2,6 +2,9 @@
 
 # Archivos de configuración sensibles
 config/database.php
+.env
+.env.*
+!.env.example
 
 # Directorio de uploads
 uploads/*
