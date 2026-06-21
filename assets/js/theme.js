@@ -8,6 +8,8 @@
   const html = document.documentElement;
   const body = document.body;
   const THEME_KEY = 'rem.theme';
+  const THEME_COOKIE_KEY = 'rem_theme';
+  const LEGACY_THEME_COOKIE_KEY = 'rem.theme';
   const SIDEBAR_KEY = 'rem.sidebar';
   const THEME_MAX_AGE = 60 * 60 * 24 * 365;
 
@@ -21,12 +23,16 @@
   }
 
   function setThemeCookie(theme) {
-    document.cookie = THEME_KEY + '=' + encodeURIComponent(theme) + '; path=/; max-age=' + THEME_MAX_AGE + '; samesite=lax';
+    document.cookie = THEME_COOKIE_KEY + '=' + encodeURIComponent(theme) + '; path=/; max-age=' + THEME_MAX_AGE + '; samesite=lax';
+    document.cookie = LEGACY_THEME_COOKIE_KEY + '=; path=/; max-age=0; samesite=lax';
   }
 
   function getStoredTheme() {
-    const cookieTheme = getCookie(THEME_KEY);
+    const cookieTheme = getCookie(THEME_COOKIE_KEY) || getCookie(LEGACY_THEME_COOKIE_KEY);
     if (isValidTheme(cookieTheme)) return cookieTheme;
+
+    const currentTheme = html.getAttribute('data-bs-theme');
+    if (isValidTheme(currentTheme)) return currentTheme;
 
     try {
       const localTheme = localStorage.getItem(THEME_KEY);
@@ -45,10 +51,10 @@
     try {
       localStorage.setItem(THEME_KEY, theme);
     } catch (e) { /* localStorage may be unavailable */ }
-    const icon = document.querySelector('#themeToggle i');
-    if (icon) {
+    const icons = document.querySelectorAll('#themeToggle i, #themeToggleFab i');
+    icons.forEach(function (icon) {
       icon.className = theme === 'dark' ? 'ti ti-sun' : 'ti ti-moon';
-    }
+    });
     if (previousTheme !== theme) {
       window.dispatchEvent(new CustomEvent('rem:theme-changed', { detail: { theme } }));
     }

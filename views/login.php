@@ -1,5 +1,5 @@
 <?php
-$initialTheme = $_COOKIE['rem.theme'] ?? 'light';
+$initialTheme = $_COOKIE['rem_theme'] ?? $_COOKIE['rem.theme'] ?? 'light';
 $initialTheme = in_array($initialTheme, ['light', 'dark'], true) ? $initialTheme : 'light';
 ?>
 <!DOCTYPE html>

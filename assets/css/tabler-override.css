@@ -1025,6 +1025,32 @@ a:focus-visible {
   transform: translateY(-2px);
 }
 
+.rem-themed-surface {
+  background-color: var(--tblr-bg-surface-2);
+  border: 1px solid var(--tblr-border-color-translucent);
+  color: var(--tblr-body-color);
+}
+
+.rem-detail-tile {
+  background-color: rgba(var(--tblr-primary-rgb), 0.08);
+  border: 1px solid rgba(var(--tblr-primary-rgb), 0.12);
+}
+
+.rem-detail-tile--warning {
+  background-color: rgba(var(--tblr-warning-rgb), 0.12);
+  border-color: rgba(var(--tblr-warning-rgb), 0.18);
+}
+
+.rem-detail-tile--success {
+  background-color: rgba(var(--tblr-success-rgb), 0.10);
+  border-color: rgba(var(--tblr-success-rgb), 0.16);
+}
+
+.rem-detail-tile--info {
+  background-color: rgba(var(--tblr-info-rgb), 0.10);
+  border-color: rgba(var(--tblr-info-rgb), 0.16);
+}
+
 /* === Explicit dark theme refinements === */
 [data-bs-theme="dark"] .card,
 [data-bs-theme="dark"] .dropdown-menu,

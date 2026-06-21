@@ -13,7 +13,7 @@ $userRole = $_SESSION['rol'] ?? '';
 $userInitials = strtoupper(substr($userName, 0, 2));
 $appName = defined('APP_NAME') ? APP_NAME : 'Sistema REM';
 $appVersion = defined('APP_VERSION') ? APP_VERSION : '1.0';
-$initialTheme = $_COOKIE['rem.theme'] ?? 'light';
+$initialTheme = $_COOKIE['rem_theme'] ?? $_COOKIE['rem.theme'] ?? 'light';
 $initialTheme = in_array($initialTheme, ['light', 'dark'], true) ? $initialTheme : 'light';
 
 $pageTitles = [

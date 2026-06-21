@@ -240,7 +240,7 @@ global $TIPOS_ERROR, $MESES;
                             <h6 class="card-title">Información General</h6>
                         </div>
                         <div class="card-body">
-                            <div class="mb-3 p-3 bg-light rounded">
+                            <div class="mb-3 p-3 rounded rem-themed-surface">
                                 <label class="form-label mb-0">Registrado por:</label>
                                 <p class="fs-5 fw-bold mb-0"><?php echo htmlspecialchars($_SESSION['nombre_completo'] ?? 'Usuario'); ?></p>
                             </div>
@@ -273,7 +273,7 @@ global $TIPOS_ERROR, $MESES;
                                 <div class="col-md-6">
                                     <label class="form-label">Código Establecimiento</label>
                                     <input type="text" id="codigo_establecimiento" name="codigo_establecimiento"
-                                        class="form-control bg-light" readonly placeholder="Se cargará automáticamente">
+                                        class="form-control" readonly placeholder="Se cargará automáticamente">
                                 </div>
                             </div>
                         </div>
@@ -404,7 +404,7 @@ global $TIPOS_ERROR, $MESES;
                             <i class="ti ti-file-upload me-1"></i>Seleccionar Archivo Excel
                         </button>
                     </div>
-                    <div class="d-flex align-items-center justify-content-between p-4 bg-light rounded">
+                    <div class="d-flex align-items-center justify-content-between p-4 rounded rem-themed-surface">
                         <div>
                             <p class="fw-semibold">¿No tiene la plantilla?</p>
                             <p class="text-secondary small">Descargue la plantilla Excel (.xlsx) con ejemplos</p>
@@ -424,7 +424,7 @@ global $TIPOS_ERROR, $MESES;
                         </div>
                         <div class="row g-3 text-center" id="importSummary">
                             <div class="col-4">
-                                <div class="p-3 bg-light rounded">
+                                <div class="p-3 rounded rem-themed-surface">
                                     <div id="totalRows" class="h3 mb-0">0</div>
                                     <div class="text-secondary small">Total filas</div>
                                 </div>
@@ -502,7 +502,7 @@ global $TIPOS_ERROR, $MESES;
             </div>
             <div class="modal-body">
                 <!-- Header con estado -->
-                <div class="d-flex align-items-center justify-content-between mb-4 p-4 rounded bg-light">
+                <div class="d-flex align-items-center justify-content-between mb-4 p-4 rounded rem-themed-surface">
                     <div>
                         <h4 class="h5 mb-1" id="detailEstablecimiento">-</h4>
                         <p class="text-secondary mb-0" id="detailComuna">-</p>
@@ -513,72 +513,79 @@ global $TIPOS_ERROR, $MESES;
 
                 <div class="row g-3 mb-4">
                     <div class="col-md-6">
-                        <div class="p-3 rounded bg-primary-light">
+                        <div class="p-3 rounded rem-detail-tile">
                             <div class="small fw-bold text-primary mb-1">Mes / Año</div>
                             <div class="fw-semibold" id="detailMesAnio">-</div>
                         </div>
                     </div>
                     <div class="col-md-6">
-                        <div class="p-3 rounded bg-purple-light">
-                    <div class="text-xs text-violet-600 uppercase font-bold mb-1">📄 Referencia</div>
-                    <div id="detailReferencia" class="font-semibold text-slate-800">-</div>
+                        <div class="p-3 rounded rem-detail-tile rem-detail-tile--info">
+                            <div class="small fw-bold text-primary mb-1">Referencia</div>
+                            <div id="detailReferencia" class="fw-semibold">-</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="p-3 rounded rem-detail-tile rem-detail-tile--warning">
+                            <div class="small fw-bold text-warning mb-1">Tipo de Error</div>
+                            <div id="detailTipoError" class="fw-semibold">-</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="p-3 rounded rem-detail-tile rem-detail-tile--success">
+                            <div class="small fw-bold text-success mb-1">Plazo Entrega</div>
+                            <div id="detailPlazo" class="fw-semibold">-</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="p-3 rounded rem-detail-tile rem-detail-tile--info">
+                            <div class="small fw-bold text-info mb-1">Usa Validador</div>
+                            <div id="detailValidador" class="fw-semibold">-</div>
+                        </div>
+                    </div>
                 </div>
-                <div class="p-4 rounded-xl bg-amber-50">
-                    <div class="text-xs text-amber-600 uppercase font-bold mb-1">⚠️ Tipo de Error</div>
-                    <div id="detailTipoError" class="font-semibold text-slate-800">-</div>
-                </div>
-                <div class="p-4 rounded-xl bg-emerald-50">
-                    <div class="text-xs text-emerald-600 uppercase font-bold mb-1">📆 Plazo Entrega</div>
-                    <div id="detailPlazo" class="font-semibold text-slate-800">-</div>
-                </div>
-                <div class="p-4 rounded-xl bg-teal-50">
-                    <div class="text-xs text-teal-600 uppercase font-bold mb-1">✅ Usa Validador</div>
-                    <div id="detailValidador" class="font-semibold text-slate-800">-</div>
-                </div>
-            </div>
 
             <!-- Detalle de la observación -->
-            <div class="mb-6">
-                <div class="text-sm font-bold text-slate-700 mb-2">📝 Detalle de la Observación</div>
-                <div id="detailObservacion" class="p-4 bg-slate-100 rounded-xl text-sm text-slate-700 min-h-[80px]">-
+            <div class="mb-4">
+                <div class="small fw-bold text-secondary mb-2">Detalle de la Observación</div>
+                <div id="detailObservacion" class="p-4 rounded rem-themed-surface small" style="min-height: 80px;">-
                 </div>
             </div>
 
             <!-- Respuesta (si existe) -->
-            <div id="detailRespuestaSection" class="mb-6 hidden">
-                <div class="text-sm font-bold text-slate-700 mb-2">💬 Respuesta / Justificación</div>
-                <div id="detailRespuesta" class="p-4 bg-emerald-50 rounded-xl text-sm text-slate-700 min-h-[60px]">-
+            <div id="detailRespuestaSection" class="mb-4 hidden">
+                <div class="small fw-bold text-secondary mb-2">Respuesta / Justificación</div>
+                <div id="detailRespuesta" class="p-4 rounded rem-detail-tile rem-detail-tile--success small" style="min-height: 60px;">-
                 </div>
             </div>
 
             <!-- Clasificación y Detalle Error (solo visibles si el supervisor los completó) -->
-            <div id="detailClasificacionSection" class="mb-6 hidden">
-                <div class="text-sm font-bold text-slate-700 mb-2">📋 Clasificación de Respuesta</div>
-                <div id="detailClasificacion" class="p-4 bg-sky-50 rounded-xl text-sm text-slate-700">-</div>
+            <div id="detailClasificacionSection" class="mb-4 hidden">
+                <div class="small fw-bold text-secondary mb-2">Clasificación de Respuesta</div>
+                <div id="detailClasificacion" class="p-4 rounded rem-detail-tile rem-detail-tile--info small">-</div>
             </div>
-            <div id="detailDetalleErrorSection" class="mb-6 hidden">
-                <div class="text-sm font-bold text-slate-700 mb-2">🔍 Detalle Error</div>
-                <div id="detailDetalleError" class="p-4 bg-sky-50 rounded-xl text-sm text-slate-700">-</div>
+            <div id="detailDetalleErrorSection" class="mb-4 hidden">
+                <div class="small fw-bold text-secondary mb-2">Detalle Error</div>
+                <div id="detailDetalleError" class="p-4 rounded rem-detail-tile rem-detail-tile--info small">-</div>
             </div>
 
             <!-- Info de registro -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-xl border border-slate-200">
-                <div>
-                    <div class="text-xs text-slate-400 uppercase">Registrado por</div>
-                    <div id="detailRegistradoPor" class="font-semibold text-slate-700">-</div>
-                    <div id="detailFechaRegistro" class="text-xs text-slate-400">-</div>
-                    <div id="detailFechaActualizacion" class="text-xs text-slate-400 mt-1">-</div>
+            <div class="row g-3 p-4 rounded rem-themed-surface">
+                <div class="col-md-6">
+                    <div class="small text-secondary text-uppercase">Registrado por</div>
+                    <div id="detailRegistradoPor" class="fw-semibold">-</div>
+                    <div id="detailFechaRegistro" class="small text-secondary">-</div>
+                    <div id="detailFechaActualizacion" class="small text-secondary mt-1">-</div>
                 </div>
-                <div id="detailSupervisorInfo" class="hidden">
-                    <div class="text-xs text-slate-400 uppercase">Supervisado por</div>
-                    <div id="detailSupervisadoPor" class="font-semibold text-slate-700">-</div>
-                    <div id="detailFechaSupervision" class="text-xs text-slate-400">-</div>
+                <div id="detailSupervisorInfo" class="col-md-6 hidden">
+                    <div class="small text-secondary text-uppercase">Supervisado por</div>
+                    <div id="detailSupervisadoPor" class="fw-semibold">-</div>
+                    <div id="detailFechaSupervision" class="small text-secondary">-</div>
                 </div>
             </div>
 
             <!-- Información adicional -->
-            <div class="mt-4 flex flex-wrap gap-2">
-                <span id="detailId" class="text-xs text-slate-400">ID: -</span>
+            <div class="mt-4 d-flex flex-wrap gap-2">
+                <span id="detailId" class="small text-secondary">ID: -</span>
             </div>
         </div>
     </div>
@@ -972,7 +979,7 @@ global $TIPOS_ERROR, $MESES;
         const previewBody = document.getElementById('previewBody');
         const previewItems = data.preview.slice(0, 5);
         previewBody.innerHTML = previewItems.map(item => `
-            <tr class="border-b border-slate-100">
+            <tr>
                 <td class="p-2">${item.mes}</td>
                 <td class="p-2">${item.establecimiento_nombre}</td>
                 <td class="p-2">${item.tipo_error}</td>
@@ -986,8 +993,8 @@ global $TIPOS_ERROR, $MESES;
 
         if (data.preview.length > 5) {
             previewBody.innerHTML += `
-                <tr class="border-b border-slate-100">
-                    <td colspan="8" class="p-2 text-center text-slate-400">
+                <tr>
+                    <td colspan="8" class="p-2 text-center text-secondary">
                         ... y ${data.preview.length - 5} más
                     </td>
                 </tr>
