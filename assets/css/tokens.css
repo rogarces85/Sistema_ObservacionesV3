@@ -1,0 +1,170 @@
+/**
+ * Sistema de Observaciones REM - Design Tokens
+ * Capa de tokens extendidos sobre Tabler 1.4. Mantiene solo variables CSS
+ * (sin Sass ni build pipeline) y es compatible con la decision de no-Sass.
+ */
+
+:root {
+  /* === Tabler brand === */
+  --tblr-primary: #0ea5e9;
+  --tblr-primary-rgb: 14, 165, 233;
+  --tblr-primary-fg: #ffffff;
+  --tblr-secondary: #1e3a5f;
+  --tblr-secondary-rgb: 30, 58, 95;
+  --tblr-secondary-fg: #ffffff;
+
+  /* === Status palette === */
+  --tblr-success: #16a34a;
+  --tblr-success-rgb: 22, 163, 74;
+  --tblr-success-fg: #ffffff;
+  --tblr-warning: #f59e0b;
+  --tblr-warning-rgb: 245, 158, 11;
+  --tblr-warning-fg: #111827;
+  --tblr-danger: #ef4444;
+  --tblr-danger-rgb: 239, 68, 68;
+  --tblr-danger-fg: #ffffff;
+  --tblr-info: #0ea5e9;
+  --tblr-info-rgb: 14, 165, 233;
+  --tblr-info-fg: #ffffff;
+  --tblr-muted: #64748b;
+  --tblr-muted-rgb: 100, 116, 139;
+
+  /* === Surfaces === */
+  --tblr-bg-surface: #ffffff;
+  --tblr-bg-surface-2: #f6f8fb;
+  --tblr-body-bg: #f6f8fb;
+  --tblr-body-color: #1e293b;
+  --tblr-heading-color: #0f172a;
+  --tblr-border-color: #e2e8f0;
+  --tblr-border-color-translucent: rgba(15, 23, 42, 0.08);
+  --rem-table-stripe-bg: rgba(14, 165, 233, 0.035);
+  --rem-table-hover-bg: rgba(14, 165, 233, 0.055);
+  --tblr-input-bg: #ffffff;
+
+  /* === Cards === */
+  --tblr-card-border-color: #e2e8f0;
+  --tblr-card-bg: #ffffff;
+  --tblr-card-box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
+  --tblr-card-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
+
+  /* === Radius === */
+  --tblr-border-radius: 0.5rem;
+  --tblr-border-radius-sm: 0.375rem;
+  --tblr-border-radius-lg: 0.75rem;
+  --tblr-border-radius-pill: 9999px;
+
+  /* === Shadows === */
+  --tblr-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --tblr-shadow: 0 2px 6px rgba(15, 23, 42, 0.06);
+  --tblr-shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.10);
+  --tblr-fab-shadow: 0 16px 30px rgba(14, 165, 233, 0.26);
+
+  /* === Typography === */
+  --tblr-font-family-base: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --tblr-font-size-base: 0.9375rem;
+  --tblr-font-weight-medium: 500;
+  --tblr-font-weight-semibold: 600;
+  --tblr-font-weight-bold: 700;
+
+  /* === Spacing === */
+  --tblr-spacer: 1rem;
+  --tblr-spacer-1: 0.25rem;
+  --tblr-spacer-2: 0.5rem;
+  --tblr-spacer-3: 0.75rem;
+  --tblr-spacer-4: 1rem;
+  --tblr-spacer-5: 1.25rem;
+  --tblr-spacer-6: 1.5rem;
+  --tblr-spacer-8: 2rem;
+
+  /* === REM brand alias === */
+  --rem-radius: 0.5rem;
+  --rem-radius-sm: 0.375rem;
+  --rem-radius-lg: 0.75rem;
+  --rem-shadow-card: 0 2px 6px rgba(15, 23, 42, 0.04);
+  --rem-shadow-card-hover: 0 10px 24px rgba(15, 23, 42, 0.08);
+  --rem-status-pendiente: #f59e0b;
+  --rem-status-aprobado: #16a34a;
+  --rem-status-error: #ef4444;
+  --rem-status-justificado: #0ea5e9;
+  --rem-transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --rem-transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --rem-grad-hero: linear-gradient(135deg, #0ea5e9 0%, #1e3a5f 100%);
+  --rem-grad-card-blue: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  --rem-grad-card-amber: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  --rem-grad-card-emerald: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+  --rem-grad-card-rose: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%);
+
+  /* === Charts === */
+  --chart-grid: rgba(226, 232, 240, 0.72);
+  --chart-tick: #64748b;
+  --chart-legend: #1e293b;
+  --chart-tooltip-bg: #ffffff;
+  --chart-tooltip-text: #1e293b;
+  --chart-tooltip-muted: #475569;
+  --chart-tooltip-border: #e2e8f0;
+  --chart-point: #0ea5e9;
+  --chart-point-border: #ffffff;
+  --chart-export-bg: rgba(255, 255, 255, 0.88);
+  --chart-export-bg-hover: #ffffff;
+
+  /* === Sidebar === */
+  --tblr-sidebar-width: 260px;
+  --tblr-sidebar-mini-width: 72px;
+  --tblr-sidebar-bg: #0f172a;
+  --tblr-sidebar-color: #cbd5e1;
+  --tblr-sidebar-active-bg: rgba(14, 165, 233, 0.18);
+  --tblr-sidebar-active-color: #ffffff;
+  --tblr-sidebar-hover-bg: rgba(255, 255, 255, 0.06);
+
+  /* === Header === */
+  --tblr-header-height: 64px;
+  --tblr-header-bg: #ffffff;
+  --tblr-header-shadow: 0 1px 0 rgba(15, 23, 42, 0.05);
+  color-scheme: light;
+}
+
+/* === Dark mode (toggled by theme.js) === */
+[data-bs-theme="dark"] {
+  --tblr-body-bg: #0b1220;
+  --tblr-body-color: #e2e8f0;
+  --tblr-heading-color: #f8fafc;
+  --tblr-muted: #94a3b8;
+  --tblr-muted-rgb: 148, 163, 184;
+  --tblr-bg-surface: #0f172a;
+  --tblr-bg-surface-2: #111c33;
+  --tblr-border-color: #1e293b;
+  --tblr-border-color-translucent: rgba(148, 163, 184, 0.14);
+  --rem-table-stripe-bg: rgba(14, 165, 233, 0.06);
+  --rem-table-hover-bg: rgba(14, 165, 233, 0.10);
+  --tblr-input-bg: #111c33;
+  --tblr-card-bg: #0f172a;
+  --tblr-card-border-color: #1e293b;
+  --tblr-header-bg: #0f172a;
+  --tblr-card-box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+  --tblr-card-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+  --tblr-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.28);
+  --tblr-shadow: 0 8px 24px rgba(0, 0, 0, 0.30);
+  --tblr-shadow-lg: 0 18px 48px rgba(0, 0, 0, 0.42);
+  --tblr-fab-shadow: 0 18px 44px rgba(14, 165, 233, 0.24);
+  --tblr-header-shadow: 0 1px 0 rgba(148, 163, 184, 0.10);
+
+  --rem-shadow-card: 0 8px 24px rgba(0, 0, 0, 0.28);
+  --rem-shadow-card-hover: 0 18px 44px rgba(0, 0, 0, 0.38);
+  --rem-grad-card-blue: linear-gradient(135deg, rgba(14, 165, 233, 0.22) 0%, rgba(14, 165, 233, 0.08) 100%);
+  --rem-grad-card-amber: linear-gradient(135deg, rgba(245, 158, 11, 0.22) 0%, rgba(245, 158, 11, 0.08) 100%);
+  --rem-grad-card-emerald: linear-gradient(135deg, rgba(22, 163, 74, 0.22) 0%, rgba(22, 163, 74, 0.08) 100%);
+  --rem-grad-card-rose: linear-gradient(135deg, rgba(239, 68, 68, 0.22) 0%, rgba(239, 68, 68, 0.08) 100%);
+
+  --chart-grid: rgba(148, 163, 184, 0.22);
+  --chart-tick: #94a3b8;
+  --chart-legend: #e2e8f0;
+  --chart-tooltip-bg: #111c33;
+  --chart-tooltip-text: #f8fafc;
+  --chart-tooltip-muted: #cbd5e1;
+  --chart-tooltip-border: #334155;
+  --chart-point: #38bdf8;
+  --chart-point-border: #0f172a;
+  --chart-export-bg: rgba(15, 23, 42, 0.88);
+  --chart-export-bg-hover: #111c33;
+  color-scheme: dark;
+}

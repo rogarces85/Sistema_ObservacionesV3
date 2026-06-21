@@ -16,9 +16,11 @@ $userInfo = $userModel->getById($userId);
         <div class="container-xl">
             <div class="row row-cards">
                 <div class="col-12">
-                    <div class="mb-3">
-                        <h2 class="page-title">Mi Perfil</h2>
-                        <div class="text-secondary">Gestiona tu información personal y contraseña</div>
+                    <div class="page-header">
+                        <div>
+                            <h1 class="page-title"><i class="ti ti-user me-2 text-primary"></i>Mi Perfil</h1>
+                            <p class="page-subtitle">Gestiona tu información personal y contraseña</p>
+                        </div>
                     </div>
                 </div>
 
@@ -75,7 +77,9 @@ $userInfo = $userModel->getById($userId);
                                     <input type="password" id="confirmPassword" name="confirm_password" class="form-control" required minlength="6"
                                         placeholder="Repita la nueva contraseña">
                                 </div>
-                                <button type="submit" class="btn btn-primary w-100">Cambiar Contraseña</button>
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="ti ti-lock me-1"></i>Cambiar Contraseña
+                                </button>
                             </form>
                         </div>
                     </div>
@@ -83,12 +87,16 @@ $userInfo = $userModel->getById($userId);
 
                 <div class="col-12">
                     <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title">Actividad Reciente</h3>
-                        </div>
-                        <div class="card-body">
-                            <p class="text-secondary text-center py-4 mb-0">No hay actividad reciente para mostrar</p>
-                        </div>
+                            <div class="card-header">
+                                <h3 class="card-title"><i class="ti ti-activity me-2 text-primary"></i>Actividad Reciente</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="empty-state">
+                                    <div class="empty-icon"><i class="ti ti-clock-off"></i></div>
+                                    <h3>Sin actividad reciente</h3>
+                                    <p>Aquí aparecerán tus últimos movimientos en el sistema.</p>
+                                </div>
+                            </div>
                     </div>
                 </div>
             </div>

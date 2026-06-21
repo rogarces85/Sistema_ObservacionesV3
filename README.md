@@ -83,7 +83,8 @@ Patrones observados:
 | Acceso a datos | PDO MySQL | Consultas preparadas y transacciones. |
 | Servidor web | Apache / XAMPP | Ejecucion local y despliegue tradicional. |
 | Frontend | HTML5, CSS3, JavaScript ES6+ | Interfaz de usuario y consumo de APIs. |
-| UI | Tabler / CSS propio | Layout, componentes visuales y estilos. |
+| UI | Tabler 1.4 (`@tabler/core` + `@tabler/icons-webfont`) / CSS propio | Layout, componentes visuales y estilos. |
+| Design tokens | `assets/css/tokens.css` (CSS custom properties) | Identidad visual, status, radius, dark mode. |
 | Graficos | Chart.js | Dashboard y reportes visuales. |
 | Excel | `phpoffice/phpspreadsheet:^5.4` | Importacion y exportacion Excel. |
 | PDF | `tecnickcom/tcpdf:^6.10` | Exportacion PDF e informes. |
@@ -118,8 +119,14 @@ Sistema_ObservacionesV3/
 │   ├── informe_errores.php      # Informe REM de errores trimestral/anual
 │   └── versioning.php           # Snapshots y rollback del sistema
 ├── assets/
-│   ├── css/                     # Estilos globales y overrides Tabler
-│   ├── js/                      # JS comun, notificaciones y graficos
+│   ├── css/                     # Estilos globales, tokens y overrides Tabler
+│   │   ├── styles.css           # Legacy (en deprecacion, no extender)
+│   │   ├── tokens.css           # Design tokens (CSS custom properties)
+│   │   └── tabler-override.css  # Overrides Tabler (sidebar, header, cards, a11y)
+│   ├── js/                      # JS comun, theme, charts y shell
+│   │   ├── app.js               # fetchAPI, toasts, countup
+│   │   ├── theme.js             # theme toggle, sidebar, search, FAB
+│   │   └── charts.js            # Chart.js helpers con tokens
 │   └── images/                  # Logos e imagenes institucionales
 ├── config/
 │   ├── config.php               # BD, rutas, sesion y entorno
@@ -128,10 +135,11 @@ Sistema_ObservacionesV3/
 │   ├── migration_*.sql          # Migraciones posteriores
 │   └── migrations/              # Migraciones adicionales
 ├── includes/
-│   ├── header.php               # Encabezado, layout y meta CSRF
-│   ├── footer.php               # Footer y scripts
-│   ├── sidebar.php              # Navegacion por rol
-│   ├── icons.php                # Iconos reutilizables
+│   ├── header.php               # Shell topbar (busqueda, notificaciones, year, theme)
+│   ├── sidebar.php              # Sidebar vertical con mini-variant y status dot
+│   ├── footer.php               # Footer, toast container, FAB y carga de assets
+│   ├── breadcrumbs.php          # Helper de migas de pan
+│   ├── icons.php                # Iconos SVG legacy (deprecados a favor de tabler-icons-webfont)
 │   └── csrf.php                 # Generacion/validacion de token CSRF
 ├── models/
 │   ├── Database.php             # PDO Singleton
@@ -168,6 +176,36 @@ Sistema_ObservacionesV3/
 ├── A.md                         # Documentacion historica previa
 └── README.md                    # Fuente de verdad generada por /speckit.discover
 ```
+
+## 🎨 Mejora Visual (Tabler)
+
+La capa visual se compone de:
+
+- `assets/css/tokens.css` con variables CSS para colores, status, radius, sombras, gradientes y dark mode.
+- `assets/css/tabler-override.css` con overrides semanticos (sidebar, header, cards, badges, modals, alerts, focus ring, animaciones y FAB).
+- `@tabler/icons-webfont` cargado por CDN para reemplazar los SVG inline.
+- `assets/js/theme.js` con theme toggle, mini-variant, busqueda global y FAB de tema al hacer scroll.
+- `assets/js/app.js` con `initCountUp` para animar los KPIs del dashboard.
+- `assets/js/charts.js` con `chartTokenColor` y `chartBaseFont` para que las charts hereden la paleta.
+
+El shell autenticado incluye skip link, breadcrumb, dropdown de notificaciones, selector de año, theme switcher y user menu con avatar. El login usa split layout con hero salud, form-floating y accordion de credenciales demo.
+
+### Theming Light/Dark
+
+La constitucion del proyecto define un contrato visual explicito para temas `light` y `dark`. El tema por defecto es `light`; si el usuario cambia a `dark`, `assets/js/theme.js` persiste la decision en cookie `rem.theme` con `path=/` y un año de duracion, y mantiene `localStorage` como fallback cliente. `includes/header.php` y `views/login.php` leen esa cookie para renderizar `data-bs-theme` en el HTML inicial y evitar cambios de tema o flashes al navegar.
+
+Los colores nuevos deben vivir en `assets/css/tokens.css` y consumirse desde `assets/css/tabler-override.css` o desde helpers JS. Los graficos usan tokens `--chart-*`, registran sus instancias en `window.REMCharts` y se actualizan cuando `theme.js` emite `rem:theme-changed`.
+
+### Contrato UI v2 Para Reestructuracion
+
+- Ecosistema UI: usar estrictamente Tabler 1.4 mediante `@tabler/core` y `@tabler/icons-webfont`; no introducir Tailwind, Bootstrap standalone u otros frameworks CSS.
+- Estilos: definir colores, sombras y variables visuales en `assets/css/tokens.css`; personalizaciones semanticas en `assets/css/tabler-override.css`; `assets/css/styles.css` esta deprecado y no debe extenderse.
+- Temas: mantener `data-bs-theme`, cookie `rem.theme`, fallback `localStorage` y evento `rem:theme-changed` para refrescar Chart.js.
+- APIs: consumir `api/*.php` con `fetch`; toda peticion mutable debe incluir CSRF mediante `X-CSRF-Token` o campo POST gestionado por `includes/csrf.php`.
+- Modulos: cada `views/*.php` debe ser independiente y reutilizar `includes/header.php`, `includes/sidebar.php`, `includes/footer.php` y `includes/breadcrumbs.php`.
+- Accesibilidad: preservar skip links, ARIA nativo de Tabler y contraste WCAG 2.1 AA en light/dark.
+- HTML: no agregar nuevos `style="..."`; migrar estilos inline existentes durante la reestructuracion del modulo afectado.
+- Dominio: la UI debe reflejar `config/constants.php` y no inventar estados, roles, tipos o etiquetas REM en frontend.
 
 ## 👥 Roles y Permisos
 

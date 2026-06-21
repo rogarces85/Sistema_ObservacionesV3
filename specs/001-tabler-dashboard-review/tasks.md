@@ -40,11 +40,11 @@
 
 **CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T005 Define View Evaluation fields in `specs/001-tabler-dashboard-review/evaluation-report.md` using `specs/001-tabler-dashboard-review/data-model.md`
-- [ ] T006 Define Component Evaluation fields in `specs/001-tabler-dashboard-review/evaluation-report.md` using `specs/001-tabler-dashboard-review/data-model.md`
-- [ ] T007 Define Asset Strategy Decision criteria in `specs/001-tabler-dashboard-review/evaluation-report.md` using `specs/001-tabler-dashboard-review/research.md`
-- [ ] T008 Define non-mutating verification rules in `specs/001-tabler-dashboard-review/evaluation-report.md` using `specs/001-tabler-dashboard-review/quickstart.md`
-- [ ] T009 Confirm no backend, database, permission, import, export, or report logic changes are required in `specs/001-tabler-dashboard-review/evaluation-report.md`
+- [X] T005 Define View Evaluation fields in `specs/001-tabler-dashboard-review/evaluation-report.md` using `specs/001-tabler-dashboard-review/data-model.md`
+- [X] T006 Define Component Evaluation fields in `specs/001-tabler-dashboard-review/evaluation-report.md` using `specs/001-tabler-dashboard-review/data-model.md`
+- [X] T007 Define Asset Strategy Decision criteria in `specs/001-tabler-dashboard-review/evaluation-report.md` using `specs/001-tabler-dashboard-review/research.md`
+- [X] T008 Define non-mutating verification rules in `specs/001-tabler-dashboard-review/evaluation-report.md` using `specs/001-tabler-dashboard-review/quickstart.md`
+- [X] T009 Confirm no backend, database, permission, import, export, or report logic changes are required in `specs/001-tabler-dashboard-review/evaluation-report.md`
 
 **Checkpoint**: Foundation ready - user story work can now begin.
 
@@ -58,16 +58,16 @@
 
 ### Verification for User Story 1 ⚠️
 
-- [ ] T010 [P] [US1] Verify prior Tabler migration status from `openspec/changes/migrar-tabler-dashboard/tasks.md` and summarize completed versus pending items in `specs/001-tabler-dashboard-review/evaluation-report.md`
-- [ ] T011 [P] [US1] Verify current Tabler asset usage in `includes/header.php`, `includes/footer.php`, and `views/login.php` and document the finding in `specs/001-tabler-dashboard-review/evaluation-report.md`
-- [ ] T012 [P] [US1] Verify current override strategy in `assets/css/tabler-override.css` and legacy CSS dependency in `assets/css/styles.css`, then document conflicts or dependencies in `specs/001-tabler-dashboard-review/evaluation-report.md`
+- [X] T010 [P] [US1] Verify prior Tabler migration status from `openspec/changes/migrar-tabler-dashboard/tasks.md` and summarize completed versus pending items in `specs/001-tabler-dashboard-review/evaluation-report.md`
+- [X] T011 [P] [US1] Verify current Tabler asset usage in `includes/header.php`, `includes/footer.php`, and `views/login.php` and document the finding in `specs/001-tabler-dashboard-review/evaluation-report.md`
+- [X] T012 [P] [US1] Verify current override strategy in `assets/css/tabler-override.css` and legacy CSS dependency in `assets/css/styles.css`, then document conflicts or dependencies in `specs/001-tabler-dashboard-review/evaluation-report.md`
 
 ### Implementation for User Story 1
 
-- [ ] T013 [US1] Write at least 5 Tabler pros for this REM system in `specs/001-tabler-dashboard-review/evaluation-report.md`
-- [ ] T014 [US1] Write at least 5 Tabler cons or risks with mitigations in `specs/001-tabler-dashboard-review/evaluation-report.md`
-- [ ] T015 [US1] Compare CDN and controlled local asset strategies in `specs/001-tabler-dashboard-review/evaluation-report.md`
-- [ ] T016 [US1] Add an executive recommendation draft in `specs/001-tabler-dashboard-review/evaluation-report.md` with top risks and next actions
+- [X] T013 [US1] Write at least 5 Tabler pros for this REM system in `specs/001-tabler-dashboard-review/evaluation-report.md`
+- [X] T014 [US1] Write at least 5 Tabler cons or risks with mitigations in `specs/001-tabler-dashboard-review/evaluation-report.md`
+- [X] T015 [US1] Compare CDN and controlled local asset strategies in `specs/001-tabler-dashboard-review/evaluation-report.md`
+- [X] T016 [US1] Add an executive recommendation draft in `specs/001-tabler-dashboard-review/evaluation-report.md` with top risks and next actions
 
 **Checkpoint**: US1 is complete when the report contains a standalone pros/cons and asset-strategy recommendation.
 
@@ -81,16 +81,16 @@
 
 ### Verification for User Story 2 ⚠️
 
-- [ ] T017 [P] [US2] Review supervisor-accessible views `views/dashboard.php`, `views/supervision.php`, `views/reportes.php`, `views/usuarios.php`, `views/asignaciones.php`, `views/eliminadas.php`, `views/establecimientos.php`, and `views/perfil.php`, then record role-safety findings in `specs/001-tabler-dashboard-review/evaluation-report.md`
-- [ ] T018 [P] [US2] Review registrador-accessible views `views/dashboard.php`, `views/observaciones.php`, `views/reportes.php`, and `views/perfil.php`, then record role-safety findings in `specs/001-tabler-dashboard-review/evaluation-report.md`
-- [ ] T019 [P] [US2] Review shared navigation and year context in `includes/sidebar.php` and `includes/header.php`, then record navigation findings in `specs/001-tabler-dashboard-review/evaluation-report.md`
+- [X] T017 [P] [US2] Review supervisor-accessible views `views/dashboard.php`, `views/supervision.php`, `views/reportes.php`, `views/usuarios.php`, `views/asignaciones.php`, `views/eliminadas.php`, `views/establecimientos.php`, and `views/perfil.php`, then record role-safety findings in `specs/001-tabler-dashboard-review/evaluation-report.md`
+- [X] T018 [P] [US2] Review registrador-accessible views `views/dashboard.php`, `views/observaciones.php`, `views/reportes.php`, and `views/perfil.php`, then record role-safety findings in `specs/001-tabler-dashboard-review/evaluation-report.md`
+- [X] T019 [P] [US2] Review shared navigation and year context in `includes/sidebar.php` and `includes/header.php`, then record navigation findings in `specs/001-tabler-dashboard-review/evaluation-report.md`
 
 ### Implementation for User Story 2
 
-- [ ] T020 [US2] Populate the View Evaluation Matrix in `specs/001-tabler-dashboard-review/evaluation-report.md` for login, dashboard, observaciones, supervision, reportes, usuarios, asignaciones, eliminadas, establecimientos, perfil, and shared header/sidebar/footer
-- [ ] T021 [US2] Populate responsive evidence for desktop, tablet, and mobile in `specs/001-tabler-dashboard-review/evaluation-report.md`
-- [ ] T022 [US2] Populate accessibility evidence for contrast, focus, keyboard navigation, modal behavior, form labels, and table readability in `specs/001-tabler-dashboard-review/evaluation-report.md`
-- [ ] T023 [US2] Document any role-safety concerns or confirm no accidental exposure of administrative actions in `specs/001-tabler-dashboard-review/evaluation-report.md`
+- [X] T020 [US2] Populate the View Evaluation Matrix in `specs/001-tabler-dashboard-review/evaluation-report.md` for login, dashboard, observaciones, supervision, reportes, usuarios, asignaciones, eliminadas, establecimientos, perfil, and shared header/sidebar/footer
+- [X] T021 [US2] Populate responsive evidence for desktop, tablet, and mobile in `specs/001-tabler-dashboard-review/evaluation-report.md`
+- [X] T022 [US2] Populate accessibility evidence for contrast, focus, keyboard navigation, modal behavior, form labels, and table readability in `specs/001-tabler-dashboard-review/evaluation-report.md`
+- [X] T023 [US2] Document any role-safety concerns or confirm no accidental exposure of administrative actions in `specs/001-tabler-dashboard-review/evaluation-report.md`
 
 **Checkpoint**: US2 is complete when all required views have role, responsive, accessibility, and business-flow evaluation states.
 
@@ -104,16 +104,16 @@
 
 ### Verification for User Story 3 ⚠️
 
-- [ ] T024 [P] [US3] Verify all required views from `specs/001-tabler-dashboard-review/contracts/ui-evaluation.md` have evaluation rows in `specs/001-tabler-dashboard-review/evaluation-report.md`
-- [ ] T025 [P] [US3] Verify all required components from `specs/001-tabler-dashboard-review/contracts/ui-evaluation.md` have component evaluation rows in `specs/001-tabler-dashboard-review/evaluation-report.md`
-- [ ] T026 [P] [US3] Verify high-risk findings in `specs/001-tabler-dashboard-review/evaluation-report.md` have mitigations or blocking status
+- [X] T024 [P] [US3] Verify all required views from `specs/001-tabler-dashboard-review/contracts/ui-evaluation.md` have evaluation rows in `specs/001-tabler-dashboard-review/evaluation-report.md`
+- [X] T025 [P] [US3] Verify all required components from `specs/001-tabler-dashboard-review/contracts/ui-evaluation.md` have component evaluation rows in `specs/001-tabler-dashboard-review/evaluation-report.md`
+- [X] T026 [P] [US3] Verify high-risk findings in `specs/001-tabler-dashboard-review/evaluation-report.md` have mitigations or blocking status
 
 ### Implementation for User Story 3
 
-- [ ] T027 [US3] Populate the Component Evaluation Matrix in `specs/001-tabler-dashboard-review/evaluation-report.md` for header, sidebar, cards, tables, forms, modals, dropdowns, toasts, charts, badges, and loading overlay
-- [ ] T028 [US3] Write closure criteria checklist in `specs/001-tabler-dashboard-review/evaluation-report.md`
-- [ ] T029 [US3] Finalize Adoption Decision in `specs/001-tabler-dashboard-review/evaluation-report.md` as consolidate, consolidate_with_conditions, postpone, or partial_revert
-- [ ] T030 [US3] List prioritized follow-up actions in `specs/001-tabler-dashboard-review/evaluation-report.md`, splitting any backend, database, permission, import, export, or report-logic issue into a separate future spec note
+- [X] T027 [US3] Populate the Component Evaluation Matrix in `specs/001-tabler-dashboard-review/evaluation-report.md` for header, sidebar, cards, tables, forms, modals, dropdowns, toasts, charts, badges, and loading overlay
+- [X] T028 [US3] Write closure criteria checklist in `specs/001-tabler-dashboard-review/evaluation-report.md`
+- [X] T029 [US3] Finalize Adoption Decision in `specs/001-tabler-dashboard-review/evaluation-report.md` as consolidate, consolidate_with_conditions, postpone, or partial_revert
+- [X] T030 [US3] List prioritized follow-up actions in `specs/001-tabler-dashboard-review/evaluation-report.md`, splitting any backend, database, permission, import, export, or report-logic issue into a separate future spec note
 
 **Checkpoint**: US3 is complete when the report has a final adoption decision, closure criteria, and prioritized next actions.
 
@@ -123,11 +123,11 @@
 
 **Purpose**: Validate documentation quality and prepare the feature for handoff.
 
-- [ ] T031 [P] Check `specs/001-tabler-dashboard-review/evaluation-report.md` against `specs/001-tabler-dashboard-review/contracts/ui-evaluation.md`
-- [ ] T032 [P] Check `specs/001-tabler-dashboard-review/evaluation-report.md` against success criteria in `specs/001-tabler-dashboard-review/spec.md`
-- [ ] T033 [P] Confirm quickstart evidence in `specs/001-tabler-dashboard-review/evaluation-report.md` covers every step in `specs/001-tabler-dashboard-review/quickstart.md`
-- [ ] T034 Update `README.md` only if the final adoption decision changes the documented visual architecture or operating guidance
-- [ ] T035 Run final documentation review for unresolved placeholders, broken relative links, and unchecked required evidence in `specs/001-tabler-dashboard-review/evaluation-report.md`
+- [X] T031 [P] Check `specs/001-tabler-dashboard-review/evaluation-report.md` against `specs/001-tabler-dashboard-review/contracts/ui-evaluation.md`
+- [X] T032 [P] Check `specs/001-tabler-dashboard-review/evaluation-report.md` against success criteria in `specs/001-tabler-dashboard-review/spec.md`
+- [X] T033 [P] Confirm quickstart evidence in `specs/001-tabler-dashboard-review/evaluation-report.md` covers every step in `specs/001-tabler-dashboard-review/quickstart.md`
+- [X] T034 Update `README.md` only if the final adoption decision changes the documented visual architecture or operating guidance
+- [X] T035 Run final documentation review for unresolved placeholders, broken relative links, and unchecked required evidence in `specs/001-tabler-dashboard-review/evaluation-report.md`
 
 ---
 

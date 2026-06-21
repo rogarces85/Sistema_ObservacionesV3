@@ -1,30 +1,29 @@
 <!--
 Sync Impact Report
-Version change: template -> 1.0.0
+Version change: 1.1.0 -> 2.0.0
 Modified principles:
-- PRINCIPLE_1_NAME -> I. README and Specs Are the Source of Truth
-- PRINCIPLE_2_NAME -> II. Role-Based Access and REM Data Integrity
-- PRINCIPLE_3_NAME -> III. Secure Configuration and Session Safety
-- PRINCIPLE_4_NAME -> IV. Testable, Reversible Data Changes
-- PRINCIPLE_5_NAME -> V. Simple Monolith, Observable Operations
+- Expanded: VI. Coherent and Traceable Visual Theming
+- Added: VII. Tabler-Only UI Ecosystem and Modular Views
+- Added: VIII. Secure API Consumption and Domain Fidelity
 Added sections:
-- Technical Constraints
-- Development Workflow
+- UI Architecture Contract
+- Security and Domain UI Contract
 Removed sections:
-- Placeholder-only SECTION_2_NAME and SECTION_3_NAME
+- None
 Templates requiring updates:
-- ✅ updated: .specify/templates/plan-template.md
-- ✅ updated: .specify/templates/spec-template.md
-- ✅ updated: .specify/templates/tasks-template.md
+- ✅ reviewed: .specify/templates/plan-template.md
+- ✅ reviewed: .specify/templates/spec-template.md
+- ✅ reviewed: .specify/templates/tasks-template.md
 - ✅ reviewed: .specify/templates/checklist-template.md
 - ✅ reviewed: .specify/templates/constitution-template.md
 - ✅ reviewed: .specify/extensions/git/commands/*.md
 Runtime guidance updates:
-- ✅ updated: README.md
+- ✅ updated: README.md mirrors the v2 UI, theming, API, accessibility, and domain contracts.
 Follow-up TODOs:
-- None
+- Audit existing inline styles and migrate them to Tabler classes or `assets/css/tabler-override.css`.
+- Start the report module restructuring from `views/reportes.php` and `assets/js/charts.js` under this contract.
 -->
-# Sistema de Observaciones REM Constitution
+# Sistema de Observaciones REM Constitution v2
 
 ## Core Principles
 
@@ -107,6 +106,75 @@ Rationale: the system is a pragmatic PHP application. Maintainability improves
 through disciplined simplicity plus targeted observability, not unnecessary
 rewrites.
 
+### VI. Coherent and Traceable Visual Theming
+
+All new or modified visual UI work MUST consume the project theme tokens from
+`assets/css/tokens.css` instead of hardcoded presentation colors, shadows, or
+visual variables. Semantic Tabler customizations MUST live in
+`assets/css/tabler-override.css`. `assets/css/styles.css` is deprecated and MUST
+NOT be extended under any circumstance; existing dependencies on it are legacy
+debt to be removed during module restructuring.
+
+Authenticated views, login, shared includes, tables, forms, cards, dropdowns,
+modals, status indicators, reports, and charts MUST be valid in both explicit
+themes: `light` and `dark`. Theme switching MUST use the current contract:
+`data-bs-theme` on the HTML element, persistence in cookie `rem.theme`,
+`localStorage` fallback, and the `rem:theme-changed` JavaScript event for
+dependent UI such as Chart.js.
+
+Chart.js usage MUST read colors from theme tokens, update or recreate chart
+instances when the theme changes, and avoid fixed light-only values for tooltip,
+legend, grid, point, and export controls.
+
+Rationale: the system is used for operational REM review where contrast,
+readability, and navigation consistency affect data interpretation. A formal
+theme contract prevents regressions such as dark/light switching during
+navigation or invisible charts after visual changes.
+
+### VII. Tabler-Only UI Ecosystem and Modular Views
+
+The UI ecosystem MUST use strictly Tabler 1.4 assets: `@tabler/core` and
+`@tabler/icons-webfont`. New standalone CSS frameworks or competing UI systems,
+including Tailwind CSS or standalone Bootstrap assets, MUST NOT be introduced or
+mixed into the application. Tabler's Bootstrap-compatible component behavior may
+be used only through the Tabler 1.4 dependency already loaded by the shell.
+
+Each `views/*.php` module MUST remain structurally independent and reuse the
+shared shell from `includes/header.php`, `includes/sidebar.php`,
+`includes/footer.php`, and `includes/breadcrumbs.php`. A module MUST NOT couple
+module-specific styles, scripts, or selectors to another module. Shared behavior
+belongs in `assets/js/app.js`, `assets/js/theme.js`, `assets/js/charts.js`, or a
+documented shared asset; module-specific behavior must be scoped to that module.
+
+Inline visual styles (`style="..."`) are prohibited for new or modified markup.
+All visual customization MUST be expressed through Tabler classes, Tabler utility
+classes, project semantic classes in `assets/css/tabler-override.css`, or tokens
+in `assets/css/tokens.css`. Existing inline styles are constitution violations to
+be removed as the affected module is restructured.
+
+Rationale: the system is entering a module restructuring phase. A single UI
+ecosystem and strict style boundaries prevent CSS conflicts, visual drift, and
+cross-module regressions, especially in the report and chart screens.
+
+### VIII. Secure API Consumption and Domain Fidelity
+
+The UI MUST consume `api/*.php` endpoints through `fetch` or existing shared
+helpers. Every mutable request (`POST`, `PUT`, `PATCH`, `DELETE`, or equivalent
+action-changing request) MUST include CSRF protection managed by
+`includes/csrf.php`, either as the `X-CSRF-Token` header or an accepted POST
+field. UI work MUST NOT bypass backend role checks or rely on hidden controls as
+security enforcement.
+
+The interface MUST reflect the domain catalogs, roles, states, months, and REM
+constants defined in `config/constants.php`. Frontend code MUST NOT invent
+states, role labels, report classifications, observation types, or status colors
+that are not backed by the configured domain vocabulary, such as `pendiente`,
+`aprobado`, `error`, `S/OBSERVACION`, and `ERROR`.
+
+Rationale: reports and charts can affect operational interpretation. Secure API
+use and domain fidelity ensure visual restructuring does not silently change REM
+meaning, permissions, or official workflow semantics.
+
 ## Technical Constraints
 
 - The primary runtime is PHP on Apache/XAMPP with MySQL or MariaDB via PDO.
@@ -124,6 +192,59 @@ rewrites.
   migration mechanism, not ad hoc manual edits.
 - User-visible REM catalog changes MUST document their effect on existing data,
   imports, reports, and filters.
+
+## Theming System
+
+- `assets/css/tokens.css` is the source of truth for visual tokens. It MUST define
+  light defaults in `:root` and dark overrides under `[data-bs-theme="dark"]`.
+- `assets/css/tabler-override.css` MAY style semantic REM components and Tabler
+  overrides, but SHOULD consume tokens for colors, surfaces, borders, shadows,
+  status states, chart-adjacent UI, and focus states.
+- `assets/css/styles.css` is legacy/deprecated. It MUST NOT be extended for new
+  theme work unless a spec records a compatibility need.
+- Theme persistence uses an explicit `rem.theme` browser cookie with `path=/`,
+  one-year lifetime, and `SameSite=Lax`; `localStorage` MAY be kept as a client
+  fallback. The default theme is `light` unless the user explicitly selects
+  `dark`.
+- Supported themes are only `light` and `dark`. `prefers-color-scheme` MUST NOT
+  silently change the default without a future spec adding a `system` mode.
+- Charts MUST use chart tokens for text, grid, tooltip, legend, point, and export
+  controls and MUST refresh on the `rem:theme-changed` client event.
+- New components MUST document whether they are covered by both themes when a
+  feature spec or review touches substantial UI.
+
+## UI Architecture Contract
+
+- The only allowed UI framework layer is Tabler 1.4 via `@tabler/core` and
+  `@tabler/icons-webfont`.
+- Do not introduce Tailwind, standalone Bootstrap CSS/JS, Material UI, Bulma, or
+  other competing UI frameworks.
+- All colors, shadows, gradients, chart colors, surface colors, and visual custom
+  properties MUST be declared in `assets/css/tokens.css`.
+- Semantic component styling and Tabler customizations MUST be placed in
+  `assets/css/tabler-override.css`.
+- `assets/css/styles.css` is deprecated and MUST NOT receive new selectors,
+  tokens, components, or module-specific styles.
+- New and modified markup MUST NOT use inline `style` attributes. If a value
+  needs to vary dynamically, use a class, data attribute, CSS custom property
+  defined in the theme contract, or a documented component API.
+- Report, dashboard, and chart modules MUST use shared chart helpers rather than
+  duplicating Chart.js configuration in view files.
+- Components MUST meet WCAG 2.1 AA contrast expectations in both light and dark
+  themes. Skip links and native Tabler/ARIA structures MUST be preserved.
+
+## Security and Domain UI Contract
+
+- Browser UI MUST call `api/*.php` endpoints through shared fetch patterns or
+  local `fetch` code that preserves CSRF and error handling.
+- Mutable requests MUST include `X-CSRF-Token` or an accepted POST CSRF field
+  from `includes/csrf.php`.
+- View-level role hiding is only usability; backend/API authorization remains
+  mandatory.
+- UI labels, filters, badges, report categories, chart datasets, and status
+  colors MUST map to `config/constants.php` or documented database/catalog values.
+- Frontend code MUST NOT create unofficial REM states, roles, observation types,
+  report states, or status meanings.
 
 ## Development Workflow
 
@@ -180,4 +301,4 @@ Compliance review expectations:
   mutate data without a verification plan, or leave documentation inconsistent
   with implemented behavior.
 
-**Version**: 1.0.0 | **Ratified**: 2026-06-20 | **Last Amended**: 2026-06-20
+**Version**: 2.0.0 | **Ratified**: 2026-06-20 | **Last Amended**: 2026-06-20

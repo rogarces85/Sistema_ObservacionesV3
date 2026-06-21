@@ -25,7 +25,7 @@ $registradores = $asignacionModel->getEstadisticasAsignaciones($anioSeleccionado
                 <div class="col-12">
                     <div class="mb-3 d-flex align-items-center justify-content-between">
                         <div>
-                            <h2 class="page-title">Asignación de Establecimientos</h2>
+                            <h2 class="page-title"><i class="ti ti-package me-2 text-primary"></i>Asignación de Establecimientos</h2>
                             <div class="text-secondary">Gestione los establecimientos y referentes por año</div>
                         </div>
                         <div class="btn-list">
@@ -36,7 +36,7 @@ $registradores = $asignacionModel->getEstadisticasAsignaciones($anioSeleccionado
                                 <?php endfor; ?>
                             </select>
                             <button onclick="copiarAnioAnterior()" class="btn btn-outline-secondary" title="Copiar asignaciones del año anterior">
-                                Copiar Año Anterior
+                                <i class="ti ti-copy me-1"></i>Copiar Año Anterior
                             </button>
                         </div>
                     </div>
@@ -89,15 +89,15 @@ $registradores = $asignacionModel->getEstadisticasAsignaciones($anioSeleccionado
                                     </div>
                                     <div id="accionesAsignacion" class="d-none">
                                         <button onclick="abrirModalAsignar()" class="btn btn-primary">
-                                            Asignar / Reasignar
+                                            <i class="ti ti-plus me-1"></i>Asignar / Reasignar
                                         </button>
                                     </div>
                                 </div>
                                 <div class="card-body" id="establecimientosContainer">
-                                    <div class="empty">
-                                        <div class="empty-header text-secondary">🏢</div>
-                                        <p class="empty-title">Seleccione un registrador</p>
-                                        <p class="empty-subtitle text-secondary">Para ver sus establecimientos y datos de contacto</p>
+                                    <div class="empty-state">
+                                        <div class="empty-icon"><i class="ti ti-building"></i></div>
+                                        <h3>Seleccione un registrador</h3>
+                                        <p>Para ver sus establecimientos y datos de contacto</p>
                                     </div>
                                 </div>
                             </div>
@@ -132,7 +132,7 @@ $registradores = $asignacionModel->getEstadisticasAsignaciones($anioSeleccionado
         <div class="modal-content">
             <div class="modal-header">
                 <div>
-                    <h5 class="modal-title">Asignar / Reasignar Establecimientos</h5>
+                    <h5 class="modal-title"><i class="ti ti-package me-2 text-primary"></i>Asignar / Reasignar Establecimientos</h5>
                     <div class="text-secondary" id="modalAsignarInfo"></div>
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -192,8 +192,12 @@ $registradores = $asignacionModel->getEstadisticasAsignaciones($anioSeleccionado
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal" onclick="cerrarModalAsignar()">Cancelar</button>
-                <button type="button" class="btn btn-primary" onclick="guardarAsignaciones()">Guardar Asignaciones</button>
+                <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal" onclick="cerrarModalAsignar()">
+                    <i class="ti ti-x me-1"></i>Cancelar
+                </button>
+                <button type="button" class="btn btn-primary" onclick="guardarAsignaciones()">
+                    <i class="ti ti-device-floppy me-1"></i>Guardar Asignaciones
+                </button>
             </div>
         </div>
     </div>

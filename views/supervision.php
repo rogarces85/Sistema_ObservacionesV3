@@ -24,32 +24,34 @@ $registradores = $userModel->getByRole(ROL_REGISTRADOR);
 $comunas = $locationModel->getComunas();
 ?>
 
-<div class="d-flex flex-column gap-3">
+<div class="d-flex flex-column gap-3 rem-fade-in">
     <!-- Header -->
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+    <header class="page-header">
         <div>
-            <h2 class="mb-1 fw-bold text-primary">Panel de Supervisión</h2>
-            <p class="text-secondary mb-0">Revise y gestione las observaciones registradas</p>
+            <h1 class="page-title">
+                <i class="ti ti-eye me-2 text-primary"></i>Panel de Supervisión
+            </h1>
+            <p class="page-subtitle">Revise y gestione las observaciones registradas</p>
         </div>
-        <div class="d-flex gap-2 align-items-center flex-wrap">
-            <span id="selectedCount" class="small text-secondary d-none">
-                <span class="fw-semibold text-primary">0</span> seleccionadas
+        <div class="page-actions align-items-center flex-wrap">
+            <span id="selectedCount" class="badge badge-soft-primary me-2 d-none">
+                <i class="ti ti-checkbox me-1"></i><span class="fw-semibold">0</span> seleccionadas
             </span>
             <button id="btnApproveSelected" class="btn btn-primary" disabled>
-                ✓ Aprobar
+                <i class="ti ti-check me-1"></i>Aprobar
             </button>
             <button id="btnCancelSelected" class="btn btn-warning" disabled>
-                ⏸ Cancelar
+                <i class="ti ti-player-pause me-1"></i>Cancelar
             </button>
             <button id="btnDeleteSelected" class="btn btn-danger" disabled>
-                🗑 Eliminar
+                <i class="ti ti-trash me-1"></i>Eliminar
             </button>
         </div>
-    </div>
+    </header>
 
     <!-- Progress bar for bulk actions -->
     <div id="bulkProgress" class="d-none">
-        <div class="progress">
+        <div class="progress" style="height: 0.5rem;">
             <div class="progress-bar progress-bar-indeterminate bg-primary" role="progressbar"></div>
         </div>
         <p class="text-secondary small mt-1" id="bulkProgressText">Procesando...</p>
@@ -58,7 +60,9 @@ $comunas = $locationModel->getComunas();
     <!-- Filtros -->
     <div class="card">
         <div class="card-body">
-            <h3 class="card-title mb-3">🔍 Filtros</h3>
+            <div class="d-flex align-items-center justify-content-between mb-3">
+                <h3 class="card-title mb-0"><i class="ti ti-filter me-2 text-primary"></i>Filtros</h3>
+            </div>
             <div class="row g-3">
             <div class="col-md-6 col-lg-3">
                 <label class="form-label">Estado</label>
@@ -201,8 +205,12 @@ $comunas = $locationModel->getComunas();
             </table>
         </div>
 
-        <div id="emptyState" class="d-none card-body text-center py-8 text-secondary">
-            <p>📋 No se encontraron observaciones con los filtros aplicados.</p>
+        <div id="emptyState" class="d-none card-body text-center py-8">
+            <div class="empty-state">
+                <div class="empty-icon"><i class="ti ti-inbox"></i></div>
+                <h3>Sin observaciones</h3>
+                <p>No se encontraron observaciones con los filtros aplicados.</p>
+            </div>
         </div>
     </div>
 </div>
@@ -213,7 +221,7 @@ $comunas = $locationModel->getComunas();
         <div class="modal-content">
             <div class="modal-header">
                 <div>
-                    <h5 class="modal-title">Detalle de Observación</h5>
+                    <h5 class="modal-title"><i class="ti ti-file-text me-2 text-primary"></i>Detalle de Observación</h5>
                     <div class="text-secondary">Resumen completo del registro</div>
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
@@ -230,7 +238,7 @@ $comunas = $locationModel->getComunas();
         <div class="modal-content">
             <div class="modal-header">
                 <div>
-                    <h5 class="modal-title" id="confirmTitle">Confirmar Acción</h5>
+                    <h5 class="modal-title" id="confirmTitle"><i class="ti ti-shield-check me-2 text-warning"></i>Confirmar Acción</h5>
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
@@ -271,8 +279,12 @@ $comunas = $locationModel->getComunas();
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-primary" id="confirmActionBtn">Confirmar</button>
+                <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">
+                    <i class="ti ti-x me-1"></i>Cancelar
+                </button>
+                <button type="button" class="btn btn-primary" id="confirmActionBtn">
+                    <i class="ti ti-check me-1"></i>Confirmar
+                </button>
             </div>
         </div>
     </div>

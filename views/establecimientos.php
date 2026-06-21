@@ -16,14 +16,16 @@ $establecimientos = $locationModel->getAllEstablecimientosConInactivos();
             <div class="row row-cards">
 
                 <div class="col-12">
-                    <div class="mb-3 d-flex justify-content-between align-items-center">
+                    <div class="page-header">
                         <div>
-                            <h2 class="page-title">Gestión de Establecimientos</h2>
-                            <div class="text-secondary">Agregar, editar y activar/desactivar establecimientos de salud</div>
+                            <h1 class="page-title"><i class="ti ti-building me-2 text-primary"></i>Gestión de Establecimientos</h1>
+                            <p class="page-subtitle">Agregar, editar y activar/desactivar establecimientos de salud</p>
                         </div>
-                        <button onclick="openCreateModal()" class="btn btn-primary">
-                            Nuevo Establecimiento
-                        </button>
+                        <div class="page-actions">
+                            <button onclick="openCreateModal()" class="btn btn-primary">
+                                <i class="ti ti-plus me-1"></i>Nuevo Establecimiento
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -117,10 +119,10 @@ $establecimientos = $locationModel->getAllEstablecimientosConInactivos();
                                             </td>
                                             <td class="text-center">
                                                 <div class="btn-list justify-content-center">
-                                                    <button onclick='openEditModal(<?php echo json_encode($est); ?>)' 
-                                                            class="btn btn-ghost-secondary btn-icon" title="Editar"
-                                                            data-bs-toggle="tooltip">
-                                                        <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-edit"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M7 7h-1a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-1" /><path d="M20.385 6.585a2.1 2.1 0 0 0 -2.97 -2.97l-8.415 8.385v3h3l8.385 -8.415z" /><path d="M16 5l3 3" /></svg>
+                                                <button onclick='openEditModal(<?php echo json_encode($est); ?>)'
+                                                        class="btn btn-ghost-secondary btn-icon" title="Editar"
+                                                        data-bs-toggle="tooltip" aria-label="Editar">
+                                                        <i class="ti ti-edit"></i>
                                                     </button>
                                                 </div>
                                             </td>
@@ -141,7 +143,7 @@ $establecimientos = $locationModel->getAllEstablecimientosConInactivos();
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="estModalTitle">Nuevo Establecimiento</h5>
+                <h5 class="modal-title" id="estModalTitle"><i class="ti ti-building-plus me-2 text-primary"></i>Nuevo Establecimiento</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form id="estForm" onsubmit="saveEstablecimiento(event)">
@@ -171,8 +173,12 @@ $establecimientos = $locationModel->getAllEstablecimientosConInactivos();
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary" id="estSubmitBtn">Guardar</button>
+                    <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">
+                        <i class="ti ti-x me-1"></i>Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-primary" id="estSubmitBtn">
+                        <i class="ti ti-device-floppy me-1"></i>Guardar
+                    </button>
                 </div>
             </form>
         </div>

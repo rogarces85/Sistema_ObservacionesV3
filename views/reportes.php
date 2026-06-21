@@ -16,22 +16,31 @@ $comunas = $locationModel->getComunas();
 $mesesList = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 ?>
 
-<div class="row row-cards">
+<div class="d-flex flex-column gap-3 rem-fade-in">
 
                 <!-- Header -->
-                <div class="col-12">
-                    <div class="mb-3">
-                        <h2 class="page-title">Reportes de Errores REM</h2>
-                        <div class="text-secondary">Análisis de errores por establecimiento, plazo, validador, serie y hoja</div>
+                <header class="page-header">
+                    <div>
+                        <h1 class="page-title">
+                            <i class="ti ti-chart-bar me-2 text-primary"></i>Reportes de Errores REM
+                        </h1>
+                        <p class="page-subtitle">Análisis de errores por establecimiento, plazo, validador, serie y hoja</p>
                     </div>
-                </div>
+                    <div class="page-actions">
+                        <span class="badge badge-soft-primary">
+                            <i class="ti ti-calendar-event me-1"></i><?php echo htmlspecialchars($currentYear); ?>
+                        </span>
+                    </div>
+                </header>
 
                 <!-- Filtros -->
-                <div class="col-12">
-                    <div class="card">
-                        <div class="card-body">
-                            <h3 class="card-title mb-3">Filtros</h3>
-                            <div class="row g-3">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <h3 class="card-title mb-0"><i class="ti ti-filter me-2 text-primary"></i>Filtros</h3>
+                            <span class="text-secondary small">Selecciona los criterios y aplica el reporte</span>
+                        </div>
+                        <div class="row g-3">
                                 <div class="col-lg">
                                     <label class="form-label">Año</label>
                                     <select id="filterYear" class="form-select">
@@ -129,7 +138,7 @@ $mesesList = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto',
                         <div class="card-body tab-content">
                             <!-- Tab 1: Total Errores -->
                             <div id="tab-errores-est" class="tab-pane active" role="tabpanel">
-                                <div class="relative" id="chart1Container" style="height: 400px;">
+                                <div class="report-chart-frame" id="chart1Container">
                                     <canvas id="chartErroresEst"></canvas>
                                 </div>
                                 <div class="table-responsive">
@@ -142,7 +151,7 @@ $mesesList = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto',
 
                             <!-- Tab 2: Plazos Entrega -->
                             <div id="tab-plazos" class="tab-pane" role="tabpanel">
-                                <div class="relative" id="chart2Container" style="height: 400px;">
+                                <div class="report-chart-frame" id="chart2Container">
                                     <canvas id="chartPlazoAgregado"></canvas>
                                 </div>
                                 <div class="table-responsive">
@@ -155,7 +164,7 @@ $mesesList = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto',
 
                             <!-- Tab 3: Uso Validador -->
                             <div id="tab-validador" class="tab-pane" role="tabpanel">
-                                <div class="relative" id="chart3Container" style="height: 400px;">
+                                <div class="report-chart-frame" id="chart3Container">
                                     <canvas id="chartValidadorAgregado"></canvas>
                                 </div>
                                 <div class="table-responsive">
@@ -168,7 +177,7 @@ $mesesList = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto',
 
                             <!-- Tab 4: Errores por Serie -->
                             <div id="tab-serie" class="tab-pane" role="tabpanel">
-                                <div class="relative" id="chart4Container" style="height: 400px;">
+                                <div class="report-chart-frame" id="chart4Container">
                                     <canvas id="chartErroresSerie"></canvas>
                                 </div>
                                 <div class="table-responsive">
@@ -181,7 +190,7 @@ $mesesList = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto',
 
                             <!-- Tab 5: Errores por Hoja -->
                             <div id="tab-hoja" class="tab-pane" role="tabpanel">
-                                <div class="relative" id="chart5Container" style="height: 400px;">
+                                <div class="report-chart-frame" id="chart5Container">
                                     <canvas id="chartErroresHoja"></canvas>
                                 </div>
                                 <div class="table-responsive">
@@ -211,9 +220,9 @@ const TRIMESTRES = {
 };
 
 const TAB_CONFIG = {
-    'tab-errores-est': { canvas: 'chartErroresEst', container: 'chart1Container', table: 'tableErroresEst', orientation: 'horizontal', color: '#dc2626', label: 'Errores', key: 'errores_establecimiento' },
-    'tab-serie': { canvas: 'chartErroresSerie', container: 'chart4Container', table: 'tableErroresSerie', orientation: 'horizontal', color: '#0ea5e9', label: 'Errores', key: 'errores_serie' },
-    'tab-hoja': { canvas: 'chartErroresHoja', container: 'chart5Container', table: 'tableErroresHoja', orientation: 'vertical', color: '#10b981', label: 'Errores', key: 'errores_hoja' }
+    'tab-errores-est': { canvas: 'chartErroresEst', container: 'chart1Container', table: 'tableErroresEst', orientation: 'horizontal', colorToken: '--tblr-danger', colorFallback: '#dc2626', label: 'Errores', key: 'errores_establecimiento' },
+    'tab-serie': { canvas: 'chartErroresSerie', container: 'chart4Container', table: 'tableErroresSerie', orientation: 'horizontal', colorToken: '--tblr-primary', colorFallback: '#0ea5e9', label: 'Errores', key: 'errores_serie' },
+    'tab-hoja': { canvas: 'chartErroresHoja', container: 'chart5Container', table: 'tableErroresHoja', orientation: 'vertical', colorToken: '--tblr-success', colorFallback: '#10b981', label: 'Errores', key: 'errores_hoja' }
 };
 
 // ============================================
@@ -298,9 +307,11 @@ async function loadErrorReports() {
         tabDataLoaded = {}; // Reset: all tabs need reload
 
         // Render active tab immediately
-        const activeTab = document.querySelector('.tab-panel.active').id;
-        if (activeTab === 'tab-plazos' || activeTab === 'tab-validador') {
-            switchTab(activeTab);
+        const activeTab = document.querySelector('.tab-pane.active')?.id || 'tab-errores-est';
+        if (activeTab === 'tab-plazos') {
+            loadPlazoAgregado();
+        } else if (activeTab === 'tab-validador') {
+            loadValidadorAgregado();
         } else {
             renderTabChart(activeTab, cachedData);
             tabDataLoaded[activeTab] = true;
@@ -329,7 +340,25 @@ function renderTabChart(tabId, data) {
     const labels = resultData.map(r => r.nombre_corto || r.nombre || r.codigo_serie || r.codigo_hoja);
     const values = resultData.map(r => parseInt(r.total));
 
-    renderChart(config.canvas, config.container, config.table, config.orientation, labels, values, config.color, config.label);
+    const color = chartTokenColor(config.colorToken, config.colorFallback);
+    renderChart(config.canvas, config.container, config.table, config.orientation, labels, values, color, config.label);
+}
+
+function setChartFrameSize(container, itemCount, orientation) {
+    if (!container) return;
+    container.classList.remove('report-chart-frame--tall', 'report-chart-frame--long', 'report-chart-frame--vertical');
+    if (orientation === 'vertical') container.classList.add('report-chart-frame--vertical');
+    if (itemCount > 18) {
+        container.classList.add('report-chart-frame--long');
+    } else if (itemCount > 10) {
+        container.classList.add('report-chart-frame--tall');
+    }
+}
+
+function renderEmptyChart(container, message) {
+    if (!container) return;
+    container.classList.remove('report-chart-frame--tall', 'report-chart-frame--long', 'report-chart-frame--vertical');
+    container.innerHTML = `<div class="report-empty-state"><i class="ti ti-chart-dots-3"></i><span>${escapeHtml(message)}</span></div>`;
 }
 
 function renderChart(canvasId, containerId, tableId, orientation, labels, values, color, colLabel) {
@@ -337,8 +366,8 @@ function renderChart(canvasId, containerId, tableId, orientation, labels, values
     const container = document.getElementById(containerId);
 
     if (!labels.length || values.every(v => v === 0)) {
-        tableBody.innerHTML = '<tr><td colspan="2" class="py-2 text-slate-400 text-center">Sin datos para los filtros seleccionados</td></tr>';
-        if (container) container.innerHTML = '<p class="text-slate-400 text-center py-8">Sin datos para los filtros seleccionados</p>';
+        tableBody.innerHTML = '<tr><td colspan="2" class="text-center text-secondary py-4">Sin datos para los filtros seleccionados</td></tr>';
+        renderEmptyChart(container, 'Sin datos para los filtros seleccionados');
         return;
     }
 
@@ -347,13 +376,7 @@ function renderChart(canvasId, containerId, tableId, orientation, labels, values
         container.innerHTML = `<canvas id="${canvasId}"></canvas>`;
     }
 
-    // Altura dinámica
-    if (labels.length > 10) {
-        const extraHeight = (labels.length - 10) * 22;
-        container.style.height = (orientation === 'horizontal' ? 400 : 500) + extraHeight + 'px';
-    } else {
-        container.style.height = '400px';
-    }
+    setChartFrameSize(container, labels.length, orientation);
 
     // Create chart
     if (orientation === 'horizontal') {
@@ -363,9 +386,9 @@ function renderChart(canvasId, containerId, tableId, orientation, labels, values
     }
 
     tableBody.innerHTML = labels.map((l, i) => `
-        <tr class="border-b border-slate-100">
-            <td class="py-1">${escapeHtml(l)}</td>
-            <td class="py-1 text-end fw-medium">${values[i]}</td>
+        <tr>
+            <td>${escapeHtml(l)}</td>
+            <td class="text-end fw-medium">${values[i]}</td>
         </tr>
     `).join('');
 }
@@ -410,26 +433,22 @@ function renderPlazoChart(data) {
     if (!document.getElementById('chartPlazoAgregado')) {
         container.innerHTML = '<canvas id="chartPlazoAgregado"></canvas>';
     }
-    if (labels.length > 10) {
-        container.style.height = (400 + (labels.length - 10) * 22) + 'px';
-    } else {
-        container.style.height = '400px';
-    }
+    setChartFrameSize(container, labels.length, 'horizontal');
 
     if (labels.length === 0) {
-        container.innerHTML = '<p class="text-slate-400 text-center py-8">Sin datos para el año seleccionado</p>';
-        document.getElementById('tablePlazoResumen').innerHTML = '';
+        renderEmptyChart(container, 'Sin datos para el año seleccionado');
+        document.getElementById('tablePlazoResumen').innerHTML = '<tr><td colspan="4" class="text-center text-secondary py-4">Sin datos para el año seleccionado</td></tr>';
         return;
     }
 
-    errorCharts['chartPlazoAgregado'] = createBarHorizontal('chartPlazoAgregado', labels, est.map(e => parseInt(e.meses_fuera)), '#dc2626');
+    errorCharts['chartPlazoAgregado'] = createBarHorizontal('chartPlazoAgregado', labels, est.map(e => parseInt(e.meses_fuera)), chartTokenColor('--tblr-danger', '#dc2626'));
 
     document.getElementById('tablePlazoResumen').innerHTML = est.map(e => `
-        <tr class="border-b border-slate-100">
-            <td class="py-1">${escapeHtml(e.nombre_corto)}</td>
-            <td class="py-1 text-end fw-medium text-green">${e.meses_dentro}</td>
-            <td class="py-1 text-end fw-medium text-red">${e.meses_fuera}</td>
-            <td class="py-1 text-end text-secondary">${e.meses_con_datos}</td>
+        <tr>
+            <td>${escapeHtml(e.nombre_corto)}</td>
+            <td class="text-end fw-medium text-success">${e.meses_dentro}</td>
+            <td class="text-end fw-medium text-danger">${e.meses_fuera}</td>
+            <td class="text-end text-secondary">${e.meses_con_datos}</td>
         </tr>
     `).join('');
 
@@ -464,26 +483,22 @@ function renderValidadorChart(data) {
     if (!document.getElementById('chartValidadorAgregado')) {
         container.innerHTML = '<canvas id="chartValidadorAgregado"></canvas>';
     }
-    if (labels.length > 10) {
-        container.style.height = (400 + (labels.length - 10) * 22) + 'px';
-    } else {
-        container.style.height = '400px';
-    }
+    setChartFrameSize(container, labels.length, 'horizontal');
 
     if (labels.length === 0) {
-        container.innerHTML = '<p class="text-slate-400 text-center py-8">Sin datos para el año seleccionado</p>';
-        document.getElementById('tableValidadorResumen').innerHTML = '';
+        renderEmptyChart(container, 'Sin datos para el año seleccionado');
+        document.getElementById('tableValidadorResumen').innerHTML = '<tr><td colspan="4" class="text-center text-secondary py-4">Sin datos para el año seleccionado</td></tr>';
         return;
     }
 
-    errorCharts['chartValidadorAgregado'] = createBarHorizontal('chartValidadorAgregado', labels, est.map(e => parseInt(e.meses_no_usa)), '#94a3b8');
+    errorCharts['chartValidadorAgregado'] = createBarHorizontal('chartValidadorAgregado', labels, est.map(e => parseInt(e.meses_no_usa)), chartTokenColor('--tblr-muted', '#94a3b8'));
 
     document.getElementById('tableValidadorResumen').innerHTML = est.map(e => `
-        <tr class="border-b border-slate-100">
-            <td class="py-1">${escapeHtml(e.nombre_corto)}</td>
-            <td class="py-1 text-end fw-medium text-info">${e.meses_usa}</td>
-            <td class="py-1 text-end fw-medium text-secondary">${e.meses_no_usa}</td>
-            <td class="py-1 text-end text-secondary">${e.meses_con_datos}</td>
+        <tr>
+            <td>${escapeHtml(e.nombre_corto)}</td>
+            <td class="text-end fw-medium text-info">${e.meses_usa}</td>
+            <td class="text-end fw-medium text-secondary">${e.meses_no_usa}</td>
+            <td class="text-end text-secondary">${e.meses_con_datos}</td>
         </tr>
     `).join('');
 }

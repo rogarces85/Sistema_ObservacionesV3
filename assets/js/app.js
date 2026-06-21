@@ -8,6 +8,34 @@ const API_BASE = window.location.pathname.split('/').slice(0, -1).join('/') + '/
 let currentYear = new Date().getFullYear();
 let currentUser = null;
 
+// === CountUp helper for [data-countup] elements ===
+function initCountUp(el) {
+    if (!el) return;
+    const target = parseFloat(el.getAttribute('data-countup')) || 0;
+    if (target === 0) {
+        el.textContent = '0';
+        return;
+    }
+    const duration = 900;
+    const start = performance.now();
+    function step(now) {
+        const progress = Math.min((now - start) / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        const value = Math.round(target * eased);
+        el.textContent = value.toLocaleString('es-CL');
+        if (progress < 1) {
+            requestAnimationFrame(step);
+        } else {
+            el.textContent = target.toLocaleString('es-CL');
+        }
+    }
+    requestAnimationFrame(step);
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('[data-countup]').forEach(initCountUp);
+});
+
 // Función auxiliar para hacer peticiones fetch
 async function fetchAPI(endpoint, options = {}) {
     try {

@@ -36,40 +36,41 @@ if ($userRole === ROL_REGISTRADOR) {
 global $TIPOS_ERROR, $MESES;
 ?>
 
-<div class="d-flex flex-column gap-3">
+<div class="d-flex flex-column gap-3 rem-fade-in">
     <!-- Header -->
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+    <header class="page-header">
         <div>
-            <h2 class="mb-1 fw-bold text-primary">Listado de Observaciones</h2>
-            <p class="text-secondary mb-0">Gestiona y realiza seguimiento de tus registros REM</p>
+            <h1 class="page-title">
+                <i class="ti ti-file-text me-2 text-primary"></i>Listado de Observaciones
+            </h1>
+            <p class="page-subtitle">Gestiona y realiza seguimiento de tus registros REM</p>
         </div>
-        <div class="d-flex gap-2">
+        <div class="page-actions">
             <?php if ($userRole === ROL_REGISTRADOR): ?>
                 <?php if (!$tieneAsignaciones): ?>
                     <!-- Sin botones de acción si no tiene asignaciones -->
                 <?php else: ?>
                     <button onclick="openImportModal()" class="btn btn-outline-secondary">
-                        📥 Importar
+                        <i class="ti ti-upload me-1"></i>Importar
                     </button>
                     <button onclick="openCreateModal()" class="btn btn-primary">
-                        ➕ Nueva Observación
+                        <i class="ti ti-plus me-1"></i>Nueva Observación
                     </button>
                 <?php endif; ?>
             <?php endif; ?>
         </div>
-    </div>
+    </header>
 
     <?php if ($userRole === ROL_REGISTRADOR && !$tieneAsignaciones): ?>
-        <div class="p-6 rounded-xl bg-amber-50 border border-amber-200 text-center">
-            <div class="text-4xl mb-3">⚠️</div>
-            <p class="font-bold text-amber-800 text-lg">No tiene establecimientos asignados</p>
-            <p class="text-sm text-amber-700 mt-2">
-                No tiene establecimientos asignados para el año <strong><?php echo $currentYear; ?></strong>. 
-                No podrá registrar observaciones hasta que su supervisor le asigne establecimientos.
-            </p>
-            <p class="text-xs text-amber-600 mt-4">
-                Contacte a su supervisor para solicitar la asignación de establecimientos.
-            </p>
+        <div class="card" style="background: rgba(245, 158, 11, 0.10); border: 0;">
+            <div class="card-body empty-state">
+                <div class="empty-icon" style="background: rgba(245, 158, 11, 0.18); color: var(--tblr-warning);">
+                    <i class="ti ti-alert-triangle"></i>
+                </div>
+                <h3>No tiene establecimientos asignados</h3>
+                <p>No podrá registrar observaciones hasta que su supervisor le asigne establecimientos para el año <strong><?php echo $currentYear; ?></strong>.</p>
+                <p class="small">Contacte a su supervisor para solicitar la asignación.</p>
+            </div>
         </div>
     <?php endif; ?>
 
@@ -78,20 +79,26 @@ global $TIPOS_ERROR, $MESES;
         <div class="card-body">
             <div class="row g-3 align-items-end">
                 <div class="col-12 col-md-4">
-                    <input type="text" id="searchInput" placeholder="🔍 Buscar por establecimiento o detalle..."
-                        class="form-control" oninput="filterTable()">
+                    <label class="form-label" for="searchInput">Buscar</label>
+                    <div class="input-icon">
+                        <span class="input-icon-addon"><i class="ti ti-search"></i></span>
+                        <input type="text" id="searchInput" placeholder="Buscar por establecimiento o detalle..."
+                            class="form-control" oninput="filterTable()">
+                    </div>
                 </div>
                 <div class="col-6 col-md-3">
+                    <label class="form-label" for="filterEstado">Estado</label>
                     <select id="filterEstado" class="form-select" onchange="filterTable()">
                         <option value="">Todos los estados</option>
-                        <option value="pendiente">🟡 Pendiente</option>
-                        <option value="aprobado">🟢 Aprobado</option>
-                        <option value="rechazado">🔴 Rechazado</option>
-                        <option value="error">⚠️ Error</option>
-                        <option value="justificado">🔵 Justificado</option>
+                        <option value="pendiente">Pendiente</option>
+                        <option value="aprobado">Aprobado</option>
+                        <option value="rechazado">Rechazado</option>
+                        <option value="error">Error</option>
+                        <option value="justificado">Justificado</option>
                     </select>
                 </div>
                 <div class="col-6 col-md-3">
+                    <label class="form-label" for="filterMes">Mes</label>
                     <select id="filterMes" class="form-select" onchange="filterTable()">
                         <option value="">Todos los meses</option>
                         <?php foreach ($MESES as $mes): ?>
@@ -146,8 +153,13 @@ global $TIPOS_ERROR, $MESES;
                                 </span>
                             </td>
                             <td>
-                                <span class="badge bg-<?php echo $obs['estado_actual'] === 'pendiente' ? 'warning' : ($obs['estado_actual'] === 'aprobado' ? 'success' : ($obs['estado_actual'] === 'error' ? 'danger' : ($obs['estado_actual'] === 'justificado' ? 'info' : 'secondary'))); ?>">
-                                    <?php echo ucfirst($obs['estado_actual']); ?>
+                                <?php
+                                $estadoKey = $obs['estado_actual'];
+                                $estadoClass = 'badge-status-' . $estadoKey;
+                                ?>
+                                <span class="badge-status <?php echo $estadoClass; ?>">
+                                    <span class="status-dot"></span>
+                                    <?php echo ucfirst(htmlspecialchars($estadoKey)); ?>
                                 </span>
                             </td>
                             <td>
@@ -161,12 +173,11 @@ global $TIPOS_ERROR, $MESES;
                             <td class="text-end">
                                 <div class="dropdown">
                                     <button class="btn btn-ghost-secondary btn-icon dropdown-toggle" data-bs-toggle="dropdown" aria-label="Acciones">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/><circle cx="12" cy="5" r="1"/></svg>
+                                        <i class="ti ti-dots-vertical"></i>
                                     </button>
                                     <div class="dropdown-menu dropdown-menu-end">
                                         <a class="dropdown-item" href="#" onclick="viewObservation(<?php echo $obs['id']; ?>); return false;">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon me-2"><circle cx="12" cy="12" r="2"/><path d="M22 12c-2.667 4.667-6 7-10 7s-7.333-2.333-10-7c2.667-4.667 6-7 10-7s7.333 2.333 10 7z"/></svg>
-                                            Ver detalle
+                                            <i class="ti ti-eye me-2"></i>Ver detalle
                                         </a>
                                         <?php
                                         $canEdit = ($userRole === ROL_SUPERVISOR) ||
@@ -174,8 +185,7 @@ global $TIPOS_ERROR, $MESES;
                                         if ($canEdit):
                                             ?>
                                             <a class="dropdown-item" href="#" onclick="editObservation(<?php echo $obs['id']; ?>); return false;">
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon me-2"><path d="M15.232 5.232l3.536 3.536M9 11l-3 3v3h3l8.232-8.232a2.5 2.5 0 00-3.536-3.536L9 11z"/></svg>
-                                                Editar
+                                                <i class="ti ti-edit me-2"></i>Editar
                                             </a>
                                         <?php endif; ?>
                                     </div>
@@ -185,9 +195,21 @@ global $TIPOS_ERROR, $MESES;
                     <?php endforeach; ?>
                     <?php if (empty($observations)): ?>
                         <tr>
-                            <td colspan="6" class="text-center text-secondary py-4">
-                                No se encontraron observaciones para el año
-                                <?php echo $currentYear; ?>
+                            <td colspan="6" class="empty-state">
+                                <div class="empty-icon"><i class="ti ti-mailbox"></i></div>
+                                <h3>Sin observaciones en <?php echo htmlspecialchars($currentYear); ?></h3>
+                                <p>
+                                    <?php if ($userRole === ROL_REGISTRADOR): ?>
+                                        Cuando registres una observación o importes un archivo, aparecerá aquí.
+                                    <?php else: ?>
+                                        Aún no se han registrado observaciones para el año seleccionado.
+                                    <?php endif; ?>
+                                </p>
+                                <?php if ($userRole === ROL_REGISTRADOR && $tieneAsignaciones): ?>
+                                    <a href="#" onclick="openCreateModal(); return false;" class="btn btn-primary">
+                                        <i class="ti ti-plus me-1"></i>Crear primera observación
+                                    </a>
+                                <?php endif; ?>
                             </td>
                         </tr>
                     <?php endif; ?>
@@ -203,7 +225,7 @@ global $TIPOS_ERROR, $MESES;
         <div class="modal-content">
             <div class="modal-header">
                 <div>
-                    <h5 class="modal-title" id="modalTitle">Nueva Observación</h5>
+                    <h5 class="modal-title" id="modalTitle"><i class="ti ti-file-plus me-2 text-primary"></i>Nueva Observación</h5>
                     <div class="text-secondary">Complete los datos de la observación</div>
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -351,7 +373,7 @@ global $TIPOS_ERROR, $MESES;
         <div class="modal-content">
             <div class="modal-header">
                 <div>
-                    <h5 class="modal-title">Importar Observaciones</h5>
+                    <h5 class="modal-title"><i class="ti ti-upload me-2 text-primary"></i>Importar Observaciones</h5>
                     <div class="text-secondary">Carga masiva de observaciones desde archivo Excel (XLSX)</div>
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -360,15 +382,15 @@ global $TIPOS_ERROR, $MESES;
                 <!-- Stepper -->
                 <div class="steps steps-counter mb-4">
                     <div class="step-item active" id="stepperStep1">
-                        <span class="step">1</span>
+                        <span class="step"><i class="ti ti-file-upload"></i></span>
                         <span class="step-title">Archivo</span>
                     </div>
                     <div class="step-item" id="stepperStep2">
-                        <span class="step">2</span>
+                        <span class="step"><i class="ti ti-eye"></i></span>
                         <span class="step-title">Vista previa</span>
                     </div>
                     <div class="step-item" id="stepperStep3">
-                        <span class="step">3</span>
+                        <span class="step"><i class="ti ti-circle-check"></i></span>
                         <span class="step-title">Confirmar</span>
                     </div>
                 </div>
@@ -379,7 +401,7 @@ global $TIPOS_ERROR, $MESES;
                         <p class="text-secondary mb-4">Seleccione un archivo Excel (.xlsx) o CSV con las observaciones</p>
                         <input type="file" id="csvFile" accept=".xlsx,.xls,.csv" class="d-none" onchange="previewImport()">
                         <button onclick="document.getElementById('csvFile').click()" class="btn btn-primary">
-                            Seleccionar Archivo Excel
+                            <i class="ti ti-file-upload me-1"></i>Seleccionar Archivo Excel
                         </button>
                     </div>
                     <div class="d-flex align-items-center justify-content-between p-4 bg-light rounded">
@@ -473,7 +495,7 @@ global $TIPOS_ERROR, $MESES;
         <div class="modal-content">
             <div class="modal-header">
                 <div>
-                    <h5 class="modal-title">Detalle de Observación</h5>
+                    <h5 class="modal-title"><i class="ti ti-file-text me-2 text-primary"></i>Detalle de Observación</h5>
                     <div class="text-secondary">Resumen completo del registro</div>
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>

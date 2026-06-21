@@ -27,20 +27,20 @@ $comunas = $locationModel->getComunas();
 
                 <!-- Header -->
                 <div class="col-12">
-                    <div class="mb-3 d-flex align-items-center justify-content-between">
+                    <div class="page-header">
                         <div>
-                            <h2 class="page-title">Observaciones Eliminadas</h2>
-                            <div class="text-secondary">Papelera de reciclaje — Restaurar o eliminar permanentemente</div>
+                            <h1 class="page-title"><i class="ti ti-trash me-2 text-primary"></i>Observaciones Eliminadas</h1>
+                            <p class="page-subtitle">Papelera de reciclaje — Restaurar o eliminar permanentemente</p>
                         </div>
-                        <div class="btn-list">
-                            <span id="selectedCount" class="text-secondary d-none">
+                        <div class="page-actions">
+                            <span id="selectedCount" class="text-secondary d-none me-2">
                                 <span class="fw-medium text-primary">0</span> seleccionadas
                             </span>
                             <button id="btnRestoreSelected" class="btn btn-primary" disabled>
-                                Restaurar
+                                <i class="ti ti-refresh me-1"></i>Restaurar
                             </button>
                             <button id="btnDeletePermanentSelected" class="btn btn-danger" disabled>
-                                Eliminar Permanentemente
+                                <i class="ti ti-trash-x me-1"></i>Eliminar Permanentemente
                             </button>
                         </div>
                     </div>
@@ -55,7 +55,7 @@ $comunas = $locationModel->getComunas();
                 <div class="col-12">
                     <div class="card">
                         <div class="card-body">
-                            <h3 class="card-title mb-3">Filtros</h3>
+                            <h3 class="card-title mb-3"><i class="ti ti-filter me-2 text-primary"></i>Filtros</h3>
                             <div class="row g-3">
                                 <div class="col-lg">
                                     <label class="form-label">Mes</label>
@@ -105,8 +105,12 @@ $comunas = $locationModel->getComunas();
                                 </div>
                                 <div class="col-12">
                                     <div class="btn-list">
-                                        <button id="btnApplyFilters" class="btn btn-primary">Aplicar Filtros</button>
-                                        <button id="btnClearFilters" class="btn btn-outline-secondary">Limpiar</button>
+                                        <button id="btnApplyFilters" class="btn btn-primary">
+                                            <i class="ti ti-search me-1"></i>Aplicar Filtros
+                                        </button>
+                                        <button id="btnClearFilters" class="btn btn-outline-secondary">
+                                            <i class="ti ti-eraser me-1"></i>Limpiar
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -170,8 +174,12 @@ $comunas = $locationModel->getComunas();
                                 <tbody id="observationsBody"></tbody>
                             </table>
                         </div>
-                        <div id="emptyState" class="d-none card-body text-center py-8 text-secondary">
-                            <p>No hay observaciones eliminadas.</p>
+                        <div id="emptyState" class="d-none card-body text-center py-8">
+                            <div class="empty-state">
+                                <div class="empty-icon"><i class="ti ti-trash-off"></i></div>
+                                <h3>Sin observaciones eliminadas</h3>
+                                <p>No hay observaciones eliminadas con los filtros aplicados.</p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -185,7 +193,7 @@ $comunas = $locationModel->getComunas();
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="confirmTitle">Confirmar Acción</h5>
+                    <h5 class="modal-title" id="confirmTitle"><i class="ti ti-shield-check me-2 text-warning"></i>Confirmar Acción</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
@@ -202,8 +210,12 @@ $comunas = $locationModel->getComunas();
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-primary" id="confirmActionBtn">Confirmar</button>
+                    <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">
+                        <i class="ti ti-x me-1"></i>Cancelar
+                    </button>
+                    <button type="button" class="btn btn-primary" id="confirmActionBtn">
+                        <i class="ti ti-check me-1"></i>Confirmar
+                    </button>
             </div>
         </div>
     </div>
@@ -352,11 +364,11 @@ $comunas = $locationModel->getComunas();
                 </td>
                 <td class="text-end">
                     <div class="btn-list justify-content-end">
-                        <button class="btn btn-ghost-primary btn-icon" onclick="restoreSingle(${obs.id})" title="Restaurar" data-bs-toggle="tooltip">
-                            <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-history"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 8l0 4l2 2" /><path d="M3.05 11a9 9 0 1 1 .5 4m-.5 5v-5h5" /></svg>
+                        <button class="btn btn-ghost-primary btn-icon" onclick="restoreSingle(${obs.id})" title="Restaurar" data-bs-toggle="tooltip" aria-label="Restaurar">
+                            <i class="ti ti-history"></i>
                         </button>
-                        <button class="btn btn-ghost-danger btn-icon" onclick="deletePermanentSingle(${obs.id})" title="Eliminar permanentemente" data-bs-toggle="tooltip">
-                            <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-trash"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 7l16 0" /><path d="M10 11l0 6" /><path d="M14 11l0 6" /><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12" /><path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3" /></svg>
+                        <button class="btn btn-ghost-danger btn-icon" onclick="deletePermanentSingle(${obs.id})" title="Eliminar permanentemente" data-bs-toggle="tooltip" aria-label="Eliminar permanentemente">
+                            <i class="ti ti-trash-x"></i>
                         </button>
                     </div>
                 </td>
