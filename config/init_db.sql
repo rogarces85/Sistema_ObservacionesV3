@@ -150,11 +150,11 @@ ON DUPLICATE KEY UPDATE nombre = VALUES(nombre);
 -- Insertar usuarios de prueba
 -- Contraseña para todos: 'admin123' (hasheada con password_hash)
 INSERT INTO usuarios (username, password_hash, nombre_completo, rol, activo) VALUES
-('supervisor1', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Cecilia (Supervisor)', 'supervisor', TRUE),
-('registrador1', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Rodrigo Garcés', 'registrador', TRUE),
-('registrador2', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Victoria Martínez', 'registrador', TRUE),
-('registrador3', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Roxana Mancilla', 'registrador', TRUE),
-('registrador4', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Marcelo Horstmeier', 'registrador', TRUE)
+('supervisor1', '$2y$10$BWf8jMuI4a285rWStj2uPOyoTzit8o3Pnd4SZyF62ArzQta1luVEK', 'Cecilia (Supervisor)', 'supervisor', TRUE),
+('registrador1', '$2y$10$BWf8jMuI4a285rWStj2uPOyoTzit8o3Pnd4SZyF62ArzQta1luVEK', 'Rodrigo Garcés', 'registrador', TRUE),
+('registrador2', '$2y$10$BWf8jMuI4a285rWStj2uPOyoTzit8o3Pnd4SZyF62ArzQta1luVEK', 'Victoria Martínez', 'registrador', TRUE),
+('registrador3', '$2y$10$BWf8jMuI4a285rWStj2uPOyoTzit8o3Pnd4SZyF62ArzQta1luVEK', 'Roxana Mancilla', 'registrador', TRUE),
+('registrador4', '$2y$10$BWf8jMuI4a285rWStj2uPOyoTzit8o3Pnd4SZyF62ArzQta1luVEK', 'Marcelo Horstmeier', 'registrador', TRUE)
 ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash);
 
 -- Mensaje de finalización

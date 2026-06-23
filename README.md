@@ -177,7 +177,9 @@ Sistema_ObservacionesV3/
 └── README.md                    # Fuente de verdad generada por /speckit.discover
 ```
 
-## 🎨 Mejora Visual (Tabler)
+## 🎨 Estándar Visual Oficial (Tabler)
+
+Tabler 1.4 es el estándar visual oficial del sistema REM. Nuevas pantallas y refactors deben usar el shell, tokens, componentes y convenciones definidos en esta sección.
 
 La capa visual se compone de:
 

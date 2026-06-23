@@ -131,7 +131,7 @@ $initialTheme = in_array($initialTheme, ['light', 'dark'], true) ? $initialTheme
                         </div>
                         <div class="d-flex justify-content-between mt-1">
                             <span><i class="ti ti-user me-1"></i>Registrador</span>
-                            <code>registrador1 / admin123</code>
+                            <code>registrador2 / admin123</code>
                         </div>
                     </div>
                 </details>

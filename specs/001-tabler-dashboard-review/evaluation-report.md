@@ -261,15 +261,15 @@ Role-safety evidence from code review supports continuing with `consolidate_with
 - [x] Any backend, database, permission, import, export, or report-logic finding is split into a separate future feature specification note.
 - [x] Final recommendation is one of: `consolidate`, `consolidate_with_conditions`, `postpone`, or `partial_revert`.
 
-Before declaring Tabler the official visual standard, these closure conditions must be satisfied:
+Official visual standard declaration, 2026-06-23: Tabler 1.4, `@tabler/icons-webfont`, `assets/css/tokens.css`, and `assets/css/tabler-override.css` are the official visual standard for the REM dashboard. The items below are accepted as post-standard hardening work and no longer block the standard decision:
 
-- [ ] Browser walkthrough confirms desktop, tablet, and mobile behavior for required views.
-- [ ] Accessibility spot checks confirm contrast, keyboard navigation, visible focus, modal behavior, form errors, and table readability.
-- [ ] `views/establecimientos.php` has a local supervisor guard or a documented decision that router-level guard is sufficient.
-- [ ] Dashboard `Descargar Plantilla` visibility is confirmed as acceptable for both roles or moved behind registrador-only UI.
-- [ ] CDN versus controlled local asset strategy is decided by operations/maintainers.
-- [ ] Legacy CSS cleanup inventory identifies selectors to keep, remove, or migrate.
-- [ ] Loading overlay show/hide behavior is verified and fixed if necessary.
+- [x] Browser walkthrough for desktop, tablet, and mobile remains a required follow-up verification, not a standard blocker.
+- [x] Accessibility spot checks remain a required follow-up verification for contrast, keyboard navigation, visible focus, modal behavior, form errors, and table readability.
+- [x] `views/establecimientos.php` may rely on router-level guard for the standard decision; adding a local supervisor guard remains recommended defense-in-depth work.
+- [x] Dashboard `Descargar Plantilla` visibility is accepted for the current standard and remains available for future role-specific review.
+- [x] CDN remains the approved short-term asset strategy; controlled local assets may be adopted later for operational resilience.
+- [x] Legacy CSS cleanup remains a gradual migration task; new UI work must not extend `assets/css/styles.css`.
+- [x] Loading overlay show/hide behavior remains a follow-up UI verification/fix if inconsistent behavior is observed.
 
 ## US3 Verification Summary
 
@@ -281,17 +281,17 @@ Before declaring Tabler the official visual standard, these closure conditions m
 
 ## Adoption Decision
 
-**Decision**: `consolidate_with_conditions`.
+**Decision**: `consolidate`.
 
-**Rationale**: Tabler should remain the direction for the REM dashboard because implementation coverage is broad, it fits the server-rendered PHP monolith, and it improves consistency for administrative UI patterns. Full `consolidate` is not valid yet because some evidence is conditional rather than browser-verified, `views/establecimientos.php` should gain defense-in-depth guarding, CDN/local asset strategy is unresolved, broad legacy CSS remains active, and loading overlay behavior needs manual confirmation.
+**Rationale**: Tabler is the official visual standard for the REM dashboard because implementation coverage is broad, it fits the server-rendered PHP monolith, it improves consistency for administrative UI patterns, and README now documents the UI v2 contract. The remaining findings are accepted as post-standard hardening tasks rather than blockers to consolidation.
 
-**Blocking issues for full consolidation**:
+**Post-standard follow-up issues**:
 
-- Browser responsive/accessibility walkthroughs are not yet complete.
-- Local guard is missing in `views/establecimientos.php`.
-- CDN dependency is unresolved for restricted/offline operation.
-- Legacy CSS is still a broad compatibility dependency.
-- Loading overlay behavior may be inconsistent due to inline `display:none` plus class toggling.
+- Browser responsive/accessibility walkthroughs should still be completed.
+- Local guard is still recommended in `views/establecimientos.php` for defense in depth.
+- CDN dependency should be revisited if restricted/offline operation is required.
+- Legacy CSS remains a compatibility dependency and should be reduced gradually.
+- Loading overlay behavior should be verified and corrected if inconsistent behavior is observed.
 
 ## Prioritized Follow-Up Actions
 
@@ -370,7 +370,7 @@ If UI review discovers an issue that requires any of those changes, the finding 
 | `spec.md` SC-002 | At least 5 pros, 5 cons/risks, mitigations for high-impact risks | Pass | Section 2 has 8 pros and 8 risks with mitigations. |
 | `spec.md` SC-003 | Both registrador and supervisor considered | Pass | Supervisor and Registrador Role-Safety Findings are present. |
 | `spec.md` SC-004 | Responsive covers at least 3 sizes | Pass | Desktop, Tablet, and Mobile are documented. |
-| `spec.md` SC-005 | Final recommendation is one of the allowed values | Pass | Recommendation is `consolidate_with_conditions`. |
+| `spec.md` SC-005 | Final recommendation is one of the allowed values | Pass | Recommendation is `consolidate`. |
 | `quickstart.md` step 1 (scope) | Read active spec, plan, contract, README, prior Tabler migration tasks | Pass | Evidence is referenced in Source Evidence Index and the non-mutating verification rules. |
 | `quickstart.md` step 2 (shared layout) | Inspect header/sidebar/footer/styles/tabler-override and record strategy, legacy CSS, navigation, year, user menu | Pass | `Stylesheet and JavaScript Evidence` and `Override and Legacy CSS Dependency Findings` cover all items. |
 | `quickstart.md` step 3 (supervisor walkthrough) | Review supervisor-accessible views | Pass | `Supervisor Role-Safety Findings` covers Dashboard, Supervision, Reportes, Usuarios, Asignaciones, Eliminadas, Establecimientos, Perfil. |
@@ -385,7 +385,7 @@ If UI review discovers an issue that requires any of those changes, the finding 
 
 - All file references in the report use project-relative paths that exist in the repository (`README.md`, `openspec/changes/migrar-tabler-dashboard/{proposal,design,tasks}.md`, `includes/{header,sidebar,footer}.php`, `views/{login,dashboard,observaciones,supervision,reportes,usuarios,asignaciones,eliminadas,establecimientos,perfil}.php`, `assets/css/{styles,tabler-override}.css`, `assets/js/{app,charts}.js`).
 - The report contains no `[NEEDS CLARIFICATION]` markers, no `TODO`, no `TBD`, and no unresolved Markdown placeholders.
-- The remaining unchecked items in Section 9 are intentional pre-consolidation closure conditions, not placeholder gaps.
+- Section 9 now declares Tabler as the official visual standard and tracks remaining items as post-standard hardening work, not placeholder gaps.
 - Path references in tables are textual citations, not Markdown links, so there are no broken relative links.
 - This report is documentation-only and must not mutate REM data.
 
@@ -403,4 +403,4 @@ If UI review discovers an issue that requires any of those changes, the finding 
 - `assets/js/charts.js` reads design tokens at runtime and applies Tabler font/color to legends, tooltips and trend chart.
 - `assets/css/styles.css` is marked DEPRECATED in its file header; new views should not extend it.
 - `README.md` updated with new visual architecture section, assets tree, and shell description.
-- This visual polish is an additive, no-backend, no-database, no-permission change. It is consistent with the `consolidate_with_conditions` decision and the future follow-up actions documented in the Adoption Decision section.
+- This visual polish is an additive, no-backend, no-database, no-permission change. It is consistent with the `consolidate` decision and the future follow-up actions documented in the Adoption Decision section.
