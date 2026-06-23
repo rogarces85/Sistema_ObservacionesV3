@@ -625,7 +625,7 @@ $comunas = $locationModel->getComunas();
             const detalleError = document.getElementById('approveDetalleError').value;
             let estadoResultante = '';
 
-            if (action === 'approve' && ids.length === 1) {
+            if (action === 'approve') {
                 const selected = document.querySelector('input[name="estadoResultante"]:checked');
                 if (!selected) {
                     alert('Debe seleccionar "Sin Observación" o "Error" como Clasificación de Respuesta');

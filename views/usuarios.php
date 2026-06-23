@@ -75,14 +75,20 @@ $usuarios = $userModel->getAll();
                                     <i class="ti ti-edit"></i>
                                 </button>
                                 <?php if ($usuario['id'] != $_SESSION['user_id']): ?>
+                                     <button
+                                         onclick="resetPassword(<?php echo $usuario['id']; ?>, '<?php echo htmlspecialchars($usuario['username']); ?>')"
+                                         class="btn btn-ghost-warning btn-icon"
+                                         title="Restablecer contraseña" data-bs-toggle="tooltip" aria-label="Restablecer contraseña">
+                                         <i class="ti ti-key"></i>
+                                     </button>
                                     <button
-                                        onclick="resetPassword(<?php echo $usuario['id']; ?>, '<?php echo htmlspecialchars($usuario['username']); ?>')"
-                                        class="btn btn-ghost-warning btn-icon"
-                                        title="Restablecer contraseña" data-bs-toggle="tooltip" aria-label="Restablecer contraseña">
-                                        <i class="ti ti-key"></i>
+                                        onclick="viewUserHistory(<?php echo $usuario['id']; ?>, '<?php echo htmlspecialchars($usuario['username']); ?>')"
+                                        class="btn btn-ghost-primary btn-icon"
+                                        title="Ver auditoría" data-bs-toggle="tooltip" aria-label="Ver auditoría">
+                                        <i class="ti ti-history"></i>
                                     </button>
-                                    <button
-                                        onclick="deleteUser(<?php echo $usuario['id']; ?>, '<?php echo htmlspecialchars($usuario['username']); ?>')"
+                                     <button
+                                         onclick="deleteUser(<?php echo $usuario['id']; ?>, '<?php echo htmlspecialchars($usuario['username']); ?>')"
                                         class="btn btn-ghost-danger btn-icon"
                                         title="Eliminar" data-bs-toggle="tooltip" aria-label="Eliminar">
                                         <i class="ti ti-trash"></i>
@@ -97,6 +103,20 @@ $usuarios = $userModel->getAll();
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="modalUserHistory" class="modal fade" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalUserHistoryTitle"><i class="ti ti-history me-2 text-primary"></i>Auditoría de Usuario</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="userHistoryBody" class="text-secondary">Cargando...</div>
             </div>
         </div>
     </div>
@@ -154,6 +174,7 @@ $usuarios = $userModel->getAll();
 
 <script>
     const modalUser = new bootstrap.Modal(document.getElementById('modalUser'));
+    const modalUserHistory = new bootstrap.Modal(document.getElementById('modalUserHistory'));
 
     function openCreateUserModal() {
         document.getElementById('userId').value = '';
@@ -291,5 +312,47 @@ $usuarios = $userModel->getAll();
             hideLoading();
             showMessage(error.message, 'error');
         }
+    }
+
+    async function viewUserHistory(userId, username) {
+        document.getElementById('modalUserHistoryTitle').innerHTML = '<i class="ti ti-history me-2 text-primary"></i>Auditoría de ' + username;
+        document.getElementById('userHistoryBody').innerHTML = '<div class="text-secondary">Cargando...</div>';
+        modalUserHistory.show();
+
+        try {
+            const response = await fetchAPI(`users.php?action=history&id=${userId}`);
+            const items = response.data || [];
+            if (items.length === 0) {
+                document.getElementById('userHistoryBody').innerHTML = '<div class="empty-state"><div class="empty-icon"><i class="ti ti-clock-off"></i></div><h3>Sin auditoría</h3><p>No hay cambios registrados para este usuario.</p></div>';
+                return;
+            }
+
+            document.getElementById('userHistoryBody').innerHTML = `
+                <div class="table-responsive">
+                    <table class="table table-vcenter">
+                        <thead><tr><th>Acción</th><th>Detalle</th><th>Fecha</th></tr></thead>
+                        <tbody>${items.map(item => `
+                            <tr>
+                                <td><span class="badge bg-blue text-blue-fg">${escapeHtml(item.accion)}</span></td>
+                                <td class="text-secondary">${escapeHtml(item.detalles || '')}</td>
+                                <td class="text-secondary">${formatDateTime(item.fecha_registro)}</td>
+                            </tr>
+                        `).join('')}</tbody>
+                    </table>
+                </div>`;
+        } catch (error) {
+            document.getElementById('userHistoryBody').innerHTML = '<div class="text-danger">No se pudo cargar la auditoría.</div>';
+        }
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text || '';
+        return div.innerHTML;
+    }
+
+    function formatDateTime(dateString) {
+        if (!dateString) return '-';
+        return new Date(dateString).toLocaleString('es-CL', { dateStyle: 'short', timeStyle: 'short' });
     }
 </script>

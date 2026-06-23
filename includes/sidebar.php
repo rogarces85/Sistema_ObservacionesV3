@@ -35,6 +35,7 @@ $navGroups = [
             ['id' => 'asignaciones',   'title' => 'Asignar Establec.', 'icon' => 'package',    'roles' => [ROL_SUPERVISOR]],
             ['id' => 'establecimientos','title' => 'Establecimientos',  'icon' => 'building',   'roles' => [ROL_SUPERVISOR]],
             ['id' => 'eliminadas',     'title' => 'Eliminadas',         'icon' => 'trash',      'roles' => [ROL_SUPERVISOR]],
+            ['id' => 'versionado',     'title' => 'Versionado',         'icon' => 'git-branch', 'roles' => [ROL_SUPERVISOR]],
             ['id' => 'perfil',         'title' => 'Mi Perfil',          'icon' => 'user',       'roles' => [ROL_REGISTRADOR, ROL_SUPERVISOR]],
         ],
     ],

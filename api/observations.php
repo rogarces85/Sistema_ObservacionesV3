@@ -7,6 +7,7 @@
 header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../models/Observation.php';
+require_once __DIR__ . '/../models/DeletedObservation.php';
 require_once __DIR__ . '/../models/EstablecimientoAsignacion.php';
 require_once __DIR__ . '/../includes/csrf.php';
 
@@ -40,7 +41,14 @@ try {
     switch ($method) {
         case 'GET':
             if ($action === 'historial' && $id) {
-                // Obtener historial de una observación
+                $obs = $observationModel->getById($id);
+                if (!$obs) {
+                    jsonResponse(false, null, 'Observación no encontrada', 404);
+                }
+                if ($userRole === ROL_REGISTRADOR && $obs['usuario_registro_id'] != $userId) {
+                    jsonResponse(false, null, 'No tiene permisos para ver el historial de esta observación', 403);
+                }
+
                 $historial = $observationModel->getHistorial($id);
                 jsonResponse(true, $historial, 'Historial obtenido exitosamente');
 
@@ -206,12 +214,15 @@ try {
                 jsonResponse(false, null, 'ID de observación requerido', 400);
             }
 
-            $success = $observationModel->delete($id);
+            $input = json_decode(file_get_contents('php://input'), true) ?: [];
+            $reason = $input['reason'] ?? 'Eliminado por supervisor desde observaciones';
+            $deletedModel = new DeletedObservation();
+            $success = $deletedModel->moveToTrash($id, $userId, $reason);
 
             if ($success) {
-                jsonResponse(true, null, 'Observación eliminada exitosamente');
+                jsonResponse(true, null, 'Observación enviada a papelera exitosamente');
             } else {
-                jsonResponse(false, null, 'Error al eliminar la observación', 500);
+                jsonResponse(false, null, 'Error al enviar la observación a papelera', 500);
             }
             break;
 

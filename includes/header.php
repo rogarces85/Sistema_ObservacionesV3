@@ -24,6 +24,7 @@ $pageTitles = [
     'usuarios' => 'Gestión de Usuarios',
     'asignaciones' => 'Asignación de Establecimientos',
     'establecimientos' => 'Establecimientos',
+    'versionado' => 'Versionado',
     'eliminadas' => 'Observaciones Eliminadas',
     'perfil' => 'Mi Perfil',
 ];
@@ -128,7 +129,7 @@ $breadcrumbHtml = renderBreadcrumb($currentPage);
                             <div class="dropdown-menu dropdown-menu-end notif-dropdown" aria-labelledby="notifBtn">
                                 <div class="notif-header">
                                     <strong>Notificaciones</strong>
-                                    <a href="#" class="small text-decoration-none">Marcar como leídas</a>
+                                    <a href="#" class="small text-decoration-none" id="markNotificationsRead">Marcar como leídas</a>
                                 </div>
                                 <div id="notifList">
                                     <div class="notif-item">

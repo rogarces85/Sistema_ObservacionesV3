@@ -9,6 +9,7 @@ require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../vendor/autoload.php';
 require_once __DIR__ . '/../models/Observation.php';
 require_once __DIR__ . '/../models/Location.php';
+require_once __DIR__ . '/../models/EstablecimientoAsignacion.php';
 require_once __DIR__ . '/../includes/csrf.php';
 
 use PhpOffice\PhpSpreadsheet\IOFactory;
@@ -80,6 +81,7 @@ try {
         // Validar y procesar datos
         $obsModel = new Observation();
         $locModel = new Location();
+        $asigModel = new EstablecimientoAsignacion();
 
         $valid = [];
         $errors = [];
@@ -172,6 +174,10 @@ try {
             // 3. Si no hay ni código ni nombre, error
             else {
                 $rowErrors[] = "Debe especificar 'codigo_establecimiento' o 'establecimiento'";
+            }
+
+            if ($estId && !empty($row['mes']) && !$asigModel->tieneAsignacionParaMes($userId, $estId, $year, $row['mes'])) {
+                $rowErrors[] = "El establecimiento no está asignado a su usuario para el mes '{$row['mes']}'";
             }
 
             if (count($rowErrors) > 0) {

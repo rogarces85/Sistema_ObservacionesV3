@@ -5,6 +5,7 @@
  */
 
 require_once __DIR__ . '/Database.php';
+require_once __DIR__ . '/Notification.php';
 require_once __DIR__ . '/../config/constants.php';
 
 class Observation
@@ -308,6 +309,16 @@ class Observation
             if ($result) {
                 // Registrar en historial
                 $this->addHistorial($id, $obs['estado_actual'], $newStatus, $supervisorId, $comment ?? 'Cambio de estado');
+                if ((int)$obs['usuario_registro_id'] !== (int)$supervisorId) {
+                    $notifications = new Notification();
+                    $notifications->create(
+                        $obs['usuario_registro_id'],
+                        'observacion_estado',
+                        'Observación actualizada',
+                        'La observación #' . $id . ' cambió de ' . $obs['estado_actual'] . ' a ' . $newStatus . '.',
+                        '?page=observaciones'
+                    );
+                }
             }
 
             return $result;

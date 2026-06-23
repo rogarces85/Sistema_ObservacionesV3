@@ -88,7 +88,7 @@ $mesesList = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto',
                                     </select>
                                 </div>
 
-                                <div class="col-12">
+                            <div class="col-12">
                                     <div class="btn-list">
                                         <button id="btnApplyFilters" class="btn btn-primary">
                                             Aplicar Filtros
@@ -96,9 +96,49 @@ $mesesList = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto',
                                         <button id="btnClearFilters" class="btn btn-outline-secondary">
                                             Limpiar
                                         </button>
+                                        <button id="btnExportExcel" class="btn btn-outline-success" type="button">
+                                            <i class="ti ti-file-spreadsheet me-1"></i>Exportar Excel
+                                        </button>
+                                        <button id="btnExportPdf" class="btn btn-outline-danger" type="button">
+                                            <i class="ti ti-file-type-pdf me-1"></i>PDF Detallado
+                                        </button>
+                                        <button id="btnQueueExcel" class="btn btn-success" type="button">
+                                            <i class="ti ti-clock-plus me-1"></i>Encolar Excel
+                                        </button>
+                                        <button id="btnQueuePdf" class="btn btn-danger" type="button">
+                                            <i class="ti ti-clock-plus me-1"></i>Encolar PDF
+                                        </button>
                                     </div>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header d-flex align-items-center justify-content-between">
+                            <h3 class="card-title mb-0"><i class="ti ti-list-check me-2 text-primary"></i>Reportes Asíncronos</h3>
+                            <button id="btnRefreshQueue" class="btn btn-sm btn-outline-secondary" type="button">
+                                <i class="ti ti-refresh me-1"></i>Actualizar
+                            </button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-vcenter card-table">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Tipo</th>
+                                        <th>Formato</th>
+                                        <th>Estado</th>
+                                        <th>Fecha</th>
+                                        <th class="text-end">Acción</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="reportQueueBody">
+                                    <tr><td colspan="6" class="text-center text-secondary py-3">Cargando reportes...</td></tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
@@ -223,6 +263,14 @@ const TAB_CONFIG = {
     'tab-errores-est': { canvas: 'chartErroresEst', container: 'chart1Container', table: 'tableErroresEst', orientation: 'horizontal', colorToken: '--tblr-danger', colorFallback: '#dc2626', label: 'Errores', key: 'errores_establecimiento' },
     'tab-serie': { canvas: 'chartErroresSerie', container: 'chart4Container', table: 'tableErroresSerie', orientation: 'horizontal', colorToken: '--tblr-primary', colorFallback: '#0ea5e9', label: 'Errores', key: 'errores_serie' },
     'tab-hoja': { canvas: 'chartErroresHoja', container: 'chart5Container', table: 'tableErroresHoja', orientation: 'vertical', colorToken: '--tblr-success', colorFallback: '#10b981', label: 'Errores', key: 'errores_hoja' }
+};
+
+const EXPORT_REPORT_TYPES = {
+    'tab-errores-est': 'errores_establecimiento',
+    'tab-plazos': 'fuera_plazo_establecimiento',
+    'tab-validador': 'validador_establecimiento',
+    'tab-serie': 'serie_detalle',
+    'tab-hoja': 'hoja_detalle'
 };
 
 // ============================================
@@ -519,6 +567,11 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('filterComuna').addEventListener('change', loadEstablecimientos);
     document.getElementById('btnApplyFilters').addEventListener('click', loadErrorReports);
     document.getElementById('btnClearFilters').addEventListener('click', clearFilters);
+    document.getElementById('btnExportExcel').addEventListener('click', exportActiveReportExcel);
+    document.getElementById('btnExportPdf').addEventListener('click', exportDetailedPdf);
+    document.getElementById('btnQueueExcel').addEventListener('click', () => enqueueReport('excel'));
+    document.getElementById('btnQueuePdf').addEventListener('click', () => enqueueReport('pdf'));
+    document.getElementById('btnRefreshQueue').addEventListener('click', loadReportQueue);
 
     // Restore tab from hash
     const hashTab = location.hash.replace('#', '');
@@ -529,6 +582,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initial load
     loadErrorReports();
+    loadReportQueue();
 });
 
 function clearFilters() {
@@ -539,5 +593,114 @@ function clearFilters() {
     document.getElementById('filterEstablecimiento').innerHTML = '<option value="">Todos</option>';
     document.getElementById('filterEstablecimiento').disabled = true;
     loadErrorReports();
+}
+
+function getExportFilters() {
+    const params = new URLSearchParams();
+    params.set('year', document.getElementById('filterYear').value);
+
+    const mes = document.getElementById('filterMes').value;
+    const comunaId = document.getElementById('filterComuna').value;
+    const establecimientoId = document.getElementById('filterEstablecimiento').value;
+
+    if (mes) params.set('month', mes);
+    if (comunaId) params.set('comuna_id', comunaId);
+    if (establecimientoId) params.set('establecimiento_id', establecimientoId);
+
+    return params;
+}
+
+function exportActiveReportExcel() {
+    const activeTab = document.querySelector('.tab-pane.active')?.id || 'tab-errores-est';
+    const params = getExportFilters();
+    params.set('format', 'excel');
+    params.set('report_type', EXPORT_REPORT_TYPES[activeTab] || 'errores_establecimiento');
+    window.open('api/export.php?' + params.toString(), '_blank');
+}
+
+function exportDetailedPdf() {
+    const params = getExportFilters();
+    params.set('format', 'pdf');
+    params.set('report_type', 'detallado');
+    window.open('api/export.php?' + params.toString(), '_blank');
+}
+
+function getQueuePayload(format) {
+    const activeTab = document.querySelector('.tab-pane.active')?.id || 'tab-errores-est';
+    const tipo = format === 'pdf' ? 'detallado' : (EXPORT_REPORT_TYPES[activeTab] || 'errores_establecimiento');
+    const params = {
+        year: document.getElementById('filterYear').value,
+        mes: document.getElementById('filterMes').value || undefined,
+        establecimiento_id: document.getElementById('filterEstablecimiento').value || undefined,
+        comuna_id: document.getElementById('filterComuna').value || undefined
+    };
+
+    return {
+        tipo_reporte: tipo,
+        formato: format === 'pdf' ? 'pdf' : 'xlsx',
+        parametros: params
+    };
+}
+
+async function enqueueReport(format) {
+    try {
+        showLoading();
+        const response = await fetchAPI('report_queue.php?action=enqueue', {
+            method: 'POST',
+            body: JSON.stringify(getQueuePayload(format))
+        });
+        hideLoading();
+
+        if (response.success) {
+            showSuccess('Reporte encolado correctamente. Ejecute el worker para procesarlo.');
+            loadReportQueue();
+        }
+    } catch (error) {
+        hideLoading();
+        showError(error.message || 'Error al encolar reporte');
+    }
+}
+
+async function loadReportQueue() {
+    const tbody = document.getElementById('reportQueueBody');
+    tbody.innerHTML = '<tr><td colspan="6" class="text-center text-secondary py-3">Cargando reportes...</td></tr>';
+
+    try {
+        const response = await fetchAPI('report_queue.php?action=list');
+        const reports = response.data || [];
+        if (reports.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-secondary py-3">No hay reportes en cola.</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = reports.map(report => {
+            const statusClass = {
+                PENDIENTE: 'badge bg-yellow text-yellow-fg',
+                PROCESANDO: 'badge bg-blue text-blue-fg',
+                LISTO: 'badge bg-green text-green-fg',
+                ERROR: 'badge bg-red text-red-fg'
+            }[report.estado] || 'badge';
+            const action = report.estado === 'LISTO'
+                ? `<a class="btn btn-sm btn-primary" href="api/report_queue.php?action=download&id=${report.id}"><i class="ti ti-download me-1"></i>Descargar</a>`
+                : `<span class="text-secondary small">${escapeHtml(report.mensaje_error || '-')}</span>`;
+            return `
+                <tr>
+                    <td>#${report.id}</td>
+                    <td>${escapeHtml(report.tipo_reporte)}</td>
+                    <td>${escapeHtml(report.formato)}</td>
+                    <td><span class="${statusClass}">${escapeHtml(report.estado)}</span></td>
+                    <td class="text-secondary">${formatDateTime(report.fecha_creacion)}</td>
+                    <td class="text-end">${action}</td>
+                </tr>
+            `;
+        }).join('');
+    } catch (error) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger py-3">No se pudo cargar la cola.</td></tr>';
+    }
+}
+
+function formatDateTime(dateString) {
+    if (!dateString) return '-';
+    return new Date(dateString).toLocaleString('es-CL', { dateStyle: 'short', timeStyle: 'short' });
 }
 </script>

@@ -188,6 +188,12 @@ global $TIPOS_ERROR, $MESES;
                                                 <i class="ti ti-edit me-2"></i>Editar
                                             </a>
                                         <?php endif; ?>
+                                        <?php if ($userRole === ROL_SUPERVISOR): ?>
+                                            <div class="dropdown-divider"></div>
+                                            <a class="dropdown-item text-danger" href="#" onclick="deleteObservation(<?php echo $obs['id']; ?>); return false;">
+                                                <i class="ti ti-trash me-2"></i>Enviar a papelera
+                                            </a>
+                                        <?php endif; ?>
                                     </div>
                                 </div>
                             </td>
@@ -568,6 +574,14 @@ global $TIPOS_ERROR, $MESES;
                 <div id="detailDetalleError" class="p-4 rounded rem-detail-tile rem-detail-tile--info small">-</div>
             </div>
 
+            <!-- Historial de estados -->
+            <div class="mb-4">
+                <div class="small fw-bold text-secondary mb-2">Historial de Estados</div>
+                <div id="detailHistorial" class="p-4 rounded rem-themed-surface small">
+                    <div class="text-secondary">Cargando historial...</div>
+                </div>
+            </div>
+
             <!-- Info de registro -->
             <div class="row g-3 p-4 rounded rem-themed-surface">
                 <div class="col-md-6">
@@ -882,6 +896,28 @@ global $TIPOS_ERROR, $MESES;
 
     function editObservation(id) { observationForm.edit(id); }
 
+    async function deleteObservation(id) {
+        const reason = prompt('Motivo para enviar esta observación a papelera:', 'Eliminado por supervisor desde observaciones');
+        if (reason === null) return;
+
+        try {
+            showLoading();
+            const response = await fetchAPI(`observations.php?id=${id}`, {
+                method: 'DELETE',
+                body: JSON.stringify({ reason: reason.trim() || 'Eliminado por supervisor desde observaciones' })
+            });
+            hideLoading();
+
+            if (response.success) {
+                showSuccess('Observación enviada a papelera correctamente');
+                setTimeout(() => location.reload(), 800);
+            }
+        } catch (error) {
+            hideLoading();
+            showError(error.message || 'Error al enviar la observación a papelera');
+        }
+    }
+
     // ============================================================
     // Filtros de tabla
     // ============================================================
@@ -1135,6 +1171,8 @@ global $TIPOS_ERROR, $MESES;
 
                 document.getElementById('detailId').textContent = 'ID: ' + obs.id;
 
+                await loadObservationHistory(id);
+
                 modalDetails.show();
             }
 
@@ -1145,6 +1183,42 @@ global $TIPOS_ERROR, $MESES;
         }
     }
 
+    async function loadObservationHistory(id) {
+        const container = document.getElementById('detailHistorial');
+        if (!container) return;
+
+        container.innerHTML = '<div class="text-secondary">Cargando historial...</div>';
+
+        try {
+            const response = await fetchAPI('observations.php?action=historial&id=' + id);
+            const items = response.data || [];
+
+            if (items.length === 0) {
+                container.innerHTML = '<div class="text-secondary">Sin historial registrado.</div>';
+                return;
+            }
+
+            container.innerHTML = items.map(item => {
+                const from = item.estado_anterior ? escapeHtml(item.estado_anterior) : 'Inicial';
+                const to = item.estado_nuevo ? escapeHtml(item.estado_nuevo) : '-';
+                const user = escapeHtml(item.usuario_nombre || 'Usuario');
+                const comment = item.comentario ? `<div class="text-secondary mt-1">${escapeHtml(item.comentario)}</div>` : '';
+                return `
+                    <div class="d-flex gap-3 pb-3 mb-3 border-bottom">
+                        <span class="status status-blue mt-1" aria-hidden="true"></span>
+                        <div>
+                            <div class="fw-semibold">${from} -> ${to}</div>
+                            <div class="text-secondary">${user} · ${formatDateTime(item.fecha_cambio)}</div>
+                            ${comment}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        } catch (error) {
+            container.innerHTML = '<div class="text-danger">No se pudo cargar el historial.</div>';
+        }
+    }
+
     // ============================================================
     // Utilidades
     // ============================================================
@@ -1152,5 +1226,17 @@ global $TIPOS_ERROR, $MESES;
         if (!dateString) return '-';
         const date = new Date(dateString);
         return date.toLocaleDateString('es-CL');
+    }
+
+    function formatDateTime(dateString) {
+        if (!dateString) return '-';
+        const date = new Date(dateString);
+        return date.toLocaleString('es-CL', { dateStyle: 'short', timeStyle: 'short' });
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text || '';
+        return div.innerHTML;
     }
 </script>

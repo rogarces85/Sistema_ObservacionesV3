@@ -5,10 +5,14 @@
  */
 
 require_once 'models/User.php';
+require_once 'models/UserAudit.php';
 
 $userModel = new User();
+$auditModel = new UserAudit();
 $userId = $_SESSION['user_id'];
 $userInfo = $userModel->getById($userId);
+$activity = $auditModel->getHistory($userId);
+$activity = array_slice($activity, 0, 8);
 ?>
 
 <div class="page-wrapper">
@@ -91,11 +95,28 @@ $userInfo = $userModel->getById($userId);
                                 <h3 class="card-title"><i class="ti ti-activity me-2 text-primary"></i>Actividad Reciente</h3>
                             </div>
                             <div class="card-body">
-                                <div class="empty-state">
-                                    <div class="empty-icon"><i class="ti ti-clock-off"></i></div>
-                                    <h3>Sin actividad reciente</h3>
-                                    <p>Aquí aparecerán tus últimos movimientos en el sistema.</p>
-                                </div>
+                                <?php if (empty($activity)): ?>
+                                    <div class="empty-state">
+                                        <div class="empty-icon"><i class="ti ti-clock-off"></i></div>
+                                        <h3>Sin actividad reciente</h3>
+                                        <p>Aquí aparecerán tus últimos movimientos en el sistema.</p>
+                                    </div>
+                                <?php else: ?>
+                                    <div class="table-responsive">
+                                        <table class="table table-vcenter">
+                                            <thead><tr><th>Acción</th><th>Detalle</th><th class="text-end">Fecha</th></tr></thead>
+                                            <tbody>
+                                                <?php foreach ($activity as $item): ?>
+                                                    <tr>
+                                                        <td><span class="badge bg-blue text-blue-fg"><?php echo htmlspecialchars($item['accion']); ?></span></td>
+                                                        <td class="text-secondary"><?php echo htmlspecialchars($item['detalles'] ?? ''); ?></td>
+                                                        <td class="text-end text-secondary"><?php echo date('d/m/Y H:i', strtotime($item['fecha_registro'])); ?></td>
+                                                    </tr>
+                                                <?php endforeach; ?>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                <?php endif; ?>
                             </div>
                     </div>
                 </div>

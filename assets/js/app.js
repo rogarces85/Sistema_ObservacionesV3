@@ -234,4 +234,76 @@ document.addEventListener('DOMContentLoaded', function () {
     tooltipTriggerList.map(function (el) {
         return new bootstrap.Tooltip(el);
     });
+    initNotifications();
 });
+
+async function initNotifications() {
+    const notifList = document.getElementById('notifList');
+    const notifDot = document.querySelector('.notif-dot');
+    const markRead = document.getElementById('markNotificationsRead');
+    if (!notifList || !notifDot) return;
+
+    async function loadNotifications() {
+        try {
+            const response = await fetchAPI('notifications.php?action=list');
+            const data = response.data || { unread: 0, items: [] };
+            notifDot.textContent = data.unread || 0;
+            notifDot.classList.toggle('d-none', !data.unread);
+
+            if (!data.items || data.items.length === 0) {
+                notifList.innerHTML = `
+                    <div class="notif-item">
+                        <i class="ti ti-info-circle"></i>
+                        <div>
+                            <div class="notif-title">Sin notificaciones nuevas</div>
+                            <div class="notif-time">Aquí aparecerán los avisos relevantes del sistema.</div>
+                        </div>
+                    </div>`;
+                return;
+            }
+
+            notifList.innerHTML = data.items.map(item => `
+                <a class="notif-item text-decoration-none ${item.leida == 0 ? 'fw-semibold' : ''}" href="${item.url || '#'}" data-notification-id="${item.id}">
+                    <i class="ti ${item.leida == 0 ? 'ti-bell-ringing' : 'ti-bell'}"></i>
+                    <div>
+                        <div class="notif-title">${escapeHtmlGlobal(item.titulo)}</div>
+                        <div class="notif-time">${escapeHtmlGlobal(item.mensaje)}</div>
+                    </div>
+                </a>
+            `).join('');
+        } catch (error) {
+            notifList.innerHTML = '<div class="notif-item text-danger">No se pudieron cargar las notificaciones.</div>';
+        }
+    }
+
+    notifList.addEventListener('click', async function (event) {
+        const item = event.target.closest('[data-notification-id]');
+        if (!item) return;
+        try {
+            await fetchAPI('notifications.php?action=read', {
+                method: 'POST',
+                body: JSON.stringify({ id: item.dataset.notificationId })
+            });
+        } catch (error) { /* no bloquear navegación */ }
+    });
+
+    if (markRead) {
+        markRead.addEventListener('click', async function (event) {
+            event.preventDefault();
+            try {
+                await fetchAPI('notifications.php?action=read_all', { method: 'POST', body: '{}' });
+                loadNotifications();
+            } catch (error) {
+                showError(error.message || 'No se pudieron marcar las notificaciones');
+            }
+        });
+    }
+
+    loadNotifications();
+}
+
+function escapeHtmlGlobal(text) {
+    const div = document.createElement('div');
+    div.textContent = text || '';
+    return div.innerHTML;
+}
