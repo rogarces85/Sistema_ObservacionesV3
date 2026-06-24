@@ -28,6 +28,10 @@ desktop.ini
 # Dependencias de Composer (si se usa en el futuro)
 /vendor/
 
+# Dependencias Node / artefactos generados
+/node_modules/
+/assets/libs/*/coverage/
+
 # Archivos temporales
 *.tmp
 *.temp
