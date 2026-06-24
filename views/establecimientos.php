@@ -113,7 +113,7 @@ $establecimientos = $locationModel->getAllEstablecimientosConInactivos();
                                             <td class="text-center">
                                                 <label class="form-check form-switch mb-0">
                                                     <input type="checkbox" class="form-check-input" <?php echo $est['activo'] ? 'checked' : ''; ?>
-                                                        onchange="toggleEstablecimiento(<?php echo $est['id']; ?>, this.checked ? 1 : 0)">
+                                                        onchange="toggleEstablecimiento(<?php echo $est['id']; ?>, this.checked ? 1 : 0, this)">
                                                     <span class="form-check-label"><?php echo $est['activo'] ? 'Activo' : 'Inactivo'; ?></span>
                                                 </label>
                                             </td>
@@ -194,6 +194,8 @@ $establecimientos = $locationModel->getAllEstablecimientosConInactivos();
         document.getElementById('estForm').reset();
         document.getElementById('estId').value = '';
         document.getElementById('estCodigo').disabled = false;
+        const submitBtn = document.getElementById('estSubmitBtn');
+        if (submitBtn) submitBtn.disabled = false;
         estModal.show();
     }
 
@@ -211,6 +213,9 @@ $establecimientos = $locationModel->getAllEstablecimientosConInactivos();
 
     async function saveEstablecimiento(e) {
         e.preventDefault();
+        const submitBtn = document.getElementById('estSubmitBtn');
+        if (submitBtn && submitBtn.disabled) return;
+
         const id = document.getElementById('estId').value;
         const action = id ? 'update' : 'create';
         const body = {
@@ -224,13 +229,14 @@ $establecimientos = $locationModel->getAllEstablecimientosConInactivos();
 
         try {
             showLoading();
+            if (submitBtn) submitBtn.disabled = true;
+
             const response = await fetch('api/locations.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': getCsrfToken() },
                 body: JSON.stringify(body)
             });
-            const result = await response.json();
-            hideLoading();
+            const result = await parseJsonResponse(response);
             if (result.success) {
                 showSuccess(result.message);
                 estModal.hide();
@@ -239,29 +245,38 @@ $establecimientos = $locationModel->getAllEstablecimientosConInactivos();
                 showError(result.message);
             }
         } catch (error) {
+            showError(error.message || 'Error de conexión');
+        } finally {
             hideLoading();
-            showError('Error de conexión');
+            if (submitBtn) submitBtn.disabled = false;
         }
     }
 
-    async function toggleEstablecimiento(id, nuevoEstado) {
+    async function toggleEstablecimiento(id, nuevoEstado, control = null) {
         try {
+            if (control) control.disabled = true;
             const response = await fetch('api/locations.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': getCsrfToken() },
                 body: JSON.stringify({ action: 'toggle', id: id, activo: nuevoEstado })
             });
-            const result = await response.json();
+            const result = await parseJsonResponse(response);
             if (result.success) {
                 showSuccess(result.message);
                 setTimeout(() => location.reload(), 800);
             } else {
                 showError(result.message);
-                location.reload();
+                if (control) {
+                    control.checked = !nuevoEstado;
+                }
             }
         } catch (error) {
-            showError('Error de conexión');
-            location.reload();
+            showError(error.message || 'Error de conexión');
+            if (control) {
+                control.checked = !nuevoEstado;
+            }
+        } finally {
+            if (control) control.disabled = false;
         }
     }
 
@@ -288,4 +303,18 @@ $establecimientos = $locationModel->getAllEstablecimientosConInactivos();
 
     // Init stats
     document.addEventListener('DOMContentLoaded', filterTable);
+
+    async function parseJsonResponse(response) {
+        const text = await response.text();
+        let data = {};
+        try {
+            data = text ? JSON.parse(text) : {};
+        } catch (error) {
+            throw new Error('Respuesta inválida del servidor');
+        }
+        if (!response.ok) {
+            throw new Error(data.message || 'Error en la petición');
+        }
+        return data;
+    }
 </script>

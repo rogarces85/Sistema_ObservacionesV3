@@ -82,7 +82,7 @@ $activity = array_slice($activity, 0, 8);
                                     <input type="password" id="confirmPassword" name="confirm_password" class="form-control" required minlength="8"
                                         placeholder="Repita la nueva contraseña">
                                 </div>
-                                <button type="submit" class="btn btn-primary w-100">
+                                <button type="submit" id="btnChangePassword" class="btn btn-primary w-100">
                                     <i class="ti ti-lock me-1"></i>Cambiar Contraseña
                                 </button>
                             </form>
@@ -131,6 +131,9 @@ $activity = array_slice($activity, 0, 8);
     async function changePassword(event) {
         event.preventDefault();
 
+        const submitBtn = document.getElementById('btnChangePassword');
+        if (submitBtn && submitBtn.disabled) return;
+
         const currentPassword = document.getElementById('currentPassword').value;
         const newPassword = document.getElementById('newPassword').value;
         const confirmPassword = document.getElementById('confirmPassword').value;
@@ -148,6 +151,7 @@ $activity = array_slice($activity, 0, 8);
 
         try {
             showLoading();
+            if (submitBtn) submitBtn.disabled = true;
 
             const response = await fetchAPI('users.php?id=<?php echo $userId; ?>', {
                 method: 'PUT',
@@ -159,15 +163,17 @@ $activity = array_slice($activity, 0, 8);
                 })
             });
 
-            hideLoading();
-
             if (response.success) {
                 showMessage('Contraseña actualizada exitosamente', 'success');
                 document.getElementById('formChangePassword').reset();
+            } else {
+                showMessage(response.message || 'No se pudo actualizar la contraseña', 'error');
             }
         } catch (error) {
-            hideLoading();
             showMessage(error.message, 'error');
+        } finally {
+            hideLoading();
+            if (submitBtn) submitBtn.disabled = false;
         }
     }
 </script>

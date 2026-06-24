@@ -8,6 +8,7 @@ header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../models/User.php';
 require_once __DIR__ . '/../models/UserAudit.php';
+require_once __DIR__ . '/../includes/csrf.php';
 
 // Función para responder en JSON
 function jsonResponse($success, $data = null, $message = '', $statusCode = 200)
@@ -37,6 +38,22 @@ function validatePasswordPolicy($password) {
     if (!preg_match('/[A-Z]/', $password)) return false; // Al menos una mayúscula
     if (!preg_match('/[0-9]/', $password)) return false; // Al menos un número
     return true;
+}
+
+function requireExplicitConfirmation($input, $field, $message)
+{
+    if (empty($input[$field])) {
+        jsonResponse(false, null, $message, 400);
+    }
+}
+
+function requireExistingUser($userModel, $id)
+{
+    $targetUser = $userModel->getById($id);
+    if (!$targetUser) {
+        jsonResponse(false, null, 'Usuario no encontrado', 404);
+    }
+    return $targetUser;
 }
 
 // Verificar autenticación
@@ -83,12 +100,14 @@ try {
             break;
 
         case 'POST':
+            CSRF::validateRequest();
+
             // Crear nuevo usuario (solo supervisores)
             if ($userRole !== ROL_SUPERVISOR) {
                 jsonResponse(false, null, 'Acceso denegado', 403);
             }
 
-            $input = json_decode(file_get_contents('php://input'), true);
+            $input = json_decode(file_get_contents('php://input'), true) ?: [];
 
             $username = trim($input['username'] ?? '');
             $password = $input['password'] ?? '';
@@ -133,13 +152,16 @@ try {
             break;
 
         case 'PUT':
+            CSRF::validateRequest();
+
             // Actualizar usuario
             if (!$id) {
                 jsonResponse(false, null, 'ID de usuario requerido', 400);
             }
 
-            $input = json_decode(file_get_contents('php://input'), true);
+            $input = json_decode(file_get_contents('php://input'), true) ?: [];
             $action = $input['action'] ?? 'update';
+            $targetUser = requireExistingUser($userModel, $id);
 
             if ($action === 'password') {
                 // Cambiar contraseña
@@ -197,6 +219,8 @@ try {
                     jsonResponse(false, null, 'Use la sección de perfil para cambiar su propia contraseña', 400);
                 }
 
+                requireExplicitConfirmation($input, 'confirm_reset', 'Debe confirmar el restablecimiento de contraseña');
+
                 $defaultPassword = 'admin123';
                 $success = $userModel->updatePassword($id, $defaultPassword);
 
@@ -244,6 +268,10 @@ try {
                     jsonResponse(false, null, 'Rol inválido', 400);
                 }
 
+                if ((int)$userId === (int)$id && $rol !== $targetUser['rol']) {
+                    jsonResponse(false, null, 'No puede cambiar su propio rol desde esta pantalla', 400);
+                }
+
                 $success = $userModel->update($id, $nombreCompleto, $rol);
 
                 if ($success) {
@@ -257,6 +285,8 @@ try {
             break;
 
         case 'DELETE':
+            CSRF::validateRequest();
+
             // Eliminar usuario (solo supervisores)
             if ($userRole !== ROL_SUPERVISOR) {
                 jsonResponse(false, null, 'Acceso denegado', 403);
@@ -270,6 +300,10 @@ try {
             if ($userId == $id) {
                 jsonResponse(false, null, 'No puede eliminar su propia cuenta', 400);
             }
+
+            $input = json_decode(file_get_contents('php://input'), true) ?: [];
+            requireExplicitConfirmation($input, 'confirm_delete', 'Debe confirmar la eliminación del usuario');
+            requireExistingUser($userModel, $id);
 
             $success = $userModel->delete($id);
 

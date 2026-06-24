@@ -458,10 +458,10 @@ $statsJson = json_encode($stats, JSON_UNESCAPED_UNICODE);
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" onclick="cargarInformeWeb()" class="btn btn-primary flex-fill">
+                <button type="button" id="btnInformeWeb" onclick="cargarInformeWeb()" class="btn btn-primary flex-fill">
                     <i class="ti ti-eye me-1"></i>Ver en Web
                 </button>
-                <button type="button" onclick="descargarInformePDF()" class="btn btn-outline-secondary flex-fill">
+                <button type="button" id="btnInformePdf" onclick="descargarInformePDF()" class="btn btn-outline-secondary flex-fill">
                     <i class="ti ti-download me-1"></i>Descargar PDF
                 </button>
             </div>
@@ -547,13 +547,16 @@ function getInformeParams() {
 }
 
 async function cargarInformeWeb() {
+    const button = document.getElementById('btnInformeWeb');
+    if (button && button.disabled) return;
+
     const params = getInformeParams();
     params.set('format', 'json');
     try {
         showLoading();
+        if (button) button.disabled = true;
         const response = await fetch('api/informe_errores.php?' + params.toString());
-        const result = await response.json();
-        hideLoading();
+        const result = await parseJsonResponse(response);
         if (result.success) {
             informeData = result.data.datos;
             paginaActual = 1;
@@ -566,15 +569,21 @@ async function cargarInformeWeb() {
             showError(result.message || 'Error al cargar el informe');
         }
     } catch (error) {
+        showError(error.message || 'Error al cargar el informe');
+    } finally {
         hideLoading();
-        showError('Error al cargar el informe: ' + error.message);
+        if (button) button.disabled = false;
     }
 }
 
 function descargarInformePDF() {
+    const button = document.getElementById('btnInformePdf');
+    if (button && button.disabled) return;
+    if (button) button.disabled = true;
     const params = getInformeParams();
     params.set('format', 'pdf');
     window.open('api/informe_errores.php?' + params.toString(), '_blank');
+    setTimeout(() => { if (button) button.disabled = false; }, 1500);
 }
 
 function renderInformeTabla() {
@@ -620,5 +629,19 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+async function parseJsonResponse(response) {
+    const text = await response.text();
+    let data = {};
+    try {
+        data = text ? JSON.parse(text) : {};
+    } catch (error) {
+        throw new Error('Respuesta inválida del servidor');
+    }
+    if (!response.ok) {
+        throw new Error(data.message || 'Error en la petición');
+    }
+    return data;
 }
 </script>

@@ -16,7 +16,7 @@ if ($_SESSION['rol'] !== ROL_SUPERVISOR) {
             <p class="page-subtitle">Snapshots de código y rollback controlado para supervisores.</p>
         </div>
         <div class="page-actions">
-            <button class="btn btn-primary" type="button" onclick="createVersion()">
+            <button id="btnCreateVersion" class="btn btn-primary" type="button" onclick="createVersion()">
                 <i class="ti ti-camera me-1"></i>Crear snapshot
             </button>
         </div>
@@ -42,7 +42,17 @@ if ($_SESSION['rol'] !== ROL_SUPERVISOR) {
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', loadVersions);
+document.addEventListener('DOMContentLoaded', () => {
+    document.body.addEventListener('click', (event) => {
+        const target = event.target.closest('.js-rollback');
+        if (!target) return;
+        event.preventDefault();
+        const id = target.getAttribute('data-version-id');
+        const tag = target.getAttribute('data-version-tag') || '';
+        rollbackVersion(parseInt(id, 10), tag);
+    });
+    loadVersions();
+});
 
 async function loadVersions() {
     const tbody = document.getElementById('versionsBody');
@@ -61,7 +71,8 @@ async function loadVersions() {
                 <td class="text-secondary">${escapeHtml(version.autor_nombre || '-')}</td>
                 <td class="text-secondary">${formatDateTime(version.fecha_creacion)}</td>
                 <td class="text-end">
-                    <button class="btn btn-sm btn-outline-danger" type="button" onclick="rollbackVersion(${version.id}, '${escapeHtml(version.version_tag)}')">
+                    <button class="btn btn-sm btn-outline-danger js-rollback" type="button"
+                        data-version-id="${version.id}" data-version-tag="${escapeHtml(version.version_tag)}">
                         <i class="ti ti-rotate-clockwise me-1"></i>Rollback
                     </button>
                 </td>
@@ -73,22 +84,31 @@ async function loadVersions() {
 }
 
 async function createVersion() {
+    const button = document.getElementById('btnCreateVersion');
+    if (button && button.disabled) return;
+
     const descripcion = prompt('Descripción del snapshot:');
     if (!descripcion) return;
     try {
         showLoading();
+        if (button) button.disabled = true;
+
         const response = await fetchAPI('versioning.php?action=create', {
             method: 'POST',
             body: JSON.stringify({ descripcion })
         });
-        hideLoading();
-        if (response.success) {
+
+        if (response && response.success) {
             showSuccess('Snapshot creado correctamente');
             loadVersions();
+        } else {
+            showError((response && response.message) || 'Error al crear snapshot');
         }
     } catch (error) {
-        hideLoading();
         showError(error.message || 'Error al crear snapshot');
+    } finally {
+        hideLoading();
+        if (button) button.disabled = false;
     }
 }
 
@@ -96,17 +116,26 @@ async function rollbackVersion(id, tag) {
     const warning = '¿Ejecutar rollback a ' + tag + '?\n\nEsta acción modificará archivos del sistema y puede afectar a usuarios conectados. Úsela solo con respaldo verificado, ventana de mantenimiento y autorización explícita.\n\nEscriba ACEPTAR en la siguiente confirmación para continuar.';
     if (!confirm(warning)) return;
     if (prompt('Para confirmar rollback escriba ACEPTAR:') !== 'ACEPTAR') return;
+
+    const button = document.querySelector(`.js-rollback[data-version-id="${id}"]`);
+    if (button && button.disabled) return;
+
     try {
         showLoading();
+        if (button) button.disabled = true;
+
         const response = await fetchAPI('versioning.php?action=rollback&id=' + id, { method: 'POST', body: '{}' });
-        hideLoading();
-        if (response.success) {
+        if (response && response.success) {
             showSuccess('Rollback ejecutado correctamente');
             loadVersions();
+        } else {
+            showError((response && response.message) || 'Error al ejecutar rollback');
         }
     } catch (error) {
-        hideLoading();
         showError(error.message || 'Error al ejecutar rollback');
+    } finally {
+        hideLoading();
+        if (button) button.disabled = false;
     }
 }
 

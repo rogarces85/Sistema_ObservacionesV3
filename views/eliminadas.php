@@ -247,7 +247,8 @@ $comunas = $locationModel->getComunas();
         const observationsTable = document.getElementById('observationsTable');
         const emptyState = document.getElementById('emptyState');
 
-        loadingIndicator.classList.add('d-none');
+        resetSelection();
+        loadingIndicator.classList.remove('d-none');
         observationsTable.classList.add('d-none');
         emptyState.classList.add('d-none');
 
@@ -262,7 +263,7 @@ $comunas = $locationModel->getComunas();
 
         try {
             const response = await fetch('api/deleted.php?action=list&' + new URLSearchParams(filters));
-            const data = await response.json();
+            const data = await parseJsonResponse(response);
 
             if (data.success) {
                 currentObservations = data.data;
@@ -288,7 +289,7 @@ $comunas = $locationModel->getComunas();
     async function loadStats() {
         try {
             const response = await fetch(`api/deleted.php?action=stats&anio=<?php echo $currentYear; ?>`);
-            const data = await response.json();
+            const data = await parseJsonResponse(response);
             if (data.success) renderStats(data.data);
         } catch (error) {
             console.error('Error al cargar estadísticas:', error);
@@ -379,6 +380,7 @@ $comunas = $locationModel->getComunas();
         document.querySelectorAll('.obs-checkbox').forEach(cb => {
             cb.addEventListener('change', updateSelectedIds);
         });
+        updateSelectedIds();
     }
 
     function updateSelectedIds() {
@@ -386,9 +388,14 @@ $comunas = $locationModel->getComunas();
         const btnRestore = document.getElementById('btnRestoreSelected');
         const btnDelete = document.getElementById('btnDeletePermanentSelected');
         const countDisplay = document.getElementById('selectedCount');
+        const selectAll = document.getElementById('selectAll');
+        const selectableCheckboxes = Array.from(document.querySelectorAll('.obs-checkbox'));
         const hasSelection = selectedIds.length > 0;
         btnRestore.disabled = !hasSelection;
         btnDelete.disabled = !hasSelection;
+        selectAll.disabled = selectableCheckboxes.length === 0;
+        selectAll.checked = selectableCheckboxes.length > 0 && selectedIds.length === selectableCheckboxes.length;
+        selectAll.indeterminate = selectedIds.length > 0 && selectedIds.length < selectableCheckboxes.length;
         countDisplay.classList.toggle('d-none', !hasSelection);
         if (hasSelection) countDisplay.querySelector('span').textContent = selectedIds.length;
     }
@@ -404,6 +411,7 @@ $comunas = $locationModel->getComunas();
     }
 
     function restoreSelected() {
+        if (!ensureSelection()) return;
         performAction('restore_multiple', selectedIds, `¿Restaurar ${selectedIds.length} observaciones seleccionadas?`, 'Restaurar Observaciones');
     }
 
@@ -412,10 +420,16 @@ $comunas = $locationModel->getComunas();
     }
 
     function deletePermanentSelected() {
+        if (!ensureSelection()) return;
         performAction('permanent_delete_multiple', selectedIds, `¿Eliminar permanentemente ${selectedIds.length} observaciones? Esta acción no se puede deshacer.`, 'Eliminar Permanentemente');
     }
 
     function performAction(action, ids, message, title) {
+        if (!ids || ids.length === 0) {
+            showWarning('Seleccione al menos una observación eliminada.');
+            return;
+        }
+
         document.getElementById('confirmTitle').textContent = title;
         document.getElementById('confirmMessage').textContent = message;
         document.getElementById('confirmComment').value = '';
@@ -441,21 +455,26 @@ $comunas = $locationModel->getComunas();
                 showError('Debe confirmar que entiende que esta acción es irreversible.');
                 return;
             }
-            confirmModal.hide();
             const comment = document.getElementById('confirmComment').value;
-            await executeAction(action, ids, comment);
+            confirmBtn.disabled = true;
+            const completed = await executeAction(action, ids, comment, isPermanentDelete);
+            confirmBtn.disabled = isPermanentDelete && !confirmCheckbox.checked;
+            if (completed) confirmModal.hide();
         };
 
         confirmModal.show();
     }
 
-    async function executeAction(action, ids, comment) {
+    async function executeAction(action, ids, comment, confirmedPermanentDelete = false) {
         try {
             showLoading();
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
             const payload = action.includes('multiple')
                 ? { action, deleted_ids: ids, comment }
                 : { action, deleted_id: ids[0], comment };
+            if (confirmedPermanentDelete) {
+                payload.confirm_irreversible = true;
+            }
 
             const response = await fetch('api/deleted.php', {
                 method: 'POST',
@@ -463,21 +482,22 @@ $comunas = $locationModel->getComunas();
                 body: JSON.stringify(payload)
             });
 
-            const data = await response.json();
+            const data = await parseJsonResponse(response);
             hideLoading();
 
             if (data.success) {
                 showSuccess(data.message);
                 loadObservations();
                 loadStats();
-                selectedIds = [];
-                document.getElementById('selectAll').checked = false;
+                resetSelection();
+                return true;
             } else {
                 throw new Error(data.message);
             }
         } catch (error) {
             hideLoading();
             showError('Error: ' + error.message);
+            return false;
         }
     }
 
@@ -485,6 +505,7 @@ $comunas = $locationModel->getComunas();
         document.getElementById('filterMes').value = '';
         document.getElementById('filterComuna').value = '';
         document.getElementById('filterEstablecimiento').value = '';
+        document.getElementById('filterEstablecimiento').disabled = true;
         document.getElementById('filterRegistrador').value = '';
         document.getElementById('filterBusqueda').value = '';
         loadObservations();
@@ -498,7 +519,7 @@ $comunas = $locationModel->getComunas();
         if (comunaNombre) {
             try {
                 const response = await fetch(`api/locations.php?action=establecimientos&comuna_nombre=${encodeURIComponent(comunaNombre)}`);
-                const data = await response.json();
+                const data = await parseJsonResponse(response);
                 if (data.success) {
                     data.data.forEach(est => {
                         const option = document.createElement('option');
@@ -507,8 +528,55 @@ $comunas = $locationModel->getComunas();
                         select.appendChild(option);
                     });
                 }
-            } catch (error) { console.error('Error al cargar establecimientos:', error); }
+            } catch (error) {
+                console.error('Error al cargar establecimientos:', error);
+                showError('Error al cargar establecimientos: ' + error.message);
+            }
         }
+    }
+
+    function ensureSelection() {
+        if (selectedIds.length === 0) {
+            showWarning('Seleccione al menos una observación eliminada.');
+            return false;
+        }
+        return true;
+    }
+
+    function resetSelection() {
+        selectedIds = [];
+        document.querySelectorAll('.obs-checkbox').forEach(cb => cb.checked = false);
+        const selectAll = document.getElementById('selectAll');
+        if (selectAll) {
+            selectAll.checked = false;
+            selectAll.indeterminate = false;
+            selectAll.disabled = true;
+        }
+        const countDisplay = document.getElementById('selectedCount');
+        if (countDisplay) {
+            countDisplay.classList.add('d-none');
+            countDisplay.querySelector('span').textContent = '0';
+        }
+        ['btnRestoreSelected', 'btnDeletePermanentSelected'].forEach(id => {
+            const button = document.getElementById(id);
+            if (button) button.disabled = true;
+        });
+    }
+
+    async function parseJsonResponse(response) {
+        const text = await response.text();
+        let data = {};
+        try {
+            data = text ? JSON.parse(text) : {};
+        } catch (error) {
+            throw new Error('Respuesta inválida del servidor');
+        }
+
+        if (!response.ok) {
+            throw new Error(data.message || 'Error en la petición');
+        }
+
+        return data;
     }
 
     function formatDate(dateStr) {

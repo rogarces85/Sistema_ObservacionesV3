@@ -32,6 +32,50 @@ if ($_SESSION['rol'] !== ROL_SUPERVISOR) {
 $action = $_GET['action'] ?? '';
 $obsModel = new Observation();
 
+function normalizeObservationIds($idInput)
+{
+    $ids = is_array($idInput) ? $idInput : [$idInput];
+    $ids = array_values(array_unique(array_filter(array_map('intval', $ids), function ($id) {
+        return $id > 0;
+    })));
+
+    if (empty($ids)) {
+        throw new Exception('ID de observación requerido');
+    }
+
+    return $ids;
+}
+
+function requirePendingObservations($obsModel, $ids, $strict = false)
+{
+    $pendingIds = [];
+
+    foreach ($ids as $id) {
+        $observation = $obsModel->getById($id);
+        if (!$observation) {
+            if ($strict) {
+                throw new Exception('Observación no encontrada');
+            }
+            continue;
+        }
+
+        if ($observation['estado_actual'] !== ESTADO_PENDIENTE) {
+            if ($strict) {
+                throw new Exception('Solo se pueden gestionar observaciones pendientes');
+            }
+            continue;
+        }
+
+        $pendingIds[] = $id;
+    }
+
+    if (empty($pendingIds)) {
+        throw new Exception('No hay observaciones pendientes para procesar');
+    }
+
+    return $pendingIds;
+}
+
 try {
     switch ($action) {
         case 'approve':
@@ -41,11 +85,8 @@ try {
             // Aprobar observación(es)
             $data = json_decode(file_get_contents('php://input'), true);
 
-            if (empty($data['id'])) {
-                throw new Exception('ID de observación requerido');
-            }
-
-            $ids = is_array($data['id']) ? $data['id'] : [$data['id']];
+            $requestedIds = normalizeObservationIds($data['id'] ?? null);
+            $ids = requirePendingObservations($obsModel, $requestedIds, count($requestedIds) === 1);
             $comment = $data['comment'] ?? 'Observación aprobada por supervisor';
             $extraData = [];
             if (!empty($data['clasificacion'])) {
@@ -68,7 +109,7 @@ try {
                 $extraData['tipo_error'] = 'S/OBSERVACION';
             }
 
-            if (count($ids) === 1) {
+            if (count($requestedIds) === 1) {
                 $result = $obsModel->updateStatus($ids[0], $nuevoEstado, $_SESSION['user_id'], $comment, $extraData);
 
                 if ($result) {
@@ -111,14 +152,11 @@ try {
             // Cancelar observación(es)
             $data = json_decode(file_get_contents('php://input'), true);
 
-            if (empty($data['id'])) {
-                throw new Exception('ID de observación requerido');
-            }
-
-            $ids = is_array($data['id']) ? $data['id'] : [$data['id']];
+            $requestedIds = normalizeObservationIds($data['id'] ?? null);
+            $ids = requirePendingObservations($obsModel, $requestedIds, count($requestedIds) === 1);
             $comment = $data['comment'] ?? 'Observación cancelada por supervisor';
 
-            if (count($ids) === 1) {
+            if (count($requestedIds) === 1) {
                 $result = $obsModel->updateStatus($ids[0], ESTADO_RECHAZADO, $_SESSION['user_id'], $comment);
 
                 if ($result) {
@@ -151,11 +189,8 @@ try {
             
             $data = json_decode(file_get_contents('php://input'), true);
 
-            if (empty($data['id'])) {
-                throw new Exception('ID de observación requerido');
-            }
-
-            $ids = is_array($data['id']) ? $data['id'] : [$data['id']];
+            $requestedIds = normalizeObservationIds($data['id'] ?? null);
+            $ids = requirePendingObservations($obsModel, $requestedIds, count($requestedIds) === 1);
             $reason = $data['reason'] ?? 'Eliminado por supervisor';
 
             $successCount = 0;

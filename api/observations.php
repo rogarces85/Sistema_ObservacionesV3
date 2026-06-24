@@ -92,7 +92,6 @@ try {
             $required = [
                 'mes',
                 'establecimiento_id',
-                'codigo_serie',
                 'tipo_error',
                 'detalle_observacion',
                 'plazo_entrega',
@@ -100,7 +99,7 @@ try {
             ];
 
             // codigo_hoja es requerido EXCEPTO para S/OBSERVACION
-            if ($input['tipo_error'] !== 'S/OBSERVACION') {
+            if (($input['tipo_error'] ?? '') !== 'S/OBSERVACION') {
                 $required[] = 'codigo_hoja';
             }
 
@@ -119,8 +118,8 @@ try {
                 'anio' => $year,
                 'mes' => $input['mes'],
                 'establecimiento_id' => $input['establecimiento_id'],
-                'codigo_serie' => $input['codigo_serie'],
-                'codigo_hoja' => $input['codigo_hoja'],
+                'codigo_serie' => $input['codigo_serie'] ?? '',
+                'codigo_hoja' => $input['codigo_hoja'] ?? '',
                 'tipo_error' => $input['tipo_error'],
                 'detalle_observacion' => $input['detalle_observacion'],
                 'plazo_entrega' => $input['plazo_entrega'],

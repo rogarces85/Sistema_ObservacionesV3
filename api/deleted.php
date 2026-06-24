@@ -32,6 +32,27 @@ if ($_SESSION['rol'] !== ROL_SUPERVISOR) {
 $method = $_SERVER['REQUEST_METHOD'];
 $action = $_GET['action'] ?? '';
 
+function normalizeDeletedIds($idInput)
+{
+    $ids = is_array($idInput) ? $idInput : [$idInput];
+    $ids = array_values(array_unique(array_filter(array_map('intval', $ids), function ($id) {
+        return $id > 0;
+    })));
+
+    if (empty($ids)) {
+        jsonResponse(false, null, 'ID requerido', 400);
+    }
+
+    return $ids;
+}
+
+function requirePermanentDeleteConfirmation($input)
+{
+    if (empty($input['confirm_irreversible'])) {
+        jsonResponse(false, null, 'Debe confirmar que la eliminación permanente es irreversible', 400);
+    }
+}
+
 try {
     $deletedModel = new DeletedObservation();
 
@@ -65,10 +86,7 @@ try {
             $action = $input['action'] ?? '';
 
             if ($action === 'restore') {
-                $deletedId = $input['deleted_id'] ?? null;
-                if (!$deletedId) {
-                    jsonResponse(false, null, 'ID requerido', 400);
-                }
+                $deletedId = normalizeDeletedIds($input['deleted_id'] ?? null)[0];
 
                 $success = $deletedModel->restore($deletedId, $_SESSION['user_id']);
                 if ($success) {
@@ -77,10 +95,8 @@ try {
                     jsonResponse(false, null, 'Error al restaurar observación', 500);
                 }
             } elseif ($action === 'permanent_delete') {
-                $deletedId = $input['deleted_id'] ?? null;
-                if (!$deletedId) {
-                    jsonResponse(false, null, 'ID requerido', 400);
-                }
+                requirePermanentDeleteConfirmation($input);
+                $deletedId = normalizeDeletedIds($input['deleted_id'] ?? null)[0];
 
                 $success = $deletedModel->permanentDelete($deletedId);
                 if ($success) {
@@ -89,10 +105,7 @@ try {
                     jsonResponse(false, null, 'Error al eliminar permanentemente', 500);
                 }
             } elseif ($action === 'restore_multiple') {
-                $deletedIds = $input['deleted_ids'] ?? [];
-                if (empty($deletedIds)) {
-                    jsonResponse(false, null, 'Lista de IDs requerida', 400);
-                }
+                $deletedIds = normalizeDeletedIds($input['deleted_ids'] ?? []);
 
                 $successCount = 0;
                 foreach ($deletedIds as $deletedId) {
@@ -103,10 +116,8 @@ try {
 
                 jsonResponse(true, ['restored' => $successCount], "{$successCount} observación(es) restaurada(s)");
             } elseif ($action === 'permanent_delete_multiple') {
-                $deletedIds = $input['deleted_ids'] ?? [];
-                if (empty($deletedIds)) {
-                    jsonResponse(false, null, 'Lista de IDs requerida', 400);
-                }
+                requirePermanentDeleteConfirmation($input);
+                $deletedIds = normalizeDeletedIds($input['deleted_ids'] ?? []);
 
                 $successCount = 0;
                 foreach ($deletedIds as $deletedId) {
