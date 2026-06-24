@@ -79,7 +79,7 @@ $statsJson = json_encode($stats, JSON_UNESCAPED_UNICODE);
                     </p>
                     <div class="d-flex flex-wrap gap-2">
                         <?php if ($userRole === ROL_REGISTRADOR): ?>
-                            <a href="?page=observaciones&year=<?php echo $currentYear; ?>" class="btn" style="background: #ffffff; color: var(--tblr-primary); font-weight: 600;">
+                            <a href="?page=observaciones&action=new&year=<?php echo $currentYear; ?>" class="btn" style="background: #ffffff; color: var(--tblr-primary); font-weight: 600;">
                                 <i class="ti ti-edit me-1"></i>Nueva Observación
                             </a>
                             <a href="?page=observaciones&year=<?php echo $currentYear; ?>" class="btn" style="background: rgba(255,255,255,0.18); color: #ffffff; border: 1px solid rgba(255,255,255,0.3);">
@@ -289,7 +289,7 @@ $statsJson = json_encode($stats, JSON_UNESCAPED_UNICODE);
                 <div class="card-body">
                     <div class="d-flex flex-column gap-2">
                         <?php if ($userRole === ROL_REGISTRADOR): ?>
-                            <a href="?page=observaciones&year=<?php echo $currentYear; ?>" class="card card-link p-3 d-flex align-items-center gap-3">
+                            <a href="?page=observaciones&action=new&year=<?php echo $currentYear; ?>" class="card card-link p-3 d-flex align-items-center gap-3">
                                 <span class="stat-icon" style="background: var(--tblr-primary);"><i class="ti ti-edit"></i></span>
                                 <div class="flex-grow-1">
                                     <div class="fw-semibold">Nueva Observación</div>
@@ -408,7 +408,7 @@ $statsJson = json_encode($stats, JSON_UNESCAPED_UNICODE);
                 <h3>No hay observaciones registradas</h3>
                 <p>Cuando se registren, aparecerán aquí los últimos cinco movimientos.</p>
                 <?php if ($userRole === ROL_REGISTRADOR): ?>
-                    <a href="?page=observaciones&year=<?php echo $currentYear; ?>" class="btn btn-primary">
+                    <a href="?page=observaciones&action=new&year=<?php echo $currentYear; ?>" class="btn btn-primary">
                         <i class="ti ti-edit me-1"></i>Crear primera observación
                     </a>
                 <?php endif; ?>

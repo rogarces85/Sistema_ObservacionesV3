@@ -29,11 +29,11 @@
 
 **Purpose**: Prepare shared action inventory and verification evidence so implementation can proceed page by page without losing coverage.
 
-- [ ] T001 Create action inventory table in `specs/002-fix-button-actions/action-inventory.md` using the fields from `specs/002-fix-button-actions/contracts/action-behavior.md`
-- [ ] T002 [P] Record current dashboard and observation controls in `specs/002-fix-button-actions/action-inventory.md` from `views/dashboard.php` and `views/observaciones.php`
-- [ ] T003 [P] Record current supervisor-admin controls in `specs/002-fix-button-actions/action-inventory.md` from `views/supervision.php`, `views/usuarios.php`, `views/asignaciones.php`, `views/eliminadas.php`, and `views/establecimientos.php`
-- [ ] T004 [P] Record current report/profile/version controls in `specs/002-fix-button-actions/action-inventory.md` from `views/reportes.php`, `views/perfil.php`, and `views/versionado.php`
-- [ ] T005 Create verification evidence template in `specs/002-fix-button-actions/verification-evidence.md` using fields from `specs/002-fix-button-actions/quickstart.md`
+- [X] T001 Create action inventory table in `specs/002-fix-button-actions/action-inventory.md` using the fields from `specs/002-fix-button-actions/contracts/action-behavior.md`
+- [X] T002 [P] Record current dashboard and observation controls in `specs/002-fix-button-actions/action-inventory.md` from `views/dashboard.php` and `views/observaciones.php`
+- [X] T003 [P] Record current supervisor-admin controls in `specs/002-fix-button-actions/action-inventory.md` from `views/supervision.php`, `views/usuarios.php`, `views/asignaciones.php`, `views/eliminadas.php`, and `views/establecimientos.php`
+- [X] T004 [P] Record current report/profile/version controls in `specs/002-fix-button-actions/action-inventory.md` from `views/reportes.php`, `views/perfil.php`, and `views/versionado.php`
+- [X] T005 Create verification evidence template in `specs/002-fix-button-actions/verification-evidence.md` using fields from `specs/002-fix-button-actions/quickstart.md`
 
 ---
 
@@ -43,11 +43,11 @@
 
 **CRITICAL**: No user story work should begin until this phase is complete.
 
-- [ ] T006 Review mutable action CSRF coverage and document any gaps in `specs/002-fix-button-actions/action-inventory.md` for `api/observations.php`, `api/supervision.php`, `api/users.php`, `api/assignments.php`, `api/deleted.php`, `api/locations.php`, `api/report_queue.php`, and `api/versioning.php`
-- [ ] T007 [P] Confirm role guards for affected screens in `index.php`, `views/observaciones.php`, `views/supervision.php`, `views/usuarios.php`, `views/asignaciones.php`, `views/eliminadas.php`, `views/establecimientos.php`, and `views/versionado.php`
-- [ ] T008 [P] Normalize dependent-establishment lookup contract in `api/locations.php` so visible comuna filters can use one documented action name without breaking existing callers
-- [ ] T009 [P] Add or confirm safe user feedback fallback behavior in `assets/js/app.js` for failed JSON/action requests without changing REM business rules
-- [ ] T010 Update `specs/002-fix-button-actions/verification-evidence.md` with a warning that configured `ENVIRONMENT=production` requires controlled records or confirmation-only walkthroughs for mutating checks
+- [X] T006 Review mutable action CSRF coverage and document any gaps in `specs/002-fix-button-actions/action-inventory.md` for `api/observations.php`, `api/supervision.php`, `api/users.php`, `api/assignments.php`, `api/deleted.php`, `api/locations.php`, `api/report_queue.php`, and `api/versioning.php`
+- [X] T007 [P] Confirm role guards for affected screens in `index.php`, `views/observaciones.php`, `views/supervision.php`, `views/usuarios.php`, `views/asignaciones.php`, `views/eliminadas.php`, `views/establecimientos.php`, and `views/versionado.php`
+- [X] T008 [P] Normalize dependent-establishment lookup contract in `api/locations.php` so visible comuna filters can use one documented action name without breaking existing callers
+- [X] T009 [P] Add or confirm safe user feedback fallback behavior in `assets/js/app.js` for failed JSON/action requests without changing REM business rules
+- [X] T010 Update `specs/002-fix-button-actions/verification-evidence.md` with a warning that configured `ENVIRONMENT=production` requires controlled records or confirmation-only walkthroughs for mutating checks
 
 **Checkpoint**: Foundation ready - user story implementation can now proceed.
 
@@ -61,19 +61,19 @@
 
 ### Verification for User Story 1
 
-- [ ] T011 [P] [US1] Verify current registrador dashboard action outcomes and record pass/fail notes in `specs/002-fix-button-actions/verification-evidence.md`
-- [ ] T012 [P] [US1] Verify current Observaciones create, edit, detail, trash, import, preview, confirm, and template-download controls and record pass/fail notes in `specs/002-fix-button-actions/verification-evidence.md`
-- [ ] T013 [P] [US1] Verify `api/observations.php`, `api/import.php`, and `api/import_template.php` behavior expectations against `specs/002-fix-button-actions/contracts/action-behavior.md`
+- [X] T011 [P] [US1] Verify current registrador dashboard action outcomes and record pass/fail notes in `specs/002-fix-button-actions/verification-evidence.md`
+- [X] T012 [P] [US1] Verify current Observaciones create, edit, detail, trash, import, preview, confirm, and template-download controls and record pass/fail notes in `specs/002-fix-button-actions/verification-evidence.md`
+- [X] T013 [P] [US1] Verify `api/observations.php`, `api/import.php`, and `api/import_template.php` behavior expectations against `specs/002-fix-button-actions/contracts/action-behavior.md`
 
 ### Implementation for User Story 1
 
-- [ ] T014 [US1] Update Dashboard new-observation links in `views/dashboard.php` to use an explicit action parameter such as `?page=observaciones&action=new&year=...`
-- [ ] T015 [US1] Add action-parameter handling in `views/observaciones.php` so `action=new` opens the new observation modal after page load when the registrador has assignments
-- [ ] T016 [US1] Restrict the import file picker and visible import copy in `views/observaciones.php` to Excel formats accepted by `api/import.php`
-- [ ] T017 [US1] Fix import preview and reset visibility in `views/observaciones.php` by using consistent Bootstrap visibility classes for `importStep1`, `importStep2`, `importErrors`, `importProgress`, and `importActions`
-- [ ] T018 [US1] Ensure import confirmation in `views/observaciones.php` restores progress/action controls after success and failure and leaves the user able to retry
-- [ ] T019 [US1] Ensure observation detail and edit flows in `views/observaciones.php` display user-visible errors when `api/observations.php` rejects or cannot load a record
-- [ ] T020 [US1] Run `php -l views/dashboard.php`, `php -l views/observaciones.php`, `php -l api/import.php`, and `php -l api/observations.php` and record results in `specs/002-fix-button-actions/verification-evidence.md`
+- [X] T014 [US1] Update Dashboard new-observation links in `views/dashboard.php` to use an explicit action parameter such as `?page=observaciones&action=new&year=...`
+- [X] T015 [US1] Add action-parameter handling in `views/observaciones.php` so `action=new` opens the new observation modal after page load when the registrador has assignments
+- [X] T016 [US1] Restrict the import file picker and visible import copy in `views/observaciones.php` to Excel formats accepted by `api/import.php`
+- [X] T017 [US1] Fix import preview and reset visibility in `views/observaciones.php` by using consistent Bootstrap visibility classes for `importStep1`, `importStep2`, `importErrors`, `importProgress`, and `importActions`
+- [X] T018 [US1] Ensure import confirmation in `views/observaciones.php` restores progress/action controls after success and failure and leaves the user able to retry
+- [X] T019 [US1] Ensure observation detail and edit flows in `views/observaciones.php` display user-visible errors when `api/observations.php` rejects or cannot load a record
+- [X] T020 [US1] Run `php -l views/dashboard.php`, `php -l views/observaciones.php`, `php -l api/import.php`, and `php -l api/observations.php` and record results in `specs/002-fix-button-actions/verification-evidence.md`
 - [ ] T021 [US1] Perform the registrador quickstart steps for Dashboard and Observaciones from `specs/002-fix-button-actions/quickstart.md` and record evidence in `specs/002-fix-button-actions/verification-evidence.md`
 
 **Checkpoint**: US1 is complete when registrador observation entry, import preview, detail/edit, and template actions are functional or intentionally disabled with explanation.

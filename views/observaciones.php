@@ -15,6 +15,7 @@ $asigModel = new EstablecimientoAsignacion();
 $userId = $_SESSION['user_id'];
 $userRole = $_SESSION['rol'];
 $currentYear = $_SESSION['year'] ?? date('Y');
+$requestedAction = $_GET['action'] ?? '';
 
 // Obtener datos necesarios
 $observations = $obsModel->getAll($currentYear, $userId, $userRole);
@@ -404,8 +405,8 @@ global $TIPOS_ERROR, $MESES;
                 <!-- Paso 1 -->
                 <div id="importStep1">
                     <div class="text-center p-6 border-2 border-dashed rounded mb-4">
-                        <p class="text-secondary mb-4">Seleccione un archivo Excel (.xlsx) o CSV con las observaciones</p>
-                        <input type="file" id="csvFile" accept=".xlsx,.xls,.csv" class="d-none" onchange="previewImport()">
+                        <p class="text-secondary mb-4">Seleccione un archivo Excel (.xlsx, .xls) con las observaciones</p>
+                        <input type="file" id="csvFile" accept=".xlsx,.xls" class="d-none" onchange="previewImport()">
                         <button onclick="document.getElementById('csvFile').click()" class="btn btn-primary">
                             <i class="ti ti-file-upload me-1"></i>Seleccionar Archivo Excel
                         </button>
@@ -888,6 +889,7 @@ global $TIPOS_ERROR, $MESES;
 
     // Datos de hojas REM por serie (generado desde PHP)
     const hojasPorSerie = <?php echo json_encode($HOJAS_POR_SERIE); ?>;
+    const requestedAction = <?php echo json_encode($requestedAction); ?>;
 
     // ============================================================
     // Wrappers globales para compatibilidad con onclick en HTML
@@ -949,8 +951,11 @@ global $TIPOS_ERROR, $MESES;
     }
 
     function resetImport() {
-        document.getElementById('importStep1').classList.remove('hidden');
-        document.getElementById('importStep2').classList.add('hidden');
+        document.getElementById('importStep1').classList.remove('d-none');
+        document.getElementById('importStep2').classList.add('d-none');
+        document.getElementById('importErrors').classList.add('d-none');
+        document.getElementById('importProgress').classList.add('d-none');
+        document.getElementById('importActions').classList.remove('d-none');
         document.getElementById('csvFile').value = '';
         importPreviewData = null;
         document.getElementById('stepperStep1').classList.add('active');
@@ -963,6 +968,13 @@ global $TIPOS_ERROR, $MESES;
         if (!fileInput.files || fileInput.files.length === 0) return;
 
         const file = fileInput.files[0];
+        const extension = file.name.split('.').pop().toLowerCase();
+        if (!['xlsx', 'xls'].includes(extension)) {
+            showError('Formato no válido. Seleccione un archivo Excel (.xlsx, .xls).');
+            fileInput.value = '';
+            return;
+        }
+
         const formData = new FormData();
         formData.append('csv_file', file);
         formData.append('preview', '1');
@@ -992,8 +1004,8 @@ global $TIPOS_ERROR, $MESES;
     }
 
     function showImportPreview(data) {
-        document.getElementById('importStep1').classList.add('hidden');
-        document.getElementById('importStep2').classList.remove('hidden');
+        document.getElementById('importStep1').classList.add('d-none');
+        document.getElementById('importStep2').classList.remove('d-none');
         document.getElementById('stepperStep2').classList.add('active');
         document.getElementById('stepperStep3').classList.add('active');
 
@@ -1004,12 +1016,12 @@ global $TIPOS_ERROR, $MESES;
         const errorsDiv = document.getElementById('importErrors');
         const errorList = document.getElementById('errorList');
         if (data.errors.length > 0) {
-            errorsDiv.classList.remove('hidden');
+            errorsDiv.classList.remove('d-none');
             errorList.innerHTML = data.errors.map(e =>
                 `<li>Fila ${e.row}: ${e.message}</li>`
             ).join('');
         } else {
-            errorsDiv.classList.add('hidden');
+            errorsDiv.classList.add('d-none');
         }
 
         const previewBody = document.getElementById('previewBody');
@@ -1082,10 +1094,21 @@ global $TIPOS_ERROR, $MESES;
                 showError(data.message || 'Error al importar');
             }
         } catch (error) {
-            hideLoading();
+            document.getElementById('importProgress').classList.add('d-none');
+            document.getElementById('importActions').classList.remove('d-none');
             showError('Error al importar: ' + error.message);
         }
     }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        if (requestedAction === 'new') {
+            <?php if ($userRole === ROL_REGISTRADOR && $tieneAsignaciones): ?>
+                openCreateModal();
+            <?php elseif ($userRole === ROL_REGISTRADOR): ?>
+                showWarning('No tiene establecimientos asignados para crear observaciones en <?php echo htmlspecialchars($currentYear, ENT_QUOTES, 'UTF-8'); ?>.');
+            <?php endif; ?>
+        }
+    });
 
     // ============================================================
     // Ver detalle de observación
