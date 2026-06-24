@@ -1,7 +1,6 @@
 # Git Ignore para Sistema REM PHP
 
 # Archivos de configuración sensibles
-config/database.php
 .env
 .env.*
 !.env.example
