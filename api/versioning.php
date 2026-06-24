@@ -8,6 +8,7 @@ header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../config/constants.php';
 require_once __DIR__ . '/../models/Version.php';
+require_once __DIR__ . '/../includes/csrf.php';
 
 // Función para responder en JSON
 function jsonResponse($success, $data = null, $message = '', $statusCode = 200)
@@ -56,6 +57,7 @@ try {
             break;
 
         case 'POST':
+            CSRF::validateRequest();
             if ($action === 'create') {
                 $input = json_decode(file_get_contents('php://input'), true);
                 $descripcion = $input['descripcion'] ?? '';

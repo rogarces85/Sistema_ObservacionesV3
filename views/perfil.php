@@ -5,10 +5,14 @@
  */
 
 require_once 'models/User.php';
+require_once 'models/UserAudit.php';
 
 $userModel = new User();
+$auditModel = new UserAudit();
 $userId = $_SESSION['user_id'];
 $userInfo = $userModel->getById($userId);
+$activity = $auditModel->getHistory($userId);
+$activity = array_slice($activity, 0, 8);
 ?>
 
 <div class="page-wrapper">
@@ -16,9 +20,11 @@ $userInfo = $userModel->getById($userId);
         <div class="container-xl">
             <div class="row row-cards">
                 <div class="col-12">
-                    <div class="mb-3">
-                        <h2 class="page-title">Mi Perfil</h2>
-                        <div class="text-secondary">Gestiona tu información personal y contraseña</div>
+                    <div class="page-header">
+                        <div>
+                            <h1 class="page-title"><i class="ti ti-user me-2 text-primary"></i>Mi Perfil</h1>
+                            <p class="page-subtitle">Gestiona tu información personal y contraseña</p>
+                        </div>
                     </div>
                 </div>
 
@@ -66,16 +72,19 @@ $userInfo = $userModel->getById($userId);
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label required">Nueva Contraseña</label>
-                                    <input type="password" id="newPassword" name="new_password" class="form-control" required minlength="6"
-                                        placeholder="Mínimo 6 caracteres">
-                                    <div class="form-hint">Debe tener al menos 6 caracteres</div>
+                                    <input type="password" id="newPassword" name="new_password" class="form-control" required minlength="8"
+                                        pattern="(?=.*[A-Z])(?=.*\d).{8,}"
+                                        placeholder="Mínimo 8 caracteres, una mayúscula y un número">
+                                    <div class="form-hint">Debe tener al menos 8 caracteres, una mayúscula y un número</div>
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label required">Confirmar Nueva Contraseña</label>
-                                    <input type="password" id="confirmPassword" name="confirm_password" class="form-control" required minlength="6"
+                                    <input type="password" id="confirmPassword" name="confirm_password" class="form-control" required minlength="8"
                                         placeholder="Repita la nueva contraseña">
                                 </div>
-                                <button type="submit" class="btn btn-primary w-100">Cambiar Contraseña</button>
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="ti ti-lock me-1"></i>Cambiar Contraseña
+                                </button>
                             </form>
                         </div>
                     </div>
@@ -83,12 +92,33 @@ $userInfo = $userModel->getById($userId);
 
                 <div class="col-12">
                     <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title">Actividad Reciente</h3>
-                        </div>
-                        <div class="card-body">
-                            <p class="text-secondary text-center py-4 mb-0">No hay actividad reciente para mostrar</p>
-                        </div>
+                            <div class="card-header">
+                                <h3 class="card-title"><i class="ti ti-activity me-2 text-primary"></i>Actividad Reciente</h3>
+                            </div>
+                            <div class="card-body">
+                                <?php if (empty($activity)): ?>
+                                    <div class="empty-state">
+                                        <div class="empty-icon"><i class="ti ti-clock-off"></i></div>
+                                        <h3>Sin actividad reciente</h3>
+                                        <p>Aquí aparecerán tus últimos movimientos en el sistema.</p>
+                                    </div>
+                                <?php else: ?>
+                                    <div class="table-responsive">
+                                        <table class="table table-vcenter">
+                                            <thead><tr><th>Acción</th><th>Detalle</th><th class="text-end">Fecha</th></tr></thead>
+                                            <tbody>
+                                                <?php foreach ($activity as $item): ?>
+                                                    <tr>
+                                                        <td><span class="badge bg-blue text-blue-fg"><?php echo htmlspecialchars($item['accion']); ?></span></td>
+                                                        <td class="text-secondary"><?php echo htmlspecialchars($item['detalles'] ?? ''); ?></td>
+                                                        <td class="text-end text-secondary"><?php echo date('d/m/Y H:i', strtotime($item['fecha_registro'])); ?></td>
+                                                    </tr>
+                                                <?php endforeach; ?>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
                     </div>
                 </div>
             </div>
@@ -111,9 +141,8 @@ $userInfo = $userModel->getById($userId);
             return;
         }
 
-        // Validar longitud mínima
-        if (newPassword.length < 6) {
-            showMessage('La contraseña debe tener al menos 6 caracteres', 'error');
+        if (!/(?=.*[A-Z])(?=.*\d).{8,}/.test(newPassword)) {
+            showMessage('La contraseña debe tener al menos 8 caracteres, una mayúscula y un número', 'error');
             return;
         }
 

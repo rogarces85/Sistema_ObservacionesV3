@@ -4,7 +4,7 @@
  * Sistema de Observaciones REM - Servicio de Salud Osorno
  */
 
-define('ENVIRONMENT', 'development'); // 'production' o 'development'
+define('ENVIRONMENT', 'production'); // 'production' o 'development'
 
 $dbConfig = [
     'production' => [

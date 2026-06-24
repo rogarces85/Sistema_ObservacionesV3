@@ -8,14 +8,15 @@
  */
 
 require_once __DIR__ . '/config/config.php';
-require_once __DIR__ . '/vendor/autoload.php';
 require_once __DIR__ . '/models/Observation.php';
 require_once __DIR__ . '/models/Exporter.php';
 require_once __DIR__ . '/models/ReportQueue.php';
+require_once __DIR__ . '/models/Database.php';
 
 $queue = new ReportQueue();
 $obsModel = new Observation();
 $exporter = new Exporter();
+$db = Database::getInstance();
 
 // Obtener siguiente reporte pendiente
 $report = $queue->getNextPending();
@@ -36,10 +37,21 @@ try {
     
     // Obtener rol del usuario para filtrar datos
     $userSql = "SELECT rol FROM usuarios WHERE id = ?";
-    $user = $this->db->queryOne($userSql, [$userId]);
+    $user = $db->queryOne($userSql, [$userId]);
+    if (!$user) {
+        throw new Exception('Usuario del reporte no encontrado');
+    }
     $userRole = $user['rol'];
     
     $year = $parametros['year'] ?? date('Y');
+    $meses = [];
+    if (!empty($parametros['meses']) && is_array($parametros['meses'])) {
+        $meses = array_values(array_filter($parametros['meses']));
+    } elseif (!empty($parametros['mes'])) {
+        $meses = [$parametros['mes']];
+    }
+    $comunaIds = !empty($parametros['comuna_id']) ? [(int)$parametros['comuna_id']] : [];
+    $establecimientoId = !empty($parametros['establecimiento_id']) ? (int)$parametros['establecimiento_id'] : null;
     $filename = "Reporte_{$report['tipo_reporte']}_{$report['id']}_" . date('Y-m-d_His') . ".{$report['formato']}";
     $outputPath = __DIR__ . '/uploads/reportes/' . $filename;
 
@@ -57,8 +69,10 @@ try {
         case 'general':
             $filters = ['anio' => $year];
             if (!empty($parametros['mes'])) $filters['mes'] = $parametros['mes'];
+            if (!empty($meses)) $filters['meses'] = $meses;
             if (!empty($parametros['estado'])) $filters['estado'] = $parametros['estado'];
             if (!empty($parametros['establecimiento_id'])) $filters['establecimiento_id'] = $parametros['establecimiento_id'];
+            if ($userRole === ROL_REGISTRADOR) $filters['usuario_registro_id'] = $userId;
             
             $observations = $obsModel->getWithFilters($filters);
             $data = $exporter->prepareObservationsData($observations);
@@ -69,10 +83,36 @@ try {
         case 'detallado':
             // Solo PDF
             $filters = ['anio' => $year];
+            if (!empty($meses)) $filters['meses'] = $meses;
+            if (!empty($parametros['comuna_id'])) $filters['comuna_id'] = $parametros['comuna_id'];
+            if (!empty($parametros['establecimiento_id'])) $filters['establecimiento_id'] = $parametros['establecimiento_id'];
             $data = $obsModel->reporteDetalladoPDF($filters, $userId, $userRole);
             break;
-            
-        // ... otros tipos de reporte ...
+             
+        case 'errores_establecimiento':
+            $data = $obsModel->reporteErroresPorEstablecimiento($year, $userId, $userRole, $meses, $comunaIds, $establecimientoId);
+            $title = "Errores por Establecimiento - Año {$year}";
+            break;
+
+        case 'fuera_plazo_establecimiento':
+            $data = $obsModel->reporteFueraPlazoPorEstablecimiento($year, $userId, $userRole, $meses, $comunaIds, $establecimientoId);
+            $title = "Fuera de Plazo por Establecimiento - Año {$year}";
+            break;
+
+        case 'validador_establecimiento':
+            $data = $obsModel->reporteValidadorPorEstablecimiento($year, $userId, $userRole, $meses, $comunaIds, $establecimientoId);
+            $title = "Uso de Validador por Establecimiento - Año {$year}";
+            break;
+
+        case 'serie_detalle':
+            $data = $obsModel->reportePorSerieDetalle($year, $userId, $userRole, $meses, $comunaIds, $establecimientoId);
+            $title = "Errores por Serie REM - Año {$year}";
+            break;
+
+        case 'hoja_detalle':
+            $data = $obsModel->reportePorHojaDetalle($year, $userId, $userRole, $meses, $comunaIds, $establecimientoId);
+            $title = "Errores por Hoja REM - Año {$year}";
+            break;
             
         default:
             throw new Exception("Tipo de reporte no reconocido: {$report['tipo_reporte']}");
@@ -87,13 +127,20 @@ try {
         if ($report['tipo_reporte'] === 'detallado') {
             throw new Exception("El reporte detallado solo puede ser PDF.");
         }
-        $exporter->exportToExcel($data, $outputPath, $headers);
+        if (!empty($headers)) {
+            $exporter->exportToExcel($data, $outputPath, $headers, false);
+        } else {
+            $exporter->exportErroresExcel($data, $outputPath, $report['tipo_reporte'], false);
+        }
     } elseif ($report['formato'] === 'pdf') {
         if ($report['tipo_reporte'] === 'detallado') {
             $pdfFilters = ['anio' => $year];
-            $exporter->exportDetalladoPDF($data, $outputPath, $pdfFilters);
+            $exporter->exportDetalladoPDF($data, $outputPath, $pdfFilters, 'F');
         } else {
-            $exporter->exportToPDF($data, $outputPath, $headers, $title);
+            if (empty($headers)) {
+                $headers = !empty($data[0]) ? array_keys($data[0]) : [];
+            }
+            $exporter->exportToPDF($data, $outputPath, $headers, $title, 'F');
         }
     } else {
         throw new Exception("Formato no soportado: {$report['formato']}");

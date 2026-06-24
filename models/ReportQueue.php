@@ -5,6 +5,7 @@
  */
 
 require_once __DIR__ . '/Database.php';
+require_once __DIR__ . '/Notification.php';
 
 class ReportQueue
 {
@@ -58,9 +59,17 @@ class ReportQueue
         $sql = "SELECT * FROM reportes_pendientes 
                 WHERE estado = 'PENDIENTE' 
                 ORDER BY fecha_creacion ASC 
-                LIMIT 1 FOR UPDATE";
+                LIMIT 1";
         
         return $this->db->queryOne($sql);
+    }
+
+    /**
+     * Obtener reporte por ID
+     */
+    public function getById($reportId)
+    {
+        return $this->db->queryOne("SELECT * FROM reportes_pendientes WHERE id = ?", [$reportId]);
     }
 
     /**
@@ -96,7 +105,15 @@ class ReportQueue
      */
     public function markReady($reportId, $archivoUrl)
     {
-        return $this->updateStatus($reportId, 'LISTO', $archivoUrl);
+        $result = $this->updateStatus($reportId, 'LISTO', $archivoUrl);
+        if ($result) {
+            $report = $this->getById($reportId);
+            if ($report) {
+                $notifications = new Notification();
+                $notifications->create($report['usuario_id'], 'reporte_listo', 'Reporte listo', 'El reporte #' . $reportId . ' está listo para descargar.', '?page=reportes');
+            }
+        }
+        return $result;
     }
 
     /**
@@ -104,6 +121,14 @@ class ReportQueue
      */
     public function markError($reportId, $mensajeError)
     {
-        return $this->updateStatus($reportId, 'ERROR', null, $mensajeError);
+        $result = $this->updateStatus($reportId, 'ERROR', null, $mensajeError);
+        if ($result) {
+            $report = $this->getById($reportId);
+            if ($report) {
+                $notifications = new Notification();
+                $notifications->create($report['usuario_id'], 'reporte_error', 'Reporte con error', 'El reporte #' . $reportId . ' no pudo generarse: ' . $mensajeError, '?page=reportes');
+            }
+        }
+        return $result;
     }
 }

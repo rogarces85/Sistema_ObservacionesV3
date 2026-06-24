@@ -20,9 +20,17 @@ $format = $_GET['format'] ?? 'excel';
 $year = $_GET['year'] ?? date('Y');
 $reportType = $_GET['report_type'] ?? 'general';
 $month = $_GET['month'] ?? null;
+$months = $_GET['months'] ?? null;
 $estado = $_GET['estado'] ?? null;
 $establecimiento_id = $_GET['establecimiento_id'] ?? null;
 $comuna_id = $_GET['comuna_id'] ?? null;
+$mesesFiltro = [];
+if ($month) {
+    $mesesFiltro = [$month];
+} elseif ($months) {
+    $mesesFiltro = array_filter(array_map('trim', explode(',', $months)));
+}
+$comunaIdsFiltro = $comuna_id ? [(int)$comuna_id] : [];
 
 $obsModel = new Observation();
 $exporter = new Exporter();
@@ -34,6 +42,7 @@ if ($reportType === 'detallado') {
     if ($comuna_id) $filters['comuna_id'] = $comuna_id;
     if ($establecimiento_id) $filters['establecimiento_id'] = $establecimiento_id;
     if ($month) $filters['mes'] = $month;
+    if ($months) $filters['meses'] = $mesesFiltro;
     if ($estado) $filters['estado'] = $estado;
 
     $data = $obsModel->reporteDetalladoPDF($filters, $userId, $userRole);
@@ -84,7 +93,12 @@ if (in_array($reportType, $specificReports)) {
     ];
 
     $method = $reportMethods[$reportType];
-    $data = $obsModel->$method($year, $userId, $userRole);
+    $filteredReports = ['errores_establecimiento', 'fuera_plazo_establecimiento', 'validador_establecimiento', 'serie_detalle', 'hoja_detalle'];
+    if (in_array($reportType, $filteredReports, true)) {
+        $data = $obsModel->$method($year, $userId, $userRole, $mesesFiltro, $comunaIdsFiltro, $establecimiento_id);
+    } else {
+        $data = $obsModel->$method($year, $userId, $userRole);
+    }
 
     if (empty($data)) {
         http_response_code(404);
@@ -120,6 +134,7 @@ if (in_array($reportType, $specificReports)) {
 // Exportación general (existing functionality)
 $filters = ['anio' => $year];
 if ($month) $filters['mes'] = $month;
+if ($months) $filters['meses'] = $mesesFiltro;
 if ($estado) $filters['estado'] = $estado;
 if ($establecimiento_id) $filters['establecimiento_id'] = $establecimiento_id;
 

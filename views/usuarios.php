@@ -21,14 +21,16 @@ $usuarios = $userModel->getAll();
             <div class="row row-cards">
 
                 <div class="col-12">
-                    <div class="mb-3 d-flex justify-content-between align-items-center">
+                    <div class="page-header">
                         <div>
-                            <h2 class="page-title">Gestión de Usuarios</h2>
-                            <div class="text-secondary">Administración completa del sistema</div>
+                            <h1 class="page-title"><i class="ti ti-users me-2 text-primary"></i>Gestión de Usuarios</h1>
+                            <p class="page-subtitle">Administración completa del sistema</p>
                         </div>
-                        <button onclick="openCreateUserModal()" class="btn btn-primary">
-                            Nuevo Usuario
-                        </button>
+                        <div class="page-actions">
+                            <button onclick="openCreateUserModal()" class="btn btn-primary">
+                                <i class="ti ti-user-plus me-1"></i>Nuevo Usuario
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -68,24 +70,30 @@ $usuarios = $userModel->getAll();
                                             <td class="text-secondary"><?php echo date('d/m/Y', strtotime($usuario['fecha_creacion'])); ?></td>
                                             <td>
                                                 <div class="btn-list justify-content-end">
-                                                    <button onclick="editUser(<?php echo htmlspecialchars(json_encode($usuario)); ?>)"
-                                                        class="btn btn-ghost-secondary btn-icon" title="Editar" data-bs-toggle="tooltip">
-                                                        <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-edit"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M7 7h-1a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-1" /><path d="M20.385 6.585a2.1 2.1 0 0 0 -2.97 -2.97l-8.415 8.385v3h3l8.385 -8.415z" /><path d="M16 5l3 3" /></svg>
-                                                    </button>
-                                                    <?php if ($usuario['id'] != $_SESSION['user_id']): ?>
-                                                        <button
-                                                            onclick="resetPassword(<?php echo $usuario['id']; ?>, '<?php echo htmlspecialchars($usuario['username']); ?>')"
-                                                            class="btn btn-ghost-warning btn-icon"
-                                                            title="Restablecer contraseña" data-bs-toggle="tooltip">
-                                                            <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-key"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M16.555 3.843l3.602 3.602a2.877 2.877 0 0 1 0 4.069l-2.643 2.643a2.877 2.877 0 0 1 -4.069 0l-.301 -.301l-6.895 6.895a2 2 0 0 1 -1.414 .586h-2.17a1 1 0 0 1 -1 -1v-2.172a2 2 0 0 1 .586 -1.414l6.895 -6.895l-.301 -.301a2.877 2.877 0 0 1 0 -4.069l2.643 -2.643a2.877 2.877 0 0 1 4.069 0z" /><path d="M15 9h.01" /></svg>
-                                                        </button>
-                                                        <button
-                                                            onclick="deleteUser(<?php echo $usuario['id']; ?>, '<?php echo htmlspecialchars($usuario['username']); ?>')"
-                                                            class="btn btn-ghost-danger btn-icon"
-                                                            title="Eliminar" data-bs-toggle="tooltip">
-                                                            <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-trash"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 7l16 0" /><path d="M10 11l0 6" /><path d="M14 11l0 6" /><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12" /><path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3" /></svg>
-                                                        </button>
-                                                    <?php endif; ?>
+                                <button onclick="editUser(<?php echo htmlspecialchars(json_encode($usuario)); ?>)"
+                                    class="btn btn-ghost-secondary btn-icon" title="Editar" data-bs-toggle="tooltip" aria-label="Editar">
+                                    <i class="ti ti-edit"></i>
+                                </button>
+                                <?php if ($usuario['id'] != $_SESSION['user_id']): ?>
+                                     <button
+                                         onclick="resetPassword(<?php echo $usuario['id']; ?>, '<?php echo htmlspecialchars($usuario['username']); ?>')"
+                                         class="btn btn-ghost-warning btn-icon"
+                                         title="Restablecer contraseña" data-bs-toggle="tooltip" aria-label="Restablecer contraseña">
+                                         <i class="ti ti-key"></i>
+                                     </button>
+                                    <button
+                                        onclick="viewUserHistory(<?php echo $usuario['id']; ?>, '<?php echo htmlspecialchars($usuario['username']); ?>')"
+                                        class="btn btn-ghost-primary btn-icon"
+                                        title="Ver auditoría" data-bs-toggle="tooltip" aria-label="Ver auditoría">
+                                        <i class="ti ti-history"></i>
+                                    </button>
+                                     <button
+                                         onclick="deleteUser(<?php echo $usuario['id']; ?>, '<?php echo htmlspecialchars($usuario['username']); ?>')"
+                                        class="btn btn-ghost-danger btn-icon"
+                                        title="Eliminar" data-bs-toggle="tooltip" aria-label="Eliminar">
+                                        <i class="ti ti-trash"></i>
+                                    </button>
+                                <?php endif; ?>
                                                 </div>
                                             </td>
                                         </tr>
@@ -100,13 +108,27 @@ $usuarios = $userModel->getAll();
     </div>
 </div>
 
+<div id="modalUserHistory" class="modal fade" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalUserHistoryTitle"><i class="ti ti-history me-2 text-primary"></i>Auditoría de Usuario</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="userHistoryBody" class="text-secondary">Cargando...</div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Modal Crear/Editar Usuario (Bootstrap) -->
 <div id="modalUser" class="modal fade" tabindex="-1">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
                 <div>
-                    <h5 class="modal-title" id="modalUserTitle">Nuevo Usuario</h5>
+                    <h5 class="modal-title" id="modalUserTitle"><i class="ti ti-user-plus me-2 text-primary"></i>Nuevo Usuario</h5>
                     <div class="text-secondary">Complete los datos del usuario</div>
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -121,9 +143,10 @@ $usuarios = $userModel->getAll();
                     </div>
                     <div class="mb-3" id="passwordField">
                         <label class="form-label required">Contraseña</label>
-                        <input type="password" id="password" name="password" class="form-control" minlength="6"
-                            placeholder="Mínimo 6 caracteres">
-                        <div class="form-hint">Deje en blanco para mantener la contraseña actual (solo al editar)</div>
+                        <input type="password" id="password" name="password" class="form-control" minlength="8"
+                            pattern="(?=.*[A-Z])(?=.*\d).{8,}"
+                            placeholder="Mínimo 8 caracteres, una mayúscula y un número">
+                        <div class="form-hint">Debe tener al menos 8 caracteres, una mayúscula y un número. Deje en blanco para mantener la contraseña actual al editar.</div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label required">Nombre Completo</label>
@@ -139,8 +162,12 @@ $usuarios = $userModel->getAll();
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-primary ms-auto" onclick="saveUser(event)">Guardar</button>
+                <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">
+                    <i class="ti ti-x me-1"></i>Cancelar
+                </button>
+                <button type="button" class="btn btn-primary ms-auto" onclick="saveUser(event)">
+                    <i class="ti ti-device-floppy me-1"></i>Guardar
+                </button>
             </div>
         </div>
     </div>
@@ -148,6 +175,7 @@ $usuarios = $userModel->getAll();
 
 <script>
     const modalUser = new bootstrap.Modal(document.getElementById('modalUser'));
+    const modalUserHistory = new bootstrap.Modal(document.getElementById('modalUserHistory'));
 
     function openCreateUserModal() {
         document.getElementById('userId').value = '';
@@ -211,7 +239,7 @@ $usuarios = $userModel->getAll();
             }
         } catch (error) {
             hideLoading();
-            showMessage(error.message, 'error');
+            showMessage(error.message || 'No se pudo guardar el usuario', 'error');
         }
     }
 
@@ -230,7 +258,7 @@ $usuarios = $userModel->getAll();
                 setTimeout(() => location.reload(), 1000);
             }
         } catch (error) {
-            showMessage(error.message, 'error');
+            showMessage(error.message || 'No se pudo actualizar el estado del usuario', 'error');
             location.reload();
         }
     }
@@ -256,13 +284,13 @@ $usuarios = $userModel->getAll();
             }
         } catch (error) {
             hideLoading();
-            showMessage(error.message, 'error');
+            showMessage(error.message || 'No se pudo eliminar el usuario', 'error');
         }
     }
 
     // Restablecer contraseña
     async function resetPassword(userId, username) {
-        if (!confirm(`¿Restablecer la contraseña del usuario "${username}"?\n\nLa contraseña volverá a: admin123`)) {
+        if (!confirm(`¿Restablecer la contraseña del usuario "${username}"?\n\nLa contraseña volverá a: admin123. Esta es una credencial temporal y debe cambiarse después del ingreso.`)) {
             return;
         }
 
@@ -279,11 +307,53 @@ $usuarios = $userModel->getAll();
             hideLoading();
 
             if (response.success) {
-                showMessage(`Contraseña de "${username}" restablecida a: admin123`, 'success');
+                showMessage(`Contraseña de "${username}" restablecida a: admin123. Solicite cambio en el próximo ingreso.`, 'success');
             }
         } catch (error) {
             hideLoading();
-            showMessage(error.message, 'error');
+            showMessage(error.message || 'No se pudo restablecer la contraseña', 'error');
         }
+    }
+
+    async function viewUserHistory(userId, username) {
+        document.getElementById('modalUserHistoryTitle').innerHTML = '<i class="ti ti-history me-2 text-primary"></i>Auditoría de ' + username;
+        document.getElementById('userHistoryBody').innerHTML = '<div class="text-secondary">Cargando...</div>';
+        modalUserHistory.show();
+
+        try {
+            const response = await fetchAPI(`users.php?action=history&id=${userId}`);
+            const items = response.data || [];
+            if (items.length === 0) {
+                document.getElementById('userHistoryBody').innerHTML = '<div class="empty-state"><div class="empty-icon"><i class="ti ti-clock-off"></i></div><h3>Sin auditoría</h3><p>No hay cambios registrados para este usuario.</p></div>';
+                return;
+            }
+
+            document.getElementById('userHistoryBody').innerHTML = `
+                <div class="table-responsive">
+                    <table class="table table-vcenter">
+                        <thead><tr><th>Acción</th><th>Detalle</th><th>Fecha</th></tr></thead>
+                        <tbody>${items.map(item => `
+                            <tr>
+                                <td><span class="badge bg-blue text-blue-fg">${escapeHtml(item.accion)}</span></td>
+                                <td class="text-secondary">${escapeHtml(item.detalles || '')}</td>
+                                <td class="text-secondary">${formatDateTime(item.fecha_registro)}</td>
+                            </tr>
+                        `).join('')}</tbody>
+                    </table>
+                </div>`;
+        } catch (error) {
+            document.getElementById('userHistoryBody').innerHTML = '<div class="text-danger">No se pudo cargar la auditoría.</div>';
+        }
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text || '';
+        return div.innerHTML;
+    }
+
+    function formatDateTime(dateString) {
+        if (!dateString) return '-';
+        return new Date(dateString).toLocaleString('es-CL', { dateStyle: 'short', timeStyle: 'short' });
     }
 </script>

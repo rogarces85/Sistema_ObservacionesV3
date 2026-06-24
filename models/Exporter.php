@@ -17,7 +17,7 @@ class Exporter
     /**
      * Exportar datos a Excel (.xlsx)
      */
-    public function exportToExcel($data, $filename, $headers = [])
+    public function exportToExcel($data, $filename, $headers = [], $download = true)
     {
         require_once __DIR__ . '/../vendor/autoload.php';
 
@@ -73,6 +73,10 @@ class Exporter
 
         // Generar archivo
         $writer = new Xlsx($spreadsheet);
+        if (!$download) {
+            $writer->save($filename);
+            return true;
+        }
         header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         header('Content-Disposition: attachment; filename="' . $filename . '"');
         header('Cache-Control: max-age=0');
@@ -83,7 +87,7 @@ class Exporter
     /**
      * Exportar datos a PDF
      */
-    public function exportToPDF($data, $filename, $headers = [], $title = 'Reporte de Observaciones REM')
+    public function exportToPDF($data, $filename, $headers = [], $title = 'Reporte de Observaciones REM', $dest = 'D')
     {
         require_once __DIR__ . '/../vendor/autoload.php';
 
@@ -141,7 +145,8 @@ class Exporter
         $pdf->writeHTML($html, true, false, true, false, '');
 
         // Salida
-        $pdf->Output($filename, 'D');
+        $pdf->Output($filename, $dest);
+        if ($dest === 'F') return true;
         exit;
     }
 
@@ -232,7 +237,7 @@ class Exporter
     /**
      * Exportar reporte detallado jerárquico a PDF (comuna → establecimiento → mes)
      */
-    public function exportDetalladoPDF($data, $filename, $filters = [])
+    public function exportDetalladoPDF($data, $filename, $filters = [], $dest = 'D')
     {
         require_once __DIR__ . '/../vendor/autoload.php';
 
@@ -424,14 +429,15 @@ class Exporter
 
         $pdf->writeHTML($html, true, false, true, false, '');
 
-        $pdf->Output($filename, 'D');
+        $pdf->Output($filename, $dest);
+        if ($dest === 'F') return true;
         exit;
     }
 
     /**
      * Exportar reporte de errores a Excel
      */
-    public function exportErroresExcel($data, $filename, $reportType = 'general')
+    public function exportErroresExcel($data, $filename, $reportType = 'general', $download = true)
     {
         require_once __DIR__ . '/../vendor/autoload.php';
 
@@ -502,6 +508,10 @@ class Exporter
         }
 
         $writer = new Xlsx($spreadsheet);
+        if (!$download) {
+            $writer->save($filename);
+            return true;
+        }
         header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         header('Content-Disposition: attachment; filename="' . $filename . '"');
         header('Cache-Control: max-age=0');

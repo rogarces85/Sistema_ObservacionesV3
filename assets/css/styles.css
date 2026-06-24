@@ -1,9 +1,9 @@
 /**
  * Estilos del Sistema de Observaciones REM
- * DISCLAIMER: Archivo legacy en proceso de migración a Tabler.
- * Las vistas nuevas usan clases de Tabler/Bootstrap 5.
- * Se conservan estilos legacy para compatibilidad con contenido
- * generado dinámicamente por JavaScript.
+ * DEPRECATED: use assets/css/tabler-override.css and assets/css/tokens.css instead.
+ * This file is preserved temporarily for compatibility with dynamic JavaScript
+ * content (modals, report tabs, badges, gradients) and will be removed once the
+ * Tabler consolidation feature is approved. Do not extend this file from new views.
  */
 
 /* =========================================

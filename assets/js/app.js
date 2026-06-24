@@ -8,6 +8,34 @@ const API_BASE = window.location.pathname.split('/').slice(0, -1).join('/') + '/
 let currentYear = new Date().getFullYear();
 let currentUser = null;
 
+// === CountUp helper for [data-countup] elements ===
+function initCountUp(el) {
+    if (!el) return;
+    const target = parseFloat(el.getAttribute('data-countup')) || 0;
+    if (target === 0) {
+        el.textContent = '0';
+        return;
+    }
+    const duration = 900;
+    const start = performance.now();
+    function step(now) {
+        const progress = Math.min((now - start) / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        const value = Math.round(target * eased);
+        el.textContent = value.toLocaleString('es-CL');
+        if (progress < 1) {
+            requestAnimationFrame(step);
+        } else {
+            el.textContent = target.toLocaleString('es-CL');
+        }
+    }
+    requestAnimationFrame(step);
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('[data-countup]').forEach(initCountUp);
+});
+
 // Función auxiliar para hacer peticiones fetch
 async function fetchAPI(endpoint, options = {}) {
     try {
@@ -206,4 +234,76 @@ document.addEventListener('DOMContentLoaded', function () {
     tooltipTriggerList.map(function (el) {
         return new bootstrap.Tooltip(el);
     });
+    initNotifications();
 });
+
+async function initNotifications() {
+    const notifList = document.getElementById('notifList');
+    const notifDot = document.querySelector('.notif-dot');
+    const markRead = document.getElementById('markNotificationsRead');
+    if (!notifList || !notifDot) return;
+
+    async function loadNotifications() {
+        try {
+            const response = await fetchAPI('notifications.php?action=list');
+            const data = response.data || { unread: 0, items: [] };
+            notifDot.textContent = data.unread || 0;
+            notifDot.classList.toggle('d-none', !data.unread);
+
+            if (!data.items || data.items.length === 0) {
+                notifList.innerHTML = `
+                    <div class="notif-item">
+                        <i class="ti ti-info-circle"></i>
+                        <div>
+                            <div class="notif-title">Sin notificaciones nuevas</div>
+                            <div class="notif-time">Aquí aparecerán los avisos relevantes del sistema.</div>
+                        </div>
+                    </div>`;
+                return;
+            }
+
+            notifList.innerHTML = data.items.map(item => `
+                <a class="notif-item text-decoration-none ${item.leida == 0 ? 'fw-semibold' : ''}" href="${item.url || '#'}" data-notification-id="${item.id}">
+                    <i class="ti ${item.leida == 0 ? 'ti-bell-ringing' : 'ti-bell'}"></i>
+                    <div>
+                        <div class="notif-title">${escapeHtmlGlobal(item.titulo)}</div>
+                        <div class="notif-time">${escapeHtmlGlobal(item.mensaje)}</div>
+                    </div>
+                </a>
+            `).join('');
+        } catch (error) {
+            notifList.innerHTML = '<div class="notif-item text-danger">No se pudieron cargar las notificaciones.</div>';
+        }
+    }
+
+    notifList.addEventListener('click', async function (event) {
+        const item = event.target.closest('[data-notification-id]');
+        if (!item) return;
+        try {
+            await fetchAPI('notifications.php?action=read', {
+                method: 'POST',
+                body: JSON.stringify({ id: item.dataset.notificationId })
+            });
+        } catch (error) { /* no bloquear navegación */ }
+    });
+
+    if (markRead) {
+        markRead.addEventListener('click', async function (event) {
+            event.preventDefault();
+            try {
+                await fetchAPI('notifications.php?action=read_all', { method: 'POST', body: '{}' });
+                loadNotifications();
+            } catch (error) {
+                showError(error.message || 'No se pudieron marcar las notificaciones');
+            }
+        });
+    }
+
+    loadNotifications();
+}
+
+function escapeHtmlGlobal(text) {
+    const div = document.createElement('div');
+    div.textContent = text || '';
+    return div.innerHTML;
+}

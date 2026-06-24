@@ -15,6 +15,7 @@ $asigModel = new EstablecimientoAsignacion();
 $userId = $_SESSION['user_id'];
 $userRole = $_SESSION['rol'];
 $currentYear = $_SESSION['year'] ?? date('Y');
+$requestedAction = $_GET['action'] ?? '';
 
 // Obtener datos necesarios
 $observations = $obsModel->getAll($currentYear, $userId, $userRole);
@@ -36,40 +37,41 @@ if ($userRole === ROL_REGISTRADOR) {
 global $TIPOS_ERROR, $MESES;
 ?>
 
-<div class="d-flex flex-column gap-3">
+<div class="d-flex flex-column gap-3 rem-fade-in">
     <!-- Header -->
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+    <header class="page-header">
         <div>
-            <h2 class="mb-1 fw-bold text-primary">Listado de Observaciones</h2>
-            <p class="text-secondary mb-0">Gestiona y realiza seguimiento de tus registros REM</p>
+            <h1 class="page-title">
+                <i class="ti ti-file-text me-2 text-primary"></i>Listado de Observaciones
+            </h1>
+            <p class="page-subtitle">Gestiona y realiza seguimiento de tus registros REM</p>
         </div>
-        <div class="d-flex gap-2">
+        <div class="page-actions">
             <?php if ($userRole === ROL_REGISTRADOR): ?>
                 <?php if (!$tieneAsignaciones): ?>
                     <!-- Sin botones de acción si no tiene asignaciones -->
                 <?php else: ?>
                     <button onclick="openImportModal()" class="btn btn-outline-secondary">
-                        📥 Importar
+                        <i class="ti ti-upload me-1"></i>Importar
                     </button>
                     <button onclick="openCreateModal()" class="btn btn-primary">
-                        ➕ Nueva Observación
+                        <i class="ti ti-plus me-1"></i>Nueva Observación
                     </button>
                 <?php endif; ?>
             <?php endif; ?>
         </div>
-    </div>
+    </header>
 
     <?php if ($userRole === ROL_REGISTRADOR && !$tieneAsignaciones): ?>
-        <div class="p-6 rounded-xl bg-amber-50 border border-amber-200 text-center">
-            <div class="text-4xl mb-3">⚠️</div>
-            <p class="font-bold text-amber-800 text-lg">No tiene establecimientos asignados</p>
-            <p class="text-sm text-amber-700 mt-2">
-                No tiene establecimientos asignados para el año <strong><?php echo $currentYear; ?></strong>. 
-                No podrá registrar observaciones hasta que su supervisor le asigne establecimientos.
-            </p>
-            <p class="text-xs text-amber-600 mt-4">
-                Contacte a su supervisor para solicitar la asignación de establecimientos.
-            </p>
+        <div class="card" style="background: rgba(245, 158, 11, 0.10); border: 0;">
+            <div class="card-body empty-state">
+                <div class="empty-icon" style="background: rgba(245, 158, 11, 0.18); color: var(--tblr-warning);">
+                    <i class="ti ti-alert-triangle"></i>
+                </div>
+                <h3>No tiene establecimientos asignados</h3>
+                <p>No podrá registrar observaciones hasta que su supervisor le asigne establecimientos para el año <strong><?php echo $currentYear; ?></strong>.</p>
+                <p class="small">Contacte a su supervisor para solicitar la asignación.</p>
+            </div>
         </div>
     <?php endif; ?>
 
@@ -78,20 +80,26 @@ global $TIPOS_ERROR, $MESES;
         <div class="card-body">
             <div class="row g-3 align-items-end">
                 <div class="col-12 col-md-4">
-                    <input type="text" id="searchInput" placeholder="🔍 Buscar por establecimiento o detalle..."
-                        class="form-control" oninput="filterTable()">
+                    <label class="form-label" for="searchInput">Buscar</label>
+                    <div class="input-icon">
+                        <span class="input-icon-addon"><i class="ti ti-search"></i></span>
+                        <input type="text" id="searchInput" placeholder="Buscar por establecimiento o detalle..."
+                            class="form-control" oninput="filterTable()">
+                    </div>
                 </div>
                 <div class="col-6 col-md-3">
+                    <label class="form-label" for="filterEstado">Estado</label>
                     <select id="filterEstado" class="form-select" onchange="filterTable()">
                         <option value="">Todos los estados</option>
-                        <option value="pendiente">🟡 Pendiente</option>
-                        <option value="aprobado">🟢 Aprobado</option>
-                        <option value="rechazado">🔴 Rechazado</option>
-                        <option value="error">⚠️ Error</option>
-                        <option value="justificado">🔵 Justificado</option>
+                        <option value="pendiente">Pendiente</option>
+                        <option value="aprobado">Aprobado</option>
+                        <option value="rechazado">Rechazado</option>
+                        <option value="error">Error</option>
+                        <option value="justificado">Justificado</option>
                     </select>
                 </div>
                 <div class="col-6 col-md-3">
+                    <label class="form-label" for="filterMes">Mes</label>
                     <select id="filterMes" class="form-select" onchange="filterTable()">
                         <option value="">Todos los meses</option>
                         <?php foreach ($MESES as $mes): ?>
@@ -146,8 +154,13 @@ global $TIPOS_ERROR, $MESES;
                                 </span>
                             </td>
                             <td>
-                                <span class="badge bg-<?php echo $obs['estado_actual'] === 'pendiente' ? 'warning' : ($obs['estado_actual'] === 'aprobado' ? 'success' : ($obs['estado_actual'] === 'error' ? 'danger' : ($obs['estado_actual'] === 'justificado' ? 'info' : 'secondary'))); ?>">
-                                    <?php echo ucfirst($obs['estado_actual']); ?>
+                                <?php
+                                $estadoKey = $obs['estado_actual'];
+                                $estadoClass = 'badge-status-' . $estadoKey;
+                                ?>
+                                <span class="badge-status <?php echo $estadoClass; ?>">
+                                    <span class="status-dot"></span>
+                                    <?php echo ucfirst(htmlspecialchars($estadoKey)); ?>
                                 </span>
                             </td>
                             <td>
@@ -161,12 +174,11 @@ global $TIPOS_ERROR, $MESES;
                             <td class="text-end">
                                 <div class="dropdown">
                                     <button class="btn btn-ghost-secondary btn-icon dropdown-toggle" data-bs-toggle="dropdown" aria-label="Acciones">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/><circle cx="12" cy="5" r="1"/></svg>
+                                        <i class="ti ti-dots-vertical"></i>
                                     </button>
                                     <div class="dropdown-menu dropdown-menu-end">
                                         <a class="dropdown-item" href="#" onclick="viewObservation(<?php echo $obs['id']; ?>); return false;">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon me-2"><circle cx="12" cy="12" r="2"/><path d="M22 12c-2.667 4.667-6 7-10 7s-7.333-2.333-10-7c2.667-4.667 6-7 10-7s7.333 2.333 10 7z"/></svg>
-                                            Ver detalle
+                                            <i class="ti ti-eye me-2"></i>Ver detalle
                                         </a>
                                         <?php
                                         $canEdit = ($userRole === ROL_SUPERVISOR) ||
@@ -174,8 +186,13 @@ global $TIPOS_ERROR, $MESES;
                                         if ($canEdit):
                                             ?>
                                             <a class="dropdown-item" href="#" onclick="editObservation(<?php echo $obs['id']; ?>); return false;">
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon me-2"><path d="M15.232 5.232l3.536 3.536M9 11l-3 3v3h3l8.232-8.232a2.5 2.5 0 00-3.536-3.536L9 11z"/></svg>
-                                                Editar
+                                                <i class="ti ti-edit me-2"></i>Editar
+                                            </a>
+                                        <?php endif; ?>
+                                        <?php if ($userRole === ROL_SUPERVISOR): ?>
+                                            <div class="dropdown-divider"></div>
+                                            <a class="dropdown-item text-danger" href="#" onclick="deleteObservation(<?php echo $obs['id']; ?>); return false;">
+                                                <i class="ti ti-trash me-2"></i>Enviar a papelera
                                             </a>
                                         <?php endif; ?>
                                     </div>
@@ -185,9 +202,21 @@ global $TIPOS_ERROR, $MESES;
                     <?php endforeach; ?>
                     <?php if (empty($observations)): ?>
                         <tr>
-                            <td colspan="6" class="text-center text-secondary py-4">
-                                No se encontraron observaciones para el año
-                                <?php echo $currentYear; ?>
+                            <td colspan="6" class="empty-state">
+                                <div class="empty-icon"><i class="ti ti-mailbox"></i></div>
+                                <h3>Sin observaciones en <?php echo htmlspecialchars($currentYear); ?></h3>
+                                <p>
+                                    <?php if ($userRole === ROL_REGISTRADOR): ?>
+                                        Cuando registres una observación o importes un archivo, aparecerá aquí.
+                                    <?php else: ?>
+                                        Aún no se han registrado observaciones para el año seleccionado.
+                                    <?php endif; ?>
+                                </p>
+                                <?php if ($userRole === ROL_REGISTRADOR && $tieneAsignaciones): ?>
+                                    <a href="#" onclick="openCreateModal(); return false;" class="btn btn-primary">
+                                        <i class="ti ti-plus me-1"></i>Crear primera observación
+                                    </a>
+                                <?php endif; ?>
                             </td>
                         </tr>
                     <?php endif; ?>
@@ -203,7 +232,7 @@ global $TIPOS_ERROR, $MESES;
         <div class="modal-content">
             <div class="modal-header">
                 <div>
-                    <h5 class="modal-title" id="modalTitle">Nueva Observación</h5>
+                    <h5 class="modal-title" id="modalTitle"><i class="ti ti-file-plus me-2 text-primary"></i>Nueva Observación</h5>
                     <div class="text-secondary">Complete los datos de la observación</div>
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -218,7 +247,7 @@ global $TIPOS_ERROR, $MESES;
                             <h6 class="card-title">Información General</h6>
                         </div>
                         <div class="card-body">
-                            <div class="mb-3 p-3 bg-light rounded">
+                            <div class="mb-3 p-3 rounded rem-themed-surface">
                                 <label class="form-label mb-0">Registrado por:</label>
                                 <p class="fs-5 fw-bold mb-0"><?php echo htmlspecialchars($_SESSION['nombre_completo'] ?? 'Usuario'); ?></p>
                             </div>
@@ -251,7 +280,7 @@ global $TIPOS_ERROR, $MESES;
                                 <div class="col-md-6">
                                     <label class="form-label">Código Establecimiento</label>
                                     <input type="text" id="codigo_establecimiento" name="codigo_establecimiento"
-                                        class="form-control bg-light" readonly placeholder="Se cargará automáticamente">
+                                        class="form-control" readonly placeholder="Se cargará automáticamente">
                                 </div>
                             </div>
                         </div>
@@ -351,7 +380,7 @@ global $TIPOS_ERROR, $MESES;
         <div class="modal-content">
             <div class="modal-header">
                 <div>
-                    <h5 class="modal-title">Importar Observaciones</h5>
+                    <h5 class="modal-title"><i class="ti ti-upload me-2 text-primary"></i>Importar Observaciones</h5>
                     <div class="text-secondary">Carga masiva de observaciones desde archivo Excel (XLSX)</div>
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -360,15 +389,15 @@ global $TIPOS_ERROR, $MESES;
                 <!-- Stepper -->
                 <div class="steps steps-counter mb-4">
                     <div class="step-item active" id="stepperStep1">
-                        <span class="step">1</span>
+                        <span class="step"><i class="ti ti-file-upload"></i></span>
                         <span class="step-title">Archivo</span>
                     </div>
                     <div class="step-item" id="stepperStep2">
-                        <span class="step">2</span>
+                        <span class="step"><i class="ti ti-eye"></i></span>
                         <span class="step-title">Vista previa</span>
                     </div>
                     <div class="step-item" id="stepperStep3">
-                        <span class="step">3</span>
+                        <span class="step"><i class="ti ti-circle-check"></i></span>
                         <span class="step-title">Confirmar</span>
                     </div>
                 </div>
@@ -376,13 +405,13 @@ global $TIPOS_ERROR, $MESES;
                 <!-- Paso 1 -->
                 <div id="importStep1">
                     <div class="text-center p-6 border-2 border-dashed rounded mb-4">
-                        <p class="text-secondary mb-4">Seleccione un archivo Excel (.xlsx) o CSV con las observaciones</p>
-                        <input type="file" id="csvFile" accept=".xlsx,.xls,.csv" class="d-none" onchange="previewImport()">
+                        <p class="text-secondary mb-4">Seleccione un archivo Excel (.xlsx, .xls) con las observaciones</p>
+                        <input type="file" id="csvFile" accept=".xlsx,.xls" class="d-none" onchange="previewImport()">
                         <button onclick="document.getElementById('csvFile').click()" class="btn btn-primary">
-                            Seleccionar Archivo Excel
+                            <i class="ti ti-file-upload me-1"></i>Seleccionar Archivo Excel
                         </button>
                     </div>
-                    <div class="d-flex align-items-center justify-content-between p-4 bg-light rounded">
+                    <div class="d-flex align-items-center justify-content-between p-4 rounded rem-themed-surface">
                         <div>
                             <p class="fw-semibold">¿No tiene la plantilla?</p>
                             <p class="text-secondary small">Descargue la plantilla Excel (.xlsx) con ejemplos</p>
@@ -402,7 +431,7 @@ global $TIPOS_ERROR, $MESES;
                         </div>
                         <div class="row g-3 text-center" id="importSummary">
                             <div class="col-4">
-                                <div class="p-3 bg-light rounded">
+                                <div class="p-3 rounded rem-themed-surface">
                                     <div id="totalRows" class="h3 mb-0">0</div>
                                     <div class="text-secondary small">Total filas</div>
                                 </div>
@@ -473,14 +502,14 @@ global $TIPOS_ERROR, $MESES;
         <div class="modal-content">
             <div class="modal-header">
                 <div>
-                    <h5 class="modal-title">Detalle de Observación</h5>
+                    <h5 class="modal-title"><i class="ti ti-file-text me-2 text-primary"></i>Detalle de Observación</h5>
                     <div class="text-secondary">Resumen completo del registro</div>
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <!-- Header con estado -->
-                <div class="d-flex align-items-center justify-content-between mb-4 p-4 rounded bg-light">
+                <div class="d-flex align-items-center justify-content-between mb-4 p-4 rounded rem-themed-surface">
                     <div>
                         <h4 class="h5 mb-1" id="detailEstablecimiento">-</h4>
                         <p class="text-secondary mb-0" id="detailComuna">-</p>
@@ -491,72 +520,87 @@ global $TIPOS_ERROR, $MESES;
 
                 <div class="row g-3 mb-4">
                     <div class="col-md-6">
-                        <div class="p-3 rounded bg-primary-light">
+                        <div class="p-3 rounded rem-detail-tile">
                             <div class="small fw-bold text-primary mb-1">Mes / Año</div>
                             <div class="fw-semibold" id="detailMesAnio">-</div>
                         </div>
                     </div>
                     <div class="col-md-6">
-                        <div class="p-3 rounded bg-purple-light">
-                    <div class="text-xs text-violet-600 uppercase font-bold mb-1">📄 Referencia</div>
-                    <div id="detailReferencia" class="font-semibold text-slate-800">-</div>
+                        <div class="p-3 rounded rem-detail-tile rem-detail-tile--info">
+                            <div class="small fw-bold text-primary mb-1">Referencia</div>
+                            <div id="detailReferencia" class="fw-semibold">-</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="p-3 rounded rem-detail-tile rem-detail-tile--warning">
+                            <div class="small fw-bold text-warning mb-1">Tipo de Error</div>
+                            <div id="detailTipoError" class="fw-semibold">-</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="p-3 rounded rem-detail-tile rem-detail-tile--success">
+                            <div class="small fw-bold text-success mb-1">Plazo Entrega</div>
+                            <div id="detailPlazo" class="fw-semibold">-</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="p-3 rounded rem-detail-tile rem-detail-tile--info">
+                            <div class="small fw-bold text-info mb-1">Usa Validador</div>
+                            <div id="detailValidador" class="fw-semibold">-</div>
+                        </div>
+                    </div>
                 </div>
-                <div class="p-4 rounded-xl bg-amber-50">
-                    <div class="text-xs text-amber-600 uppercase font-bold mb-1">⚠️ Tipo de Error</div>
-                    <div id="detailTipoError" class="font-semibold text-slate-800">-</div>
-                </div>
-                <div class="p-4 rounded-xl bg-emerald-50">
-                    <div class="text-xs text-emerald-600 uppercase font-bold mb-1">📆 Plazo Entrega</div>
-                    <div id="detailPlazo" class="font-semibold text-slate-800">-</div>
-                </div>
-                <div class="p-4 rounded-xl bg-teal-50">
-                    <div class="text-xs text-teal-600 uppercase font-bold mb-1">✅ Usa Validador</div>
-                    <div id="detailValidador" class="font-semibold text-slate-800">-</div>
-                </div>
-            </div>
 
             <!-- Detalle de la observación -->
-            <div class="mb-6">
-                <div class="text-sm font-bold text-slate-700 mb-2">📝 Detalle de la Observación</div>
-                <div id="detailObservacion" class="p-4 bg-slate-100 rounded-xl text-sm text-slate-700 min-h-[80px]">-
+            <div class="mb-4">
+                <div class="small fw-bold text-secondary mb-2">Detalle de la Observación</div>
+                <div id="detailObservacion" class="p-4 rounded rem-themed-surface small" style="min-height: 80px;">-
                 </div>
             </div>
 
             <!-- Respuesta (si existe) -->
-            <div id="detailRespuestaSection" class="mb-6 hidden">
-                <div class="text-sm font-bold text-slate-700 mb-2">💬 Respuesta / Justificación</div>
-                <div id="detailRespuesta" class="p-4 bg-emerald-50 rounded-xl text-sm text-slate-700 min-h-[60px]">-
+            <div id="detailRespuestaSection" class="mb-4 hidden">
+                <div class="small fw-bold text-secondary mb-2">Respuesta / Justificación</div>
+                <div id="detailRespuesta" class="p-4 rounded rem-detail-tile rem-detail-tile--success small" style="min-height: 60px;">-
                 </div>
             </div>
 
             <!-- Clasificación y Detalle Error (solo visibles si el supervisor los completó) -->
-            <div id="detailClasificacionSection" class="mb-6 hidden">
-                <div class="text-sm font-bold text-slate-700 mb-2">📋 Clasificación de Respuesta</div>
-                <div id="detailClasificacion" class="p-4 bg-sky-50 rounded-xl text-sm text-slate-700">-</div>
+            <div id="detailClasificacionSection" class="mb-4 hidden">
+                <div class="small fw-bold text-secondary mb-2">Clasificación de Respuesta</div>
+                <div id="detailClasificacion" class="p-4 rounded rem-detail-tile rem-detail-tile--info small">-</div>
             </div>
-            <div id="detailDetalleErrorSection" class="mb-6 hidden">
-                <div class="text-sm font-bold text-slate-700 mb-2">🔍 Detalle Error</div>
-                <div id="detailDetalleError" class="p-4 bg-sky-50 rounded-xl text-sm text-slate-700">-</div>
+            <div id="detailDetalleErrorSection" class="mb-4 hidden">
+                <div class="small fw-bold text-secondary mb-2">Detalle Error</div>
+                <div id="detailDetalleError" class="p-4 rounded rem-detail-tile rem-detail-tile--info small">-</div>
+            </div>
+
+            <!-- Historial de estados -->
+            <div class="mb-4">
+                <div class="small fw-bold text-secondary mb-2">Historial de Estados</div>
+                <div id="detailHistorial" class="p-4 rounded rem-themed-surface small">
+                    <div class="text-secondary">Cargando historial...</div>
+                </div>
             </div>
 
             <!-- Info de registro -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-xl border border-slate-200">
-                <div>
-                    <div class="text-xs text-slate-400 uppercase">Registrado por</div>
-                    <div id="detailRegistradoPor" class="font-semibold text-slate-700">-</div>
-                    <div id="detailFechaRegistro" class="text-xs text-slate-400">-</div>
-                    <div id="detailFechaActualizacion" class="text-xs text-slate-400 mt-1">-</div>
+            <div class="row g-3 p-4 rounded rem-themed-surface">
+                <div class="col-md-6">
+                    <div class="small text-secondary text-uppercase">Registrado por</div>
+                    <div id="detailRegistradoPor" class="fw-semibold">-</div>
+                    <div id="detailFechaRegistro" class="small text-secondary">-</div>
+                    <div id="detailFechaActualizacion" class="small text-secondary mt-1">-</div>
                 </div>
-                <div id="detailSupervisorInfo" class="hidden">
-                    <div class="text-xs text-slate-400 uppercase">Supervisado por</div>
-                    <div id="detailSupervisadoPor" class="font-semibold text-slate-700">-</div>
-                    <div id="detailFechaSupervision" class="text-xs text-slate-400">-</div>
+                <div id="detailSupervisorInfo" class="col-md-6 hidden">
+                    <div class="small text-secondary text-uppercase">Supervisado por</div>
+                    <div id="detailSupervisadoPor" class="fw-semibold">-</div>
+                    <div id="detailFechaSupervision" class="small text-secondary">-</div>
                 </div>
             </div>
 
             <!-- Información adicional -->
-            <div class="mt-4 flex flex-wrap gap-2">
-                <span id="detailId" class="text-xs text-slate-400">ID: -</span>
+            <div class="mt-4 d-flex flex-wrap gap-2">
+                <span id="detailId" class="small text-secondary">ID: -</span>
             </div>
         </div>
     </div>
@@ -845,6 +889,7 @@ global $TIPOS_ERROR, $MESES;
 
     // Datos de hojas REM por serie (generado desde PHP)
     const hojasPorSerie = <?php echo json_encode($HOJAS_POR_SERIE); ?>;
+    const requestedAction = <?php echo json_encode($requestedAction); ?>;
 
     // ============================================================
     // Wrappers globales para compatibilidad con onclick en HTML
@@ -852,6 +897,28 @@ global $TIPOS_ERROR, $MESES;
     function openCreateModal() { observationForm.openCreate(); }
 
     function editObservation(id) { observationForm.edit(id); }
+
+    async function deleteObservation(id) {
+        const reason = prompt('Motivo para enviar esta observación a papelera:', 'Eliminado por supervisor desde observaciones');
+        if (reason === null) return;
+
+        try {
+            showLoading();
+            const response = await fetchAPI(`observations.php?id=${id}`, {
+                method: 'DELETE',
+                body: JSON.stringify({ reason: reason.trim() || 'Eliminado por supervisor desde observaciones' })
+            });
+            hideLoading();
+
+            if (response.success) {
+                showSuccess('Observación enviada a papelera correctamente');
+                setTimeout(() => location.reload(), 800);
+            }
+        } catch (error) {
+            hideLoading();
+            showError(error.message || 'Error al enviar la observación a papelera');
+        }
+    }
 
     // ============================================================
     // Filtros de tabla
@@ -884,8 +951,11 @@ global $TIPOS_ERROR, $MESES;
     }
 
     function resetImport() {
-        document.getElementById('importStep1').classList.remove('hidden');
-        document.getElementById('importStep2').classList.add('hidden');
+        document.getElementById('importStep1').classList.remove('d-none');
+        document.getElementById('importStep2').classList.add('d-none');
+        document.getElementById('importErrors').classList.add('d-none');
+        document.getElementById('importProgress').classList.add('d-none');
+        document.getElementById('importActions').classList.remove('d-none');
         document.getElementById('csvFile').value = '';
         importPreviewData = null;
         document.getElementById('stepperStep1').classList.add('active');
@@ -898,6 +968,13 @@ global $TIPOS_ERROR, $MESES;
         if (!fileInput.files || fileInput.files.length === 0) return;
 
         const file = fileInput.files[0];
+        const extension = file.name.split('.').pop().toLowerCase();
+        if (!['xlsx', 'xls'].includes(extension)) {
+            showError('Formato no válido. Seleccione un archivo Excel (.xlsx, .xls).');
+            fileInput.value = '';
+            return;
+        }
+
         const formData = new FormData();
         formData.append('csv_file', file);
         formData.append('preview', '1');
@@ -927,8 +1004,8 @@ global $TIPOS_ERROR, $MESES;
     }
 
     function showImportPreview(data) {
-        document.getElementById('importStep1').classList.add('hidden');
-        document.getElementById('importStep2').classList.remove('hidden');
+        document.getElementById('importStep1').classList.add('d-none');
+        document.getElementById('importStep2').classList.remove('d-none');
         document.getElementById('stepperStep2').classList.add('active');
         document.getElementById('stepperStep3').classList.add('active');
 
@@ -939,18 +1016,18 @@ global $TIPOS_ERROR, $MESES;
         const errorsDiv = document.getElementById('importErrors');
         const errorList = document.getElementById('errorList');
         if (data.errors.length > 0) {
-            errorsDiv.classList.remove('hidden');
+            errorsDiv.classList.remove('d-none');
             errorList.innerHTML = data.errors.map(e =>
                 `<li>Fila ${e.row}: ${e.message}</li>`
             ).join('');
         } else {
-            errorsDiv.classList.add('hidden');
+            errorsDiv.classList.add('d-none');
         }
 
         const previewBody = document.getElementById('previewBody');
         const previewItems = data.preview.slice(0, 5);
         previewBody.innerHTML = previewItems.map(item => `
-            <tr class="border-b border-slate-100">
+            <tr>
                 <td class="p-2">${item.mes}</td>
                 <td class="p-2">${item.establecimiento_nombre}</td>
                 <td class="p-2">${item.tipo_error}</td>
@@ -964,8 +1041,8 @@ global $TIPOS_ERROR, $MESES;
 
         if (data.preview.length > 5) {
             previewBody.innerHTML += `
-                <tr class="border-b border-slate-100">
-                    <td colspan="8" class="p-2 text-center text-slate-400">
+                <tr>
+                    <td colspan="8" class="p-2 text-center text-secondary">
                         ... y ${data.preview.length - 5} más
                     </td>
                 </tr>
@@ -1017,10 +1094,21 @@ global $TIPOS_ERROR, $MESES;
                 showError(data.message || 'Error al importar');
             }
         } catch (error) {
-            hideLoading();
+            document.getElementById('importProgress').classList.add('d-none');
+            document.getElementById('importActions').classList.remove('d-none');
             showError('Error al importar: ' + error.message);
         }
     }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        if (requestedAction === 'new') {
+            <?php if ($userRole === ROL_REGISTRADOR && $tieneAsignaciones): ?>
+                openCreateModal();
+            <?php elseif ($userRole === ROL_REGISTRADOR): ?>
+                showWarning('No tiene establecimientos asignados para crear observaciones en <?php echo htmlspecialchars($currentYear, ENT_QUOTES, 'UTF-8'); ?>.');
+            <?php endif; ?>
+        }
+    });
 
     // ============================================================
     // Ver detalle de observación
@@ -1062,24 +1150,24 @@ global $TIPOS_ERROR, $MESES;
                 const respuestaSection = document.getElementById('detailRespuestaSection');
                 if (obs.respuesta) {
                     document.getElementById('detailRespuesta').textContent = obs.respuesta;
-                    respuestaSection.classList.remove('hidden');
+                    respuestaSection.classList.remove('d-none');
                 } else {
-                    respuestaSection.classList.add('hidden');
+                    respuestaSection.classList.add('d-none');
                 }
 
                 const clasifSection = document.getElementById('detailClasificacionSection');
                 if (obs.clasificacion) {
                     document.getElementById('detailClasificacion').textContent = obs.clasificacion;
-                    clasifSection.classList.remove('hidden');
+                    clasifSection.classList.remove('d-none');
                 } else {
-                    clasifSection.classList.add('hidden');
+                    clasifSection.classList.add('d-none');
                 }
                 const detErrorSection = document.getElementById('detailDetalleErrorSection');
                 if (obs.detalle_error) {
                     document.getElementById('detailDetalleError').textContent = obs.detalle_error;
-                    detErrorSection.classList.remove('hidden');
+                    detErrorSection.classList.remove('d-none');
                 } else {
-                    detErrorSection.classList.add('hidden');
+                    detErrorSection.classList.add('d-none');
                 }
 
                 document.getElementById('detailRegistradoPor').textContent = obs.nombre_registro || '-';
@@ -1090,9 +1178,9 @@ global $TIPOS_ERROR, $MESES;
                 if (obs.nombre_supervisor) {
                     document.getElementById('detailSupervisadoPor').textContent = obs.nombre_supervisor;
                     document.getElementById('detailFechaSupervision').textContent = obs.fecha_supervision ? formatDate(obs.fecha_supervision) : '-';
-                    supervisorInfo.classList.remove('hidden');
+                    supervisorInfo.classList.remove('d-none');
                 } else {
-                    supervisorInfo.classList.add('hidden');
+                    supervisorInfo.classList.add('d-none');
                 }
 
                 const validadorEl = document.getElementById('detailValidador');
@@ -1106,6 +1194,8 @@ global $TIPOS_ERROR, $MESES;
 
                 document.getElementById('detailId').textContent = 'ID: ' + obs.id;
 
+                await loadObservationHistory(id);
+
                 modalDetails.show();
             }
 
@@ -1116,6 +1206,42 @@ global $TIPOS_ERROR, $MESES;
         }
     }
 
+    async function loadObservationHistory(id) {
+        const container = document.getElementById('detailHistorial');
+        if (!container) return;
+
+        container.innerHTML = '<div class="text-secondary">Cargando historial...</div>';
+
+        try {
+            const response = await fetchAPI('observations.php?action=historial&id=' + id);
+            const items = response.data || [];
+
+            if (items.length === 0) {
+                container.innerHTML = '<div class="text-secondary">Sin historial registrado.</div>';
+                return;
+            }
+
+            container.innerHTML = items.map(item => {
+                const from = item.estado_anterior ? escapeHtml(item.estado_anterior) : 'Inicial';
+                const to = item.estado_nuevo ? escapeHtml(item.estado_nuevo) : '-';
+                const user = escapeHtml(item.usuario_nombre || 'Usuario');
+                const comment = item.comentario ? `<div class="text-secondary mt-1">${escapeHtml(item.comentario)}</div>` : '';
+                return `
+                    <div class="d-flex gap-3 pb-3 mb-3 border-bottom">
+                        <span class="status status-blue mt-1" aria-hidden="true"></span>
+                        <div>
+                            <div class="fw-semibold">${from} -> ${to}</div>
+                            <div class="text-secondary">${user} · ${formatDateTime(item.fecha_cambio)}</div>
+                            ${comment}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        } catch (error) {
+            container.innerHTML = '<div class="text-danger">No se pudo cargar el historial.</div>';
+        }
+    }
+
     // ============================================================
     // Utilidades
     // ============================================================
@@ -1123,5 +1249,17 @@ global $TIPOS_ERROR, $MESES;
         if (!dateString) return '-';
         const date = new Date(dateString);
         return date.toLocaleDateString('es-CL');
+    }
+
+    function formatDateTime(dateString) {
+        if (!dateString) return '-';
+        const date = new Date(dateString);
+        return date.toLocaleString('es-CL', { dateStyle: 'short', timeStyle: 'short' });
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text || '';
+        return div.innerHTML;
     }
 </script>

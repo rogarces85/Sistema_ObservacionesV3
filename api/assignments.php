@@ -71,6 +71,15 @@ try {
                 }
                 $referentes = $asignacionModel->getReferentes($establecimientoId);
                 jsonResponse(true, $referentes);
+            } elseif ($action === 'temporales') {
+                $anio = $_GET['anio'] ?? $currentYear;
+                $temporales = $asignacionModel->getAsignacionesTemporalesActivas($anio);
+
+                foreach ($temporales as &$temp) {
+                    $temp['titular_anual'] = $asignacionModel->getTitularAnual($temp['establecimiento_id'], $anio);
+                }
+
+                jsonResponse(true, $temporales);
             } else {
                 jsonResponse(false, null, 'Acción no válida', 400);
             }

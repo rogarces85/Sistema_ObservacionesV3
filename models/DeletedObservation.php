@@ -5,6 +5,7 @@
  */
 
 require_once __DIR__ . '/Database.php';
+require_once __DIR__ . '/Notification.php';
 require_once __DIR__ . '/../config/constants.php';
 
 class DeletedObservation
@@ -73,6 +74,17 @@ class DeletedObservation
 
             // Eliminar la observación original
             $this->db->execute("DELETE FROM observaciones WHERE id = ?", [$observacionId]);
+
+            if ((int)$obs['usuario_registro_id'] !== (int)$supervisorId) {
+                $notifications = new Notification();
+                $notifications->create(
+                    $obs['usuario_registro_id'],
+                    'observacion_eliminada',
+                    'Observación enviada a papelera',
+                    'La observación #' . $observacionId . ' fue enviada a papelera por supervisión.',
+                    '?page=observaciones'
+                );
+            }
 
             return true;
         } catch (Exception $e) {

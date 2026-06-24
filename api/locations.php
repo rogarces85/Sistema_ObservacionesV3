@@ -41,6 +41,7 @@ try {
                 break;
 
             case 'establecimientos':
+            case 'get_establecimientos':
                 if ($comunaId) {
                     $data = $locationModel->getEstablecimientosByComuna($comunaId);
                 } elseif ($comunaNombre) {

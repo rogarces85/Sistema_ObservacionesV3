@@ -56,7 +56,10 @@ try {
             }
 
             // Determinar estado resultante según selección del supervisor
-            $estadoResultante = $data['estado_resultante'] ?? 'sin_observacion';
+            $estadoResultante = $data['estado_resultante'] ?? '';
+            if (!in_array($estadoResultante, ['sin_observacion', 'error'], true)) {
+                throw new Exception('Debe seleccionar si la aprobación queda como Sin Observación o Error');
+            }
             if ($estadoResultante === 'error') {
                 $nuevoEstado = ESTADO_ERROR;
                 $extraData['tipo_error'] = 'ERROR';
@@ -77,8 +80,12 @@ try {
                     throw new Exception('Error al aprobar la observación');
                 }
             } else {
-                // Operación masiva (solo comentario, no campos extra individuales)
-                $count = $obsModel->bulkUpdateStatus($ids, ESTADO_APROBADO, $_SESSION['user_id'], $comment);
+                $count = 0;
+                foreach ($ids as $obsId) {
+                    if ($obsModel->updateStatus($obsId, $nuevoEstado, $_SESSION['user_id'], $comment, $extraData)) {
+                        $count++;
+                    }
+                }
 
                 echo json_encode([
                     'success' => true,

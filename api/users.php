@@ -50,13 +50,20 @@ $userId = $_SESSION['user_id'];
 // Obtener método HTTP
 $method = $_SERVER['REQUEST_METHOD'];
 $id = $_GET['id'] ?? null;
+$action = $_GET['action'] ?? '';
 
 try {
     $userModel = new User();
 
     switch ($method) {
         case 'GET':
-            if ($id) {
+            if ($action === 'history' && $id) {
+                if ($userRole !== ROL_SUPERVISOR && (int)$userId !== (int)$id) {
+                    jsonResponse(false, null, 'Acceso denegado', 403);
+                }
+                $audit = new UserAudit();
+                jsonResponse(true, $audit->getHistory($id));
+            } elseif ($id) {
                 // Obtener un usuario específico
                 $user = $userModel->getById($id);
                 if ($user) {

@@ -2,8 +2,98 @@ if (typeof ChartDataLabels !== 'undefined') {
     Chart.register(ChartDataLabels);
 }
 
-Chart.defaults.font.family = "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
-Chart.defaults.color = '#64748b';
+/* === Token helpers === */
+function chartTokenColor(name, fallback) {
+    if (typeof getComputedStyle === 'undefined') return fallback;
+    const v = getComputedStyle(document.documentElement).getPropertyValue(name);
+    return (v && v.trim()) || fallback;
+}
+
+function chartBaseFont() {
+    return chartTokenColor('--tblr-font-family-base', "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif");
+}
+
+function applyChartDefaults() {
+    if (typeof Chart === 'undefined') return;
+    const theme = getChartTheme();
+    Chart.defaults.font.family = chartBaseFont();
+    Chart.defaults.color = theme.text;
+    Chart.defaults.borderColor = theme.border;
+}
+
+applyChartDefaults();
+
+const REM_CHARTS = new Map();
+
+function getChartTheme() {
+    return {
+        text: chartTokenColor('--tblr-body-color', '#1e293b'),
+        muted: chartTokenColor('--chart-tick', '#64748b'),
+        legend: chartTokenColor('--chart-legend', '#1e293b'),
+        border: chartTokenColor('--tblr-border-color', '#e2e8f0'),
+        grid: chartTokenColor('--chart-grid', 'rgba(226, 232, 240, 0.72)'),
+        tooltipBg: chartTokenColor('--chart-tooltip-bg', '#ffffff'),
+        tooltipText: chartTokenColor('--chart-tooltip-text', '#1e293b'),
+        tooltipMuted: chartTokenColor('--chart-tooltip-muted', '#475569'),
+        tooltipBorder: chartTokenColor('--chart-tooltip-border', '#e2e8f0'),
+        point: chartTokenColor('--chart-point', '#0ea5e9'),
+        pointBorder: chartTokenColor('--chart-point-border', '#ffffff')
+    };
+}
+
+function registerRemChart(chart, chartId) {
+    if (!chart) return chart;
+    const id = chartId || (chart.canvas && chart.canvas.id) || ('chart-' + REM_CHARTS.size);
+    REM_CHARTS.set(id, chart);
+    return chart;
+}
+
+function refreshChartTheme(chart) {
+    if (!chart || !chart.options) return;
+    const theme = getChartTheme();
+
+    if (chart.options.plugins) {
+        if (chart.options.plugins.legend && chart.options.plugins.legend.labels) {
+            chart.options.plugins.legend.labels.color = theme.legend;
+            chart.options.plugins.legend.labels.font = {
+                ...(chart.options.plugins.legend.labels.font || {}),
+                family: chartBaseFont()
+            };
+        }
+        if (chart.options.plugins.tooltip) {
+            chart.options.plugins.tooltip.backgroundColor = theme.tooltipBg;
+            chart.options.plugins.tooltip.titleColor = theme.tooltipText;
+            chart.options.plugins.tooltip.bodyColor = theme.tooltipMuted;
+            chart.options.plugins.tooltip.borderColor = theme.tooltipBorder;
+            chart.options.plugins.tooltip.titleFont = {
+                ...(chart.options.plugins.tooltip.titleFont || {}),
+                family: chartBaseFont()
+            };
+            chart.options.plugins.tooltip.bodyFont = {
+                ...(chart.options.plugins.tooltip.bodyFont || {}),
+                family: chartBaseFont()
+            };
+        }
+    }
+
+    Object.values(chart.options.scales || {}).forEach(function (scale) {
+        if (scale.grid && scale.grid.display !== false) scale.grid.color = theme.grid;
+        if (scale.ticks) scale.ticks.color = theme.muted;
+    });
+
+    chart.data.datasets.forEach(function (dataset) {
+        if (chart.config.type === 'doughnut') dataset.borderColor = theme.pointBorder;
+        if (Object.prototype.hasOwnProperty.call(dataset, 'pointBorderColor')) dataset.pointBorderColor = theme.pointBorder;
+    });
+    chart.update('none');
+}
+
+function refreshAllChartThemes() {
+    applyChartDefaults();
+    REM_CHARTS.forEach(refreshChartTheme);
+}
+
+window.addEventListener('rem:theme-changed', refreshAllChartThemes);
 
 const PALETTE_SISTEMA = {
     pendiente:  '#f59e0b',
@@ -36,66 +126,49 @@ function hexToRgba(hex, alpha) {
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-const TOOLTIP_BASE = {
-    enabled: true,
-    mode: 'index',
-    intersect: false,
-    backgroundColor: '#fff',
-    titleColor: '#1e293b',
-    bodyColor: '#475569',
-    borderColor: '#e2e8f0',
-    borderWidth: 1,
-    padding: 12,
-    cornerRadius: 12,
-    titleFont: { weight: '600', size: 13 },
-    bodyFont: { size: 12 },
-    displayColors: false
-};
+function tooltipBase(displayColors) {
+    const theme = getChartTheme();
+    return {
+        enabled: true,
+        mode: 'index',
+        intersect: false,
+        backgroundColor: theme.tooltipBg,
+        titleColor: theme.tooltipText,
+        bodyColor: theme.tooltipMuted,
+        borderColor: theme.tooltipBorder,
+        borderWidth: 1,
+        padding: 12,
+        cornerRadius: 12,
+        titleFont: { weight: '600', size: 13, family: chartBaseFont() },
+        bodyFont: { size: 12, family: chartBaseFont() },
+        displayColors: Boolean(displayColors)
+    };
+}
 
-const TOOLTIP_PCT = {
-    enabled: true,
-    mode: 'index',
-    intersect: false,
-    backgroundColor: '#fff',
-    titleColor: '#1e293b',
-    bodyColor: '#475569',
-    borderColor: '#e2e8f0',
-    borderWidth: 1,
-    padding: 12,
-    cornerRadius: 12,
-    titleFont: { weight: '600', size: 13 },
-    bodyFont: { size: 12 },
-    displayColors: true,
-    callbacks: {
-        label: function(ctx) {
-            const value = ctx.parsed || 0;
-            const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
-            const pct = total > 0 ? ((value / total) * 100).toFixed(0) : 0;
-            return ` ${value} observaciones (${pct}%)`;
+function tooltipPct() {
+    return {
+        ...tooltipBase(true),
+        callbacks: {
+            label: function(ctx) {
+                const value = ctx.parsed || 0;
+                const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                const pct = total > 0 ? ((value / total) * 100).toFixed(0) : 0;
+                return ` ${value} observaciones (${pct}%)`;
+            }
         }
-    }
-};
+    };
+}
 
-const TOOLTIP_VALOR = {
-    enabled: true,
-    mode: 'index',
-    intersect: false,
-    backgroundColor: '#fff',
-    titleColor: '#1e293b',
-    bodyColor: '#475569',
-    borderColor: '#e2e8f0',
-    borderWidth: 1,
-    padding: 12,
-    cornerRadius: 12,
-    titleFont: { weight: '600', size: 13 },
-    bodyFont: { size: 12 },
-    displayColors: false,
-    callbacks: {
-        label: function(ctx) {
-            return ` ${ctx.parsed.y} observaciones`;
+function tooltipValor() {
+    return {
+        ...tooltipBase(false),
+        callbacks: {
+            label: function(ctx) {
+                return ` ${ctx.parsed.y} observaciones`;
+            }
         }
-    }
-};
+    };
+}
 
 const datalabelsBar = {
     anchor: 'end',
@@ -164,35 +237,41 @@ function addExportButton(chart, chartId) {
     const style = document.createElement('style');
     style.id = id;
     style.textContent = `
-        .chart-export-btn { position: absolute; top: 8px; right: 8px; z-index: 10; width: 32px; height: 32px; border-radius: 8px; border: 1px solid #e2e8f0; background: rgba(255,255,255,0.85); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; transition: all 0.2s; opacity: 0.5; line-height: 1; }
-        .chart-export-btn:hover { opacity: 1; background: white; border-color: #94a3b8; box-shadow: 0 2px 4px rgba(0,0,0,0.08); }
+        .chart-export-btn { position: absolute; top: 8px; right: 8px; z-index: 10; width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--chart-tooltip-border); background: var(--chart-export-bg); color: var(--chart-tooltip-text); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; transition: all 0.2s; opacity: 0.5; line-height: 1; }
+        .chart-export-btn:hover { opacity: 1; background: var(--chart-export-bg-hover); border-color: var(--chart-tick); box-shadow: var(--tblr-shadow-sm); }
     `;
     document.head.appendChild(style);
 })();
 
-const SCALE_HORIZONTAL = {
-    x: {
-        beginAtZero: true,
-        grid: { display: true, drawBorder: false, color: 'rgba(226, 232, 240, 0.5)' },
-        ticks: { stepSize: 1, font: { size: 11 } }
-    },
-    y: {
-        grid: { display: false },
-        ticks: { font: { size: 12, weight: '600' } }
-    }
-};
+function scaleHorizontal() {
+    const theme = getChartTheme();
+    return {
+        x: {
+            beginAtZero: true,
+            grid: { display: true, drawBorder: false, color: theme.grid },
+            ticks: { stepSize: 1, font: { size: 11 }, color: theme.muted }
+        },
+        y: {
+            grid: { display: false },
+            ticks: { font: { size: 12, weight: '600' }, color: theme.text }
+        }
+    };
+}
 
-const SCALE_VERTICAL = {
-    y: {
-        beginAtZero: true,
-        grid: { drawBorder: false, color: 'rgba(226, 232, 240, 0.5)' },
-        ticks: { stepSize: 1, font: { size: 11 } }
-    },
-    x: {
-        grid: { display: false },
-        ticks: { font: { size: 11 } }
-    }
-};
+function scaleVertical() {
+    const theme = getChartTheme();
+    return {
+        y: {
+            beginAtZero: true,
+            grid: { drawBorder: false, color: theme.grid },
+            ticks: { stepSize: 1, font: { size: 11 }, color: theme.muted }
+        },
+        x: {
+            grid: { display: false },
+            ticks: { font: { size: 11 }, color: theme.muted }
+        }
+    };
+}
 
 // ============================================================
 // GRÁFICOS DEL DASHBOARD
@@ -201,10 +280,12 @@ const SCALE_VERTICAL = {
 function createEstadoChart(canvasId, data) {
     const ctx = document.getElementById(canvasId);
     if (!ctx) return null;
+    const theme = getChartTheme();
 
     const labels = data.map(item => item.estado_actual.charAt(0).toUpperCase() + item.estado_actual.slice(1));
     const values = data.map(item => parseInt(item.total));
     const colors = data.map(item => PALETTE_SISTEMA[item.estado_actual] || PALETTE_SISTEMA.secondary);
+    const baseFont = chartBaseFont();
 
     const chart = new Chart(ctx, {
         type: 'doughnut',
@@ -214,24 +295,31 @@ function createEstadoChart(canvasId, data) {
                 data: values,
                 backgroundColor: colors,
                 borderWidth: 2,
-                borderColor: '#fff'
+                borderColor: theme.pointBorder
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            cutout: '60%',
+            cutout: '62%',
             animation: { ...ANIM_CONFIG },
             plugins: {
                 legend: {
                     display: true,
                     position: 'bottom',
-                    labels: { boxWidth: 12, padding: 16, font: { size: 12 }, usePointStyle: true }
+                    labels: {
+                        boxWidth: 10,
+                        boxHeight: 10,
+                        padding: 14,
+                        font: { size: 12, family: baseFont },
+                        usePointStyle: true,
+                        color: theme.legend
+                    }
                 },
-                tooltip: { ...TOOLTIP_PCT },
+                tooltip: tooltipPct(),
                 datalabels: {
                     color: '#fff',
-                    font: { weight: '700', size: 11 },
+                    font: { weight: '700', size: 11, family: baseFont },
                     formatter: (v, ctx2) => {
                         const total = ctx2.dataset.data.reduce((a, b) => a + b, 0);
                         return total > 0 ? ((v / total) * 100).toFixed(0) + '%' : '';
@@ -250,7 +338,7 @@ function createEstadoChart(canvasId, data) {
     });
 
     addExportButton(chart, canvasId);
-    return chart;
+    return registerRemChart(chart, canvasId);
 }
 
 function createTipoErrorChart(canvasId, data) {
@@ -281,15 +369,15 @@ function createTipoErrorChart(canvasId, data) {
             animation: { ...ANIM_CONFIG },
             plugins: {
                 legend: { display: false },
-                tooltip: { ...TOOLTIP_VALOR },
+                tooltip: tooltipValor(),
                 datalabels: { ...datalabelsBar }
             },
-            scales: { ...SCALE_HORIZONTAL }
+            scales: scaleHorizontal()
         }
     });
 
     addExportButton(chart, canvasId);
-    return chart;
+    return registerRemChart(chart, canvasId);
 }
 
 function createTendenciaChart(canvasId, data) {
@@ -298,7 +386,8 @@ function createTendenciaChart(canvasId, data) {
 
     const labels = data.map(item => item.mes.substring(0, 3));
     const values = data.map(item => parseInt(item.total));
-    const color = PALETTE_TENDENCIA.end;
+    const color = chartTokenColor('--tblr-primary', '#0ea5e9');
+    const theme = getChartTheme();
 
     const chart = new Chart(ctx, {
         type: 'line',
@@ -321,7 +410,7 @@ function createTendenciaChart(canvasId, data) {
                 tension: 0.3,
                 pointRadius: 4,
                 pointBackgroundColor: color,
-                pointBorderColor: '#fff',
+                pointBorderColor: theme.pointBorder,
                 pointBorderWidth: 2
             }]
         },
@@ -331,15 +420,15 @@ function createTendenciaChart(canvasId, data) {
             animation: { ...ANIM_CONFIG, duration: 800 },
             plugins: {
                 legend: { display: false },
-                tooltip: { ...TOOLTIP_VALOR },
+                tooltip: tooltipValor(),
                 datalabels: { display: false }
             },
-            scales: { ...SCALE_VERTICAL }
+            scales: scaleVertical()
         }
     });
 
     addExportButton(chart, canvasId);
-    return chart;
+    return registerRemChart(chart, canvasId);
 }
 
 // ============================================================
@@ -369,15 +458,15 @@ function createBarHorizontal(canvasId, labels, values, color) {
             animation: { ...ANIM_CONFIG },
             plugins: {
                 legend: { display: false },
-                tooltip: { ...TOOLTIP_VALOR },
+                tooltip: tooltipValor(),
                 datalabels: { ...datalabelsBar }
             },
-            scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } } }
+            scales: scaleHorizontal()
         }
     });
 
     addExportButton(chart, canvasId);
-    return chart;
+    return registerRemChart(chart, canvasId);
 }
 
 function createBarVertical(canvasId, labels, values, color) {
@@ -402,18 +491,18 @@ function createBarVertical(canvasId, labels, values, color) {
             animation: { ...ANIM_CONFIG },
             plugins: {
                 legend: { display: false },
-                tooltip: { ...TOOLTIP_VALOR },
+                tooltip: tooltipValor(),
                 datalabels: { ...datalabelsBarVertical }
             },
             scales: {
-                y: { beginAtZero: true, ticks: { stepSize: 1 } },
-                x: { ticks: { maxRotation: 45, minRotation: 45 } }
+                y: { ...scaleVertical().y },
+                x: { ...scaleVertical().x, ticks: { ...scaleVertical().x.ticks, maxRotation: 45, minRotation: 45 } }
             }
         }
     });
 
     addExportButton(chart, canvasId);
-    return chart;
+    return registerRemChart(chart, canvasId);
 }
 
 // ============================================================
@@ -443,6 +532,7 @@ function initializeCharts(statsData) {
 function renderStackedBarChart(canvasId, labels, datasets) {
     const el = document.getElementById(canvasId);
     if (!el || !labels.length) return null;
+    const theme = getChartTheme();
 
     datasets = datasets.map(d => ({
         label: d.label,
@@ -461,9 +551,9 @@ function renderStackedBarChart(canvasId, labels, datasets) {
             maintainAspectRatio: false,
             animation: { ...ANIM_CONFIG },
             plugins: {
-                legend: { display: true, position: 'bottom', labels: { boxWidth: 12, padding: 16, font: { size: 12 } } },
+                legend: { display: true, position: 'bottom', labels: { boxWidth: 12, padding: 16, font: { size: 12, family: chartBaseFont() }, color: theme.legend } },
                 tooltip: {
-                    ...TOOLTIP_BASE,
+                    ...tooltipBase(false),
                     mode: 'point',
                     callbacks: {
                         title: () => '',
@@ -482,24 +572,26 @@ function renderStackedBarChart(canvasId, labels, datasets) {
                 x: {
                     stacked: true,
                     beginAtZero: true,
-                    ticks: { stepSize: 1, font: { size: 11 } },
-                    grid: { display: true, drawBorder: false, color: 'rgba(226, 232, 240, 0.5)' }
+                    ticks: { stepSize: 1, font: { size: 11 }, color: theme.muted },
+                    grid: { display: true, drawBorder: false, color: theme.grid }
                 },
                 y: {
                     stacked: true,
                     grid: { display: false },
-                    ticks: { font: { size: 12, weight: '600' } }
+                    ticks: { font: { size: 12, weight: '600' }, color: theme.text }
                 }
             }
         }
     });
 
     addExportButton(chart, canvasId);
-    return chart;
+    return registerRemChart(chart, canvasId);
 }
 
 window.PALETTE_SISTEMA = PALETTE_SISTEMA;
 window.PALETTE_ERRORES = PALETTE_ERRORES;
+window.REMCharts = REM_CHARTS;
+window.refreshAllChartThemes = refreshAllChartThemes;
 window.createEstadoChart = createEstadoChart;
 window.createTendenciaChart = createTendenciaChart;
 window.createTipoErrorChart = createTipoErrorChart;
