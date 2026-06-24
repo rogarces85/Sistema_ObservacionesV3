@@ -8,6 +8,7 @@ header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../config/constants.php';
 require_once __DIR__ . '/../models/EstablecimientoAsignacion.php';
+require_once __DIR__ . '/../includes/csrf.php';
 
 function jsonResponse($success, $data = null, $message = '', $statusCode = 200)
 {
@@ -18,6 +19,38 @@ function jsonResponse($success, $data = null, $message = '', $statusCode = 200)
         'message' => $message
     ], JSON_UNESCAPED_UNICODE);
     exit;
+}
+
+function normalizeAssignmentYear($year)
+{
+    $year = (int) $year;
+    if ($year < 2020 || $year > (int) date('Y') + 1) {
+        jsonResponse(false, null, 'Año fuera de rango permitido', 400);
+    }
+    return $year;
+}
+
+function normalizeMeses($meses)
+{
+    if ($meses === null || $meses === '' || $meses === 'ALL') {
+        return 'ALL';
+    }
+
+    $mesesArray = is_array($meses) ? $meses : explode(',', (string) $meses);
+    $mesesLimpios = array_values(array_unique(array_filter(array_map('intval', $mesesArray), function ($m) {
+        return $m >= 1 && $m <= 12;
+    })));
+    sort($mesesLimpios);
+
+    if (count($mesesLimpios) === 12) {
+        return 'ALL';
+    }
+
+    if (empty($mesesLimpios)) {
+        jsonResponse(false, null, 'Debe seleccionar al menos un mes válido', 400);
+    }
+
+    return implode(',', $mesesLimpios);
 }
 
 if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
@@ -86,34 +119,31 @@ try {
             break;
 
         case 'POST':
-            $input = json_decode(file_get_contents('php://input'), true);
+            CSRF::validateRequest();
+            $input = json_decode(file_get_contents('php://input'), true) ?: [];
             $action = $input['action'] ?? '';
-            $anio = $input['anio'] ?? $currentYear;
+            $anio = normalizeAssignmentYear($input['anio'] ?? $currentYear);
 
             if ($action === 'asignar') {
-                $usuarioId = $input['usuario_id'] ?? null;
-                $establecimientoId = $input['establecimiento_id'] ?? null;
-                $meses = $input['meses'] ?? 'ALL';
+                $usuarioId = (int) ($input['usuario_id'] ?? 0);
+                $establecimientoId = (int) ($input['establecimiento_id'] ?? 0);
                 $tipoAsignacion = $input['tipo_asignacion'] ?? 'anual';
 
-                if (!$usuarioId || !$establecimientoId) {
+                if ($usuarioId <= 0 || $establecimientoId <= 0) {
                     jsonResponse(false, null, 'Usuario y establecimiento son requeridos', 400);
                 }
 
-                // Validar tipo de asignación
-                if (!in_array($tipoAsignacion, ['anual', 'temporal'])) {
+                if (!in_array($tipoAsignacion, ['anual', 'temporal'], true)) {
                     jsonResponse(false, null, 'Tipo de asignación debe ser "anual" o "temporal"', 400);
                 }
 
-                // Si es temporal, los meses son obligatorios
-                if ($tipoAsignacion === 'temporal' && ($meses === 'ALL' || empty($meses))) {
-                    jsonResponse(false, null, 'Para asignación temporal debe especificar los meses', 400);
-                }
+                $mesesRaw = $tipoAsignacion === 'temporal' ? ($input['meses'] ?? '') : 'ALL';
+                $meses = normalizeMeses($mesesRaw);
 
                 $success = $asignacionModel->asignar($usuarioId, $establecimientoId, $anio, $meses, $tipoAsignacion);
                 if ($success) {
-                    $mensaje = $tipoAsignacion === 'temporal' 
-                        ? 'Reasignación temporal creada exitosamente' 
+                    $mensaje = $tipoAsignacion === 'temporal'
+                        ? 'Reasignación temporal creada exitosamente'
                         : 'Establecimiento asignado exitosamente';
                     jsonResponse(true, null, $mensaje);
                 } else {
@@ -123,76 +153,79 @@ try {
                     jsonResponse(false, null, $mensaje, 400);
                 }
             } elseif ($action === 'asignar_multiple') {
-                $usuarioId = $input['usuario_id'] ?? null;
+                $usuarioId = (int) ($input['usuario_id'] ?? 0);
                 $establecimientoIds = $input['establecimiento_ids'] ?? [];
-                $meses = $input['meses'] ?? 'ALL';
                 $tipoAsignacion = $input['tipo_asignacion'] ?? 'anual';
 
-                if (!$usuarioId || empty($establecimientoIds)) {
+                if ($usuarioId <= 0 || empty($establecimientoIds) || !is_array($establecimientoIds)) {
                     jsonResponse(false, null, 'Usuario y lista de establecimientos son requeridos', 400);
                 }
 
-                // Validar tipo de asignación
-                if (!in_array($tipoAsignacion, ['anual', 'temporal'])) {
+                $establecimientoIds = array_values(array_unique(array_filter(array_map('intval', $establecimientoIds), function ($id) {
+                    return $id > 0;
+                })));
+
+                if (empty($establecimientoIds)) {
+                    jsonResponse(false, null, 'Debe seleccionar al menos un establecimiento válido', 400);
+                }
+
+                if (!in_array($tipoAsignacion, ['anual', 'temporal'], true)) {
                     jsonResponse(false, null, 'Tipo de asignación debe ser "anual" o "temporal"', 400);
                 }
 
-                // Si es temporal, los meses son obligatorios
-                if ($tipoAsignacion === 'temporal' && ($meses === 'ALL' || empty($meses))) {
-                    jsonResponse(false, null, 'Para asignación temporal debe especificar los meses', 400);
-                }
+                $mesesRaw = $tipoAsignacion === 'temporal' ? ($input['meses'] ?? '') : 'ALL';
+                $meses = normalizeMeses($mesesRaw);
 
                 $success = $asignacionModel->asignarMultiple($usuarioId, $establecimientoIds, $anio, $meses, $tipoAsignacion);
                 if ($success) {
-                    $mensaje = $tipoAsignacion === 'temporal' 
-                        ? 'Reasignaciones temporales creadas exitosamente' 
+                    $mensaje = $tipoAsignacion === 'temporal'
+                        ? 'Reasignaciones temporales creadas exitosamente'
                         : 'Establecimientos asignados exitosamente';
                     jsonResponse(true, null, $mensaje);
                 } else {
                     jsonResponse(false, null, 'Error al asignar establecimientos', 500);
                 }
             } elseif ($action === 'remover') {
-                $usuarioId = $input['usuario_id'] ?? null;
-                $establecimientoId = $input['establecimiento_id'] ?? null;
-                $meses = $input['meses'] ?? 'ALL';
+                $usuarioId = (int) ($input['usuario_id'] ?? 0);
+                $establecimientoId = (int) ($input['establecimiento_id'] ?? 0);
                 $tipoAsignacion = $input['tipo_asignacion'] ?? 'anual';
 
-                if (!$usuarioId || !$establecimientoId) {
+                if ($usuarioId <= 0 || $establecimientoId <= 0) {
                     jsonResponse(false, null, 'Usuario y establecimiento son requeridos', 400);
                 }
 
-                // Validar tipo de asignación
-                if (!in_array($tipoAsignacion, ['anual', 'temporal'])) {
+                if (!in_array($tipoAsignacion, ['anual', 'temporal'], true)) {
                     jsonResponse(false, null, 'Tipo de asignación debe ser "anual" o "temporal"', 400);
                 }
 
+                $meses = normalizeMeses($input['meses'] ?? 'ALL');
+
                 $success = $asignacionModel->remover($usuarioId, $establecimientoId, $anio, $meses, $tipoAsignacion);
                 if ($success) {
-                    $mensaje = $tipoAsignacion === 'temporal' 
-                        ? 'Reasignación temporal removida exitosamente' 
+                    $mensaje = $tipoAsignacion === 'temporal'
+                        ? 'Reasignación temporal removida exitosamente'
                         : 'Asignación removida exitosamente';
                     jsonResponse(true, null, $mensaje);
                 } else {
                     jsonResponse(false, null, 'Error al remover asignación', 500);
                 }
             } elseif ($action === 'temporales') {
-                // Nuevo endpoint: listar asignaciones temporales activas
-                $anio = $_GET['anio'] ?? $currentYear;
-                $temporales = $asignacionModel->getAsignacionesTemporalesActivas($anio);
-                
-                // Agregar información del titular anual para cada temporal
+                $anioGet = normalizeAssignmentYear($_GET['anio'] ?? $currentYear);
+                $temporales = $asignacionModel->getAsignacionesTemporalesActivas($anioGet);
+
                 foreach ($temporales as &$temp) {
-                    $titular = $asignacionModel->getTitularAnual($temp['establecimiento_id'], $anio);
+                    $titular = $asignacionModel->getTitularAnual($temp['establecimiento_id'], $anioGet);
                     $temp['titular_anual'] = $titular;
                 }
-                
+                unset($temp);
+
                 jsonResponse(true, $temporales);
             } elseif ($action === 'copiar_anio') {
-                $anioOrigen = $input['anio_origen'] ?? null;
-                $anioDestino = $input['anio_destino'] ?? null;
+                $anioOrigen = normalizeAssignmentYear($input['anio_origen'] ?? 0);
+                $anioDestino = normalizeAssignmentYear($input['anio_destino'] ?? 0);
 
-                if (!$anioOrigen || !$anioDestino) {
-                    jsonResponse(false, null, 'Año origen y destino son requeridos', 400);
+                if ($anioOrigen === $anioDestino) {
+                    jsonResponse(false, null, 'El año origen y destino deben ser distintos', 400);
                 }
 
                 $success = $asignacionModel->copiarAsignaciones($anioOrigen, $anioDestino);

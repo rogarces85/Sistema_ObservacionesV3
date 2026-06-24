@@ -45,6 +45,10 @@ try {
         $isPreview = isset($_POST['preview']) && $_POST['preview'] == '1';
         $isConfirm = isset($_POST['confirm']) && $_POST['confirm'] == '1';
 
+        if ($isConfirm) {
+            CSRF::validateRequest();
+        }
+
         // Detectar tipo de archivo - SOLO EXCEL PERMITIDO
         $filename = $file['name'];
         $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));

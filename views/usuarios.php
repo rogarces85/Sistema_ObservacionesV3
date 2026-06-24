@@ -63,7 +63,7 @@ $usuarios = $userModel->getAll();
                                             <td>
                                                 <label class="form-check form-switch">
                                                     <input type="checkbox" class="form-check-input" <?php echo $usuario['activo'] ? 'checked' : ''; ?>
-                                                        onchange="toggleUserStatus(<?php echo $usuario['id']; ?>, this.checked)">
+                                                        onchange="toggleUserStatus(<?php echo $usuario['id']; ?>, this.checked, this)">
                                                     <span class="form-check-label"><?php echo $usuario['activo'] ? 'Activo' : 'Inactivo'; ?></span>
                                                 </label>
                                             </td>
@@ -165,7 +165,7 @@ $usuarios = $userModel->getAll();
                 <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">
                     <i class="ti ti-x me-1"></i>Cancelar
                 </button>
-                <button type="button" class="btn btn-primary ms-auto" onclick="saveUser(event)">
+                <button type="button" class="btn btn-primary ms-auto" id="btnSaveUser" onclick="saveUser(event)">
                     <i class="ti ti-device-floppy me-1"></i>Guardar
                 </button>
             </div>
@@ -180,6 +180,7 @@ $usuarios = $userModel->getAll();
     function openCreateUserModal() {
         document.getElementById('userId').value = '';
         document.getElementById('formUser').reset();
+        document.getElementById('formUser').classList.remove('was-validated');
         document.getElementById('modalUserTitle').textContent = 'Nuevo Usuario';
         document.getElementById('username').readOnly = false;
         document.getElementById('password').required = true;
@@ -192,6 +193,7 @@ $usuarios = $userModel->getAll();
         document.getElementById('username').readOnly = true;
         document.getElementById('password').value = '';
         document.getElementById('password').required = false;
+        document.getElementById('formUser').classList.remove('was-validated');
         document.getElementById('nombreCompleto').value = user.nombre_completo;
         document.getElementById('rol').value = user.rol;
         document.getElementById('modalUserTitle').textContent = 'Editar Usuario';
@@ -219,6 +221,7 @@ $usuarios = $userModel->getAll();
 
         try {
             showLoading();
+            setUserSaveLoading(true);
             let response;
             if (isEdit) {
                 response = await fetchAPI(`users.php?id=${userId}`, {
@@ -232,6 +235,7 @@ $usuarios = $userModel->getAll();
                 });
             }
             hideLoading();
+            setUserSaveLoading(false);
             if (response.success) {
                 showMessage(isEdit ? 'Usuario actualizado' : 'Usuario creado', 'success');
                 modalUser.hide();
@@ -239,12 +243,14 @@ $usuarios = $userModel->getAll();
             }
         } catch (error) {
             hideLoading();
+            setUserSaveLoading(false);
             showMessage(error.message || 'No se pudo guardar el usuario', 'error');
         }
     }
 
-    async function toggleUserStatus(userId, activate) {
+    async function toggleUserStatus(userId, activate, control = null) {
         try {
+            if (control) control.disabled = true;
             const response = await fetchAPI(`users.php?id=${userId}`, {
                 method: 'PUT',
                 body: JSON.stringify({
@@ -258,8 +264,11 @@ $usuarios = $userModel->getAll();
                 setTimeout(() => location.reload(), 1000);
             }
         } catch (error) {
+            if (control) {
+                control.checked = !activate;
+                control.disabled = false;
+            }
             showMessage(error.message || 'No se pudo actualizar el estado del usuario', 'error');
-            location.reload();
         }
     }
 
@@ -273,7 +282,8 @@ $usuarios = $userModel->getAll();
             showLoading();
 
             const response = await fetchAPI(`users.php?id=${userId}`, {
-                method: 'DELETE'
+                method: 'DELETE',
+                body: JSON.stringify({ confirm_delete: true })
             });
 
             hideLoading();
@@ -300,7 +310,8 @@ $usuarios = $userModel->getAll();
             const response = await fetchAPI(`users.php?id=${userId}`, {
                 method: 'PUT',
                 body: JSON.stringify({
-                    action: 'reset_password'
+                    action: 'reset_password',
+                    confirm_reset: true
                 })
             });
 
@@ -316,7 +327,7 @@ $usuarios = $userModel->getAll();
     }
 
     async function viewUserHistory(userId, username) {
-        document.getElementById('modalUserHistoryTitle').innerHTML = '<i class="ti ti-history me-2 text-primary"></i>Auditoría de ' + username;
+        document.getElementById('modalUserHistoryTitle').textContent = 'Auditoría de ' + username;
         document.getElementById('userHistoryBody').innerHTML = '<div class="text-secondary">Cargando...</div>';
         modalUserHistory.show();
 
@@ -355,5 +366,10 @@ $usuarios = $userModel->getAll();
     function formatDateTime(dateString) {
         if (!dateString) return '-';
         return new Date(dateString).toLocaleString('es-CL', { dateStyle: 'short', timeStyle: 'short' });
+    }
+
+    function setUserSaveLoading(isLoading) {
+        const button = document.getElementById('btnSaveUser');
+        if (button) button.disabled = isLoading;
     }
 </script>

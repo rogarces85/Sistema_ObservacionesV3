@@ -205,6 +205,7 @@ $registradores = $asignacionModel->getEstadisticasAsignaciones($anioSeleccionado
 
 <script>
     let registradorSeleccionadoId = null;
+    let registradorSeleccionadoNombre = '';
     let anioActual = <?php echo $anioSeleccionado; ?>;
     let establecimientosDisponibles = [];
     let establecimientosAsignados = [];
@@ -269,7 +270,8 @@ $registradores = $asignacionModel->getEstadisticasAsignaciones($anioSeleccionado
 
     async function seleccionarRegistrador(id, nombre) {
         registradorSeleccionadoId = id;
-        
+        registradorSeleccionadoNombre = nombre || '';
+
         document.querySelectorAll('.registrador-item').forEach(item => {
             item.classList.remove('bg-sky-50', 'border-l-4', 'border-sky-500');
         });
@@ -410,8 +412,17 @@ $registradores = $asignacionModel->getEstadisticasAsignaciones($anioSeleccionado
             return;
         }
 
-        const selectedItem = document.querySelector(`[data-registrador-id="${registradorSeleccionadoId}"]`);
-        const nombre = selectedItem.querySelector('.fw-semibold').textContent;
+        let nombre = registradorSeleccionadoNombre;
+        if (!nombre) {
+            const selectedItem = document.querySelector(`[data-registrador-id="${registradorSeleccionadoId}"]`);
+            if (selectedItem) {
+                const nameEl = selectedItem.querySelector('.fw-semibold') || selectedItem.querySelector('.font-semibold');
+                nombre = nameEl ? nameEl.textContent.trim() : 'Registrador';
+            } else {
+                nombre = 'Registrador';
+            }
+            registradorSeleccionadoNombre = nombre;
+        }
         document.getElementById('modalAsignarInfo').textContent = `Para: ${nombre} — Año ${anioActual}`;
         document.getElementById('anioPeriodoLabel').textContent = anioActual;
 
@@ -559,6 +570,9 @@ $registradores = $asignacionModel->getEstadisticasAsignaciones($anioSeleccionado
     }
 
     async function guardarAsignaciones() {
+        const saveButton = document.querySelector('#modalAsignar .modal-footer .btn-primary');
+        if (saveButton && saveButton.disabled) return;
+
         // Solo guardar los checkeados que NO estén deshabilitados (asignados a otros con ALL)
         const checkboxes = document.querySelectorAll('.establecimiento-checkbox:checked:not(:disabled)');
         const establecimientoIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
@@ -570,10 +584,10 @@ $registradores = $asignacionModel->getEstadisticasAsignaciones($anioSeleccionado
 
         // Obtener tipo de asignación
         const tipoAsignacion = document.querySelector('input[name="tipoAsignacion"]:checked').value;
-        
+
         // Obtener meses
         const meses = obtenerMesesSeleccionados();
-        
+
         // Validar que temporal tenga meses específicos
         if (tipoAsignacion === 'temporal' && (meses === 'ALL' || !meses)) {
             showMessage('Para asignación temporal debe seleccionar meses específicos', 'warning');
@@ -590,6 +604,7 @@ $registradores = $asignacionModel->getEstadisticasAsignaciones($anioSeleccionado
 
         try {
             showLoading();
+            if (saveButton) saveButton.disabled = true;
 
             const response = await fetchAPI('assignments.php', {
                 method: 'POST',
@@ -603,17 +618,19 @@ $registradores = $asignacionModel->getEstadisticasAsignaciones($anioSeleccionado
                 })
             });
 
-            hideLoading();
-
             if (response.success) {
                 showMessage(response.message, 'success');
                 cerrarModalAsignar();
                 await cargarEstablecimientosAsignados(registradorSeleccionadoId);
                 await cambiarAnio(anioActual);
+            } else {
+                showMessage(response.message || 'No se pudieron guardar las asignaciones', 'error');
             }
         } catch (error) {
-            hideLoading();
             showMessage(error.message, 'error');
+        } finally {
+            hideLoading();
+            if (saveButton) saveButton.disabled = false;
         }
     }
 
@@ -786,12 +803,22 @@ $registradores = $asignacionModel->getEstadisticasAsignaciones($anioSeleccionado
 
     function cerrarModalAsignar() {
         modalAsignar.hide();
-        document.getElementById('buscarEstablecimiento').value = '';
-        document.querySelector('input[name="periodoAsignacion"][value="ALL"]').checked = true;
+        const buscar = document.getElementById('buscarEstablecimiento');
+        if (buscar) buscar.value = '';
+        const radioAll = document.querySelector('input[name="periodoAsignacion"][value="ALL"]');
+        if (radioAll) {
+            radioAll.checked = true;
+            radioAll.disabled = false;
+            if (radioAll.parentElement) radioAll.parentElement.style.opacity = '1';
+        }
         document.querySelectorAll('.mes-checkbox').forEach(cb => cb.checked = false);
-        document.querySelector('input[name="tipoAsignacion"][value="anual"]').checked = true;
-        toggleTipoAsignacion();
-        toggleMesesAsignacion();
+        const radioTipo = document.querySelector('input[name="tipoAsignacion"][value="anual"]');
+        if (radioTipo) radioTipo.checked = true;
+        const mesesContainer = document.getElementById('mesesEspecificosContainer');
+        if (mesesContainer) mesesContainer.classList.add('d-none');
+        const lista = document.getElementById('listaEstablecimientosDisponibles');
+        if (lista) lista.innerHTML = '';
+        establecimientosDisponibles = [];
     }
 
     function escapeHtml(text) {

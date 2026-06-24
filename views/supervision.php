@@ -327,6 +327,7 @@ $comunas = $locationModel->getComunas();
         const observationsTable = document.getElementById('observationsTable');
         const emptyState = document.getElementById('emptyState');
 
+        resetSelection();
         loadingIndicator.classList.remove('d-none');
         observationsTable.classList.add('d-none');
         emptyState.classList.add('d-none');
@@ -342,7 +343,7 @@ $comunas = $locationModel->getComunas();
 
         try {
             const response = await fetch('api/supervision.php?action=get_filtered&' + new URLSearchParams(filters));
-            const data = await response.json();
+            const data = await parseJsonResponse(response);
 
             if (data.success) {
                 currentObservations = data.data;
@@ -370,10 +371,11 @@ $comunas = $locationModel->getComunas();
         tbody.innerHTML = '';
 
         observations.forEach(obs => {
+            const isPending = obs.estado_actual === '<?php echo ESTADO_PENDIENTE; ?>';
             const tr = document.createElement('tr');
             tr.innerHTML = `
             <td>
-                <input type="checkbox" class="form-check-input obs-checkbox" value="${obs.id}">
+                <input type="checkbox" class="form-check-input obs-checkbox" value="${obs.id}" ${isPending ? '' : 'disabled'} aria-label="Seleccionar observación #${obs.id}">
             </td>
             <td>#${obs.id}</td>
             <td>${formatDate(obs.fecha_registro)}</td>
@@ -421,6 +423,7 @@ $comunas = $locationModel->getComunas();
         document.querySelectorAll('.obs-checkbox').forEach(cb => {
             cb.addEventListener('change', updateSelectedIds);
         });
+        updateSelectedIds();
     }
 
     function updateSelectedIds() {
@@ -429,11 +432,16 @@ $comunas = $locationModel->getComunas();
         const btnCancel = document.getElementById('btnCancelSelected');
         const btnDelete = document.getElementById('btnDeleteSelected');
         const countDisplay = document.getElementById('selectedCount');
+        const selectAll = document.getElementById('selectAll');
+        const selectableCheckboxes = Array.from(document.querySelectorAll('.obs-checkbox:not(:disabled)'));
 
         const hasSelection = selectedIds.length > 0;
         btnApprove.disabled = !hasSelection;
         btnCancel.disabled = !hasSelection;
         btnDelete.disabled = !hasSelection;
+        selectAll.disabled = selectableCheckboxes.length === 0;
+        selectAll.checked = selectableCheckboxes.length > 0 && selectedIds.length === selectableCheckboxes.length;
+        selectAll.indeterminate = selectedIds.length > 0 && selectedIds.length < selectableCheckboxes.length;
 
         // Mostrar/ocultar contador de seleccionadas
         if (hasSelection) {
@@ -446,7 +454,7 @@ $comunas = $locationModel->getComunas();
 
     function toggleSelectAll() {
         const selectAll = document.getElementById('selectAll').checked;
-        document.querySelectorAll('.obs-checkbox').forEach(cb => {
+        document.querySelectorAll('.obs-checkbox:not(:disabled)').forEach(cb => {
             cb.checked = selectAll;
         });
         updateSelectedIds();
@@ -455,7 +463,7 @@ $comunas = $locationModel->getComunas();
     async function viewDetail(id) {
         try {
             const response = await fetch(`api/supervision.php?action=get_detail&id=${id}`);
-            const data = await response.json();
+            const data = await parseJsonResponse(response);
 
             if (data.success) {
                 showDetailModal(data.data, data.historial);
@@ -579,6 +587,7 @@ $comunas = $locationModel->getComunas();
     }
 
     function approveSelected() {
+        if (!ensureSelection()) return;
         performAction('approve', selectedIds, `¿Aprobar ${selectedIds.length} observaciones seleccionadas?`);
     }
 
@@ -587,6 +596,7 @@ $comunas = $locationModel->getComunas();
     }
 
     function cancelSelected() {
+        if (!ensureSelection()) return;
         performAction('cancel', selectedIds, `¿Cancelar ${selectedIds.length} observaciones seleccionadas?`, 'Cancelar Observaciones');
     }
 
@@ -595,14 +605,22 @@ $comunas = $locationModel->getComunas();
     }
 
     function deleteSelected() {
+        if (!ensureSelection()) return;
         performAction('delete', selectedIds, `¿Eliminar ${selectedIds.length} observaciones seleccionadas? Se moverán a la papelera de reciclaje.`, 'Eliminar Observaciones');
     }
 
     function performAction(action, ids, message, title = null) {
+        if (!ids || ids.length === 0) {
+            showWarning('Seleccione al menos una observación pendiente.');
+            return;
+        }
+
         currentAction = action;
         document.getElementById('confirmTitle').textContent = title || (ids.length > 1 ? 'Aprobar Observaciones' : 'Aprobar Observación');
         document.getElementById('confirmMessage').textContent = message;
         document.getElementById('confirmComment').value = '';
+        const confirmBtn = document.getElementById('confirmActionBtn');
+        confirmBtn.disabled = false;
 
         // Mostrar/ocultar campos de clasificación solo al aprobar
         const extraFields = document.getElementById('approveExtraFields');
@@ -628,14 +646,16 @@ $comunas = $locationModel->getComunas();
             if (action === 'approve') {
                 const selected = document.querySelector('input[name="estadoResultante"]:checked');
                 if (!selected) {
-                    alert('Debe seleccionar "Sin Observación" o "Error" como Clasificación de Respuesta');
+                    showWarning('Debe seleccionar "Sin Observación" o "Error" como clasificación de respuesta.');
                     return;
                 }
                 estadoResultante = selected.value;
             }
 
-            await executeAction(action, ids, comment, clasificacion, detalleError, estadoResultante);
-            closeConfirmModal();
+            confirmBtn.disabled = true;
+            const completed = await executeAction(action, ids, comment, clasificacion, detalleError, estadoResultante);
+            confirmBtn.disabled = false;
+            if (completed) closeConfirmModal();
         };
     }
 
@@ -671,7 +691,7 @@ $comunas = $locationModel->getComunas();
                 body: JSON.stringify(payload)
             });
 
-            const data = await response.json();
+            const data = await parseJsonResponse(response);
             progressEl.classList.add('d-none');
 
             if (data.success) {
@@ -682,14 +702,15 @@ $comunas = $locationModel->getComunas();
                 };
                 showSuccess(actionTexts[action] || data.message);
                 loadObservations();
-                selectedIds = [];
-                document.getElementById('selectAll').checked = false;
+                resetSelection();
+                return true;
             } else {
                 throw new Error(data.message);
             }
         } catch (error) {
             progressEl.classList.add('d-none');
             showError('Error: ' + error.message);
+            return false;
         }
     }
 
@@ -703,6 +724,7 @@ $comunas = $locationModel->getComunas();
         document.getElementById('filterMes').value = '';
         document.getElementById('filterComuna').value = '';
         document.getElementById('filterEstablecimiento').value = '';
+        document.getElementById('filterEstablecimiento').disabled = true;
         document.getElementById('filterRegistrador').value = '';
         document.getElementById('filterBusqueda').value = '';
         loadObservations();
@@ -718,7 +740,7 @@ $comunas = $locationModel->getComunas();
         if (comunaId) {
             try {
                 const response = await fetch(`api/locations.php?action=establecimientos&comuna_id=${comunaId}`);
-                const data = await response.json();
+                const data = await parseJsonResponse(response);
 
                 if (data.success) {
                     data.data.forEach(est => {
@@ -730,8 +752,53 @@ $comunas = $locationModel->getComunas();
                 }
             } catch (error) {
                 console.error('Error al cargar establecimientos:', error);
+                showError('Error al cargar establecimientos: ' + error.message);
             }
         }
+    }
+
+    function ensureSelection() {
+        if (selectedIds.length === 0) {
+            showWarning('Seleccione al menos una observación pendiente.');
+            return false;
+        }
+        return true;
+    }
+
+    function resetSelection() {
+        selectedIds = [];
+        document.querySelectorAll('.obs-checkbox').forEach(cb => cb.checked = false);
+        const selectAll = document.getElementById('selectAll');
+        if (selectAll) {
+            selectAll.checked = false;
+            selectAll.indeterminate = false;
+            selectAll.disabled = true;
+        }
+        const countDisplay = document.getElementById('selectedCount');
+        if (countDisplay) {
+            countDisplay.classList.add('d-none');
+            countDisplay.querySelector('.fw-semibold').textContent = '0';
+        }
+        ['btnApproveSelected', 'btnCancelSelected', 'btnDeleteSelected'].forEach(id => {
+            const button = document.getElementById(id);
+            if (button) button.disabled = true;
+        });
+    }
+
+    async function parseJsonResponse(response) {
+        const text = await response.text();
+        let data = {};
+        try {
+            data = text ? JSON.parse(text) : {};
+        } catch (error) {
+            throw new Error('Respuesta inválida del servidor');
+        }
+
+        if (!response.ok) {
+            throw new Error(data.message || 'Error en la petición');
+        }
+
+        return data;
     }
 
     // Utilidades

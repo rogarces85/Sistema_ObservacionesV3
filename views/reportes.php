@@ -304,20 +304,22 @@ async function loadEstablecimientos() {
     select.disabled = !comunaId;
 
     if (comunaId) {
-        try {
-            const response = await fetch(`api/locations.php?action=establecimientos&comuna_id=${comunaId}`);
-            const data = await response.json();
-            if (data.success) {
-                data.data.forEach(est => {
-                    const option = document.createElement('option');
-                    option.value = est.id;
-                    option.textContent = est.nombre_corto || est.nombre;
-                    select.appendChild(option);
-                });
-            }
-        } catch (error) {
-            showError('No se pudieron cargar los establecimientos de la comuna seleccionada');
+    try {
+        const response = await fetch(`api/locations.php?action=establecimientos&comuna_id=${comunaId}`);
+        const data = await parseJsonResponse(response);
+        if (data.success) {
+            data.data.forEach(est => {
+                const option = document.createElement('option');
+                option.value = est.id;
+                option.textContent = est.nombre_corto || est.nombre;
+                select.appendChild(option);
+            });
+        } else {
+            showError(data.message || 'No se pudieron cargar los establecimientos');
         }
+    } catch (error) {
+        showError(error.message || 'No se pudieron cargar los establecimientos de la comuna seleccionada');
+    }
     }
 }
 
@@ -348,7 +350,7 @@ async function loadErrorReports() {
 
     try {
         const resp = await fetch(url);
-        const json = await resp.json();
+        const json = await parseJsonResponse(resp);
         if (!json.success) { throw new Error(json.message || 'No se pudieron cargar los reportes'); }
 
         cachedData = json.data;
@@ -458,7 +460,7 @@ async function loadPlazoAgregado() {
     url = appendMeses(url, meses);
     try {
         const resp = await fetch(url);
-        const json = await resp.json();
+        const json = await parseJsonResponse(resp);
         if (!json.success) throw new Error(json.message || 'No se pudo cargar el reporte de plazos');
         renderPlazoChart(json.data);
         tabDataLoaded['tab-plazos'] = true;
@@ -509,7 +511,7 @@ async function loadValidadorAgregado() {
     url = appendMeses(url, meses);
     try {
         const resp = await fetch(url);
-        const json = await resp.json();
+        const json = await parseJsonResponse(resp);
         if (!json.success) throw new Error(json.message || 'No se pudo cargar el reporte de validador');
         renderValidadorChart(json.data);
         tabDataLoaded['tab-validador'] = true;
@@ -644,21 +646,29 @@ function getQueuePayload(format) {
 }
 
 async function enqueueReport(format) {
+    const button = format === 'pdf' ? document.getElementById('btnQueuePdf') : document.getElementById('btnQueueExcel');
+    if (button && button.disabled) return;
+
     try {
         showLoading();
+        if (button) button.disabled = true;
+
         const response = await fetchAPI('report_queue.php?action=enqueue', {
             method: 'POST',
             body: JSON.stringify(getQueuePayload(format))
         });
-        hideLoading();
 
-        if (response.success) {
+        if (response && response.success) {
             showSuccess('Reporte encolado correctamente. Ejecute el worker para procesarlo.');
             loadReportQueue();
+        } else {
+            showError((response && response.message) || 'No se pudo encolar el reporte');
         }
     } catch (error) {
-        hideLoading();
         showError(error.message || 'Error al encolar reporte');
+    } finally {
+        hideLoading();
+        if (button) button.disabled = false;
     }
 }
 
@@ -703,5 +713,19 @@ async function loadReportQueue() {
 function formatDateTime(dateString) {
     if (!dateString) return '-';
     return new Date(dateString).toLocaleString('es-CL', { dateStyle: 'short', timeStyle: 'short' });
+}
+
+async function parseJsonResponse(response) {
+    const text = await response.text();
+    let data = {};
+    try {
+        data = text ? JSON.parse(text) : {};
+    } catch (error) {
+        throw new Error('Respuesta inválida del servidor');
+    }
+    if (!response.ok) {
+        throw new Error(data.message || 'Error en la petición');
+    }
+    return data;
 }
 </script>

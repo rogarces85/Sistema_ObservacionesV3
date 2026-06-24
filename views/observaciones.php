@@ -559,18 +559,18 @@ global $TIPOS_ERROR, $MESES;
             </div>
 
             <!-- Respuesta (si existe) -->
-            <div id="detailRespuestaSection" class="mb-4 hidden">
+            <div id="detailRespuestaSection" class="mb-4 d-none">
                 <div class="small fw-bold text-secondary mb-2">Respuesta / Justificación</div>
                 <div id="detailRespuesta" class="p-4 rounded rem-detail-tile rem-detail-tile--success small" style="min-height: 60px;">-
                 </div>
             </div>
 
             <!-- Clasificación y Detalle Error (solo visibles si el supervisor los completó) -->
-            <div id="detailClasificacionSection" class="mb-4 hidden">
+            <div id="detailClasificacionSection" class="mb-4 d-none">
                 <div class="small fw-bold text-secondary mb-2">Clasificación de Respuesta</div>
                 <div id="detailClasificacion" class="p-4 rounded rem-detail-tile rem-detail-tile--info small">-</div>
             </div>
-            <div id="detailDetalleErrorSection" class="mb-4 hidden">
+            <div id="detailDetalleErrorSection" class="mb-4 d-none">
                 <div class="small fw-bold text-secondary mb-2">Detalle Error</div>
                 <div id="detailDetalleError" class="p-4 rounded rem-detail-tile rem-detail-tile--info small">-</div>
             </div>
@@ -591,7 +591,7 @@ global $TIPOS_ERROR, $MESES;
                     <div id="detailFechaRegistro" class="small text-secondary">-</div>
                     <div id="detailFechaActualizacion" class="small text-secondary mt-1">-</div>
                 </div>
-                <div id="detailSupervisorInfo" class="col-md-6 hidden">
+                <div id="detailSupervisorInfo" class="col-md-6 d-none">
                     <div class="small text-secondary text-uppercase">Supervisado por</div>
                     <div id="detailSupervisadoPor" class="fw-semibold">-</div>
                     <div id="detailFechaSupervision" class="small text-secondary">-</div>
@@ -956,6 +956,8 @@ global $TIPOS_ERROR, $MESES;
         document.getElementById('importErrors').classList.add('d-none');
         document.getElementById('importProgress').classList.add('d-none');
         document.getElementById('importActions').classList.remove('d-none');
+        document.getElementById('confirmImportBtn').disabled = false;
+        document.getElementById('confirmImportBtn').classList.remove('opacity-50');
         document.getElementById('csvFile').value = '';
         importPreviewData = null;
         document.getElementById('stepperStep1').classList.add('active');
@@ -988,7 +990,7 @@ global $TIPOS_ERROR, $MESES;
                 body: formData
             });
 
-            const data = await response.json();
+            const data = await parseJsonResponse(response);
             hideLoading();
 
             if (data.success) {
@@ -1028,14 +1030,14 @@ global $TIPOS_ERROR, $MESES;
         const previewItems = data.preview.slice(0, 5);
         previewBody.innerHTML = previewItems.map(item => `
             <tr>
-                <td class="p-2">${item.mes}</td>
-                <td class="p-2">${item.establecimiento_nombre}</td>
-                <td class="p-2">${item.tipo_error}</td>
-                <td class="p-2">${item.codigo_serie || '-'}</td>
-                <td class="p-2">${item.codigo_hoja || '-'}</td>
-                <td class="p-2">${item.plazo_entrega || '-'}</td>
-                <td class="p-2">${item.usa_validador || '-'}</td>
-                <td class="p-2">${item.detalle_observacion ? item.detalle_observacion.substring(0, 40) + (item.detalle_observacion.length > 40 ? '...' : '') : '-'}</td>
+                <td class="p-2">${escapeHtml(item.mes)}</td>
+                <td class="p-2">${escapeHtml(item.establecimiento_nombre)}</td>
+                <td class="p-2">${escapeHtml(item.tipo_error)}</td>
+                <td class="p-2">${escapeHtml(item.codigo_serie || '-')}</td>
+                <td class="p-2">${escapeHtml(item.codigo_hoja || '-')}</td>
+                <td class="p-2">${escapeHtml(item.plazo_entrega || '-')}</td>
+                <td class="p-2">${escapeHtml(item.usa_validador || '-')}</td>
+                <td class="p-2">${escapeHtml(item.detalle_observacion ? item.detalle_observacion.substring(0, 40) + (item.detalle_observacion.length > 40 ? '...' : '') : '-')}</td>
             </tr>
         `).join('');
 
@@ -1072,19 +1074,25 @@ global $TIPOS_ERROR, $MESES;
         formData.append('csv_file', file);
         formData.append('confirm', '1');
         formData.append('year', <?php echo $currentYear; ?>);
+        const confirmBtn = document.getElementById('confirmImportBtn');
 
         try {
             document.getElementById('importProgress').classList.remove('d-none');
             document.getElementById('importActions').classList.add('d-none');
+            confirmBtn.disabled = true;
 
             const response = await fetch('api/import.php', {
                 method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': getCsrfToken() || ''
+                },
                 body: formData
             });
 
-            const data = await response.json();
+            const data = await parseJsonResponse(response);
             document.getElementById('importProgress').classList.add('d-none');
             document.getElementById('importActions').classList.remove('d-none');
+            confirmBtn.disabled = false;
 
             if (data.success) {
                 showSuccess(`Se importaron ${data.imported} observaciones correctamente`);
@@ -1096,6 +1104,7 @@ global $TIPOS_ERROR, $MESES;
         } catch (error) {
             document.getElementById('importProgress').classList.add('d-none');
             document.getElementById('importActions').classList.remove('d-none');
+            confirmBtn.disabled = false;
             showError('Error al importar: ' + error.message);
         }
     }
@@ -1148,8 +1157,8 @@ global $TIPOS_ERROR, $MESES;
                 document.getElementById('detailObservacion').textContent = obs.detalle_observacion || 'Sin detalle registrado';
 
                 const respuestaSection = document.getElementById('detailRespuestaSection');
-                if (obs.respuesta) {
-                    document.getElementById('detailRespuesta').textContent = obs.respuesta;
+                if (obs.respuesta_establecimiento) {
+                    document.getElementById('detailRespuesta').textContent = obs.respuesta_establecimiento;
                     respuestaSection.classList.remove('d-none');
                 } else {
                     respuestaSection.classList.add('d-none');
@@ -1177,7 +1186,7 @@ global $TIPOS_ERROR, $MESES;
                 const supervisorInfo = document.getElementById('detailSupervisorInfo');
                 if (obs.nombre_supervisor) {
                     document.getElementById('detailSupervisadoPor').textContent = obs.nombre_supervisor;
-                    document.getElementById('detailFechaSupervision').textContent = obs.fecha_supervision ? formatDate(obs.fecha_supervision) : '-';
+                    document.getElementById('detailFechaSupervision').textContent = obs.fecha_revision ? formatDate(obs.fecha_revision) : '-';
                     supervisorInfo.classList.remove('d-none');
                 } else {
                     supervisorInfo.classList.add('d-none');
@@ -1261,5 +1270,21 @@ global $TIPOS_ERROR, $MESES;
         const div = document.createElement('div');
         div.textContent = text || '';
         return div.innerHTML;
+    }
+
+    async function parseJsonResponse(response) {
+        const text = await response.text();
+        let data = {};
+        try {
+            data = text ? JSON.parse(text) : {};
+        } catch (error) {
+            throw new Error('Respuesta inválida del servidor');
+        }
+
+        if (!response.ok) {
+            throw new Error(data.message || 'Error en la petición');
+        }
+
+        return data;
     }
 </script>
