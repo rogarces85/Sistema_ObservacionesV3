@@ -636,7 +636,14 @@ $registradores = $asignacionModel->getEstadisticasAsignaciones($anioSeleccionado
 
     async function removerAsignacion(establecimientoId, tipo = 'anual') {
         const tipoLabel = tipo === 'temporal' ? 'reasignación temporal' : 'asignación';
-        if (!confirm(`¿Remover esta ${tipoLabel} del registrador?`)) return;
+        const confirmed = await remConfirm({
+            title: 'Remover asignación',
+            message: `¿Remover esta ${tipoLabel} del registrador?`,
+            confirmText: 'Remover',
+            cancelText: 'Cancelar',
+            danger: true,
+        });
+        if (!confirmed) return;
 
         try {
             showLoading();
@@ -667,7 +674,13 @@ $registradores = $asignacionModel->getEstadisticasAsignaciones($anioSeleccionado
 
     async function copiarAnioAnterior() {
         const anioOrigen = anioActual - 1;
-        if (!confirm(`¿Copiar todas las asignaciones del año ${anioOrigen} al año ${anioActual}?`)) return;
+        const confirmed = await remConfirm({
+            title: 'Copiar año anterior',
+            message: `¿Copiar todas las asignaciones del año ${anioOrigen} al año ${anioActual}? Esta operacion no afecta asignaciones del año origen.`,
+            confirmText: 'Copiar',
+            cancelText: 'Cancelar',
+        });
+        if (!confirmed) return;
 
         try {
             showLoading();
@@ -770,7 +783,14 @@ $registradores = $asignacionModel->getEstadisticasAsignaciones($anioSeleccionado
     }
 
     async function removerReasignacionTemporal(asignacionId, establecimientoId, registradorId) {
-        if (!confirm('¿Remover esta reasignación temporal? El establecimiento volverá al titular anual.')) return;
+        const confirmed = await remConfirm({
+            title: 'Remover reasignación temporal',
+            message: '¿Remover esta reasignación temporal? El establecimiento volverá al titular anual.',
+            confirmText: 'Remover',
+            cancelText: 'Cancelar',
+            danger: true,
+        });
+        if (!confirmed) return;
 
         try {
             showLoading();

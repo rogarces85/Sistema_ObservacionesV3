@@ -87,7 +87,14 @@ async function createVersion() {
     const button = document.getElementById('btnCreateVersion');
     if (button && button.disabled) return;
 
-    const descripcion = prompt('Descripción del snapshot:');
+    const descripcion = await remPrompt({
+        title: 'Crear snapshot',
+        message: 'Ingrese una descripcion para identificar el snapshot.',
+        label: 'Descripcion del snapshot',
+        placeholder: 'Ej. Pre-deploy v2.1.0',
+        confirmText: 'Crear',
+        cancelText: 'Cancelar',
+    });
     if (!descripcion) return;
     try {
         showLoading();
@@ -113,9 +120,25 @@ async function createVersion() {
 }
 
 async function rollbackVersion(id, tag) {
-    const warning = '¿Ejecutar rollback a ' + tag + '?\n\nEsta acción modificará archivos del sistema y puede afectar a usuarios conectados. Úsela solo con respaldo verificado, ventana de mantenimiento y autorización explícita.\n\nEscriba ACEPTAR en la siguiente confirmación para continuar.';
-    if (!confirm(warning)) return;
-    if (prompt('Para confirmar rollback escriba ACEPTAR:') !== 'ACEPTAR') return;
+    const firstConfirm = await remConfirm({
+        title: 'Rollback a ' + tag,
+        message: 'Esta acción modificará archivos del sistema y puede afectar a usuarios conectados. Úsela solo con respaldo verificado, ventana de mantenimiento y autorización explícita.',
+        confirmText: 'Continuar',
+        cancelText: 'Cancelar',
+        danger: true,
+    });
+    if (!firstConfirm) return;
+
+    const typed = await remPrompt({
+        title: 'Confirmar rollback',
+        message: 'Escribe ACEPTAR para confirmar el rollback a ' + tag + '.',
+        label: 'Confirmación',
+        placeholder: 'Escribe ACEPTAR',
+        requireText: 'ACEPTAR',
+        confirmText: 'Ejecutar rollback',
+        cancelText: 'Cancelar',
+    });
+    if (typed !== 'ACEPTAR') return;
 
     const button = document.querySelector(`.js-rollback[data-version-id="${id}"]`);
     if (button && button.disabled) return;

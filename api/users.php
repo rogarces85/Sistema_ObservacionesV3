@@ -9,6 +9,7 @@ require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../models/User.php';
 require_once __DIR__ . '/../models/UserAudit.php';
 require_once __DIR__ . '/../includes/csrf.php';
+require_once __DIR__ . '/../includes/Mailer.php';
 
 // Función para responder en JSON
 function jsonResponse($success, $data = null, $message = '', $statusCode = 200)
@@ -221,14 +222,43 @@ try {
 
                 requireExplicitConfirmation($input, 'confirm_reset', 'Debe confirmar el restablecimiento de contraseña');
 
-                $defaultPassword = 'admin123';
-                $success = $userModel->updatePassword($id, $defaultPassword);
+                $targetUser = $userModel->getById($id);
+                if (!$targetUser) {
+                    jsonResponse(false, null, 'Usuario no encontrado', 404);
+                }
 
-                if ($success) {
-                    jsonResponse(true, null, 'Contraseña restablecida exitosamente');
-                } else {
+                $newPassword = Mailer::generateRandomPassword(12);
+                $success = $userModel->updatePassword($id, $newPassword);
+
+                if (!$success) {
                     jsonResponse(false, null, 'Error al restablecer contraseña', 500);
                 }
+
+                $mailer = new Mailer();
+                $emailSent = false;
+                if (!empty($targetUser['email']) && $mailer->isEnabled()) {
+                    $emailSent = $mailer->sendPasswordReset(
+                        $targetUser['email'],
+                        $targetUser['username'],
+                        $newPassword,
+                        $_SESSION['nombre_completo'] ?? 'Supervisor'
+                    );
+                }
+
+                $audit = new UserAudit();
+                $audit->logAction($id, 'RESET_PASSWORD', "Contraseña restablecida por supervisor ID: $userId; email_sent=" . ($emailSent ? '1' : '0'));
+
+                $response = [
+                    'username' => $targetUser['username'],
+                    'email_sent' => $emailSent,
+                ];
+
+                if (!$emailSent) {
+                    $response['temporary_password'] = $newPassword;
+                    $response['warning'] = 'SMTP no configurado o email no disponible. Comunique la contraseña al usuario por canal seguro y pidale cambio inmediato.';
+                }
+
+                jsonResponse(true, $response, 'Contraseña restablecida exitosamente');
             } elseif ($action === 'toggle') {
                 // Activar/Desactivar usuario (solo supervisores)
                 if ($userRole !== ROL_SUPERVISOR) {

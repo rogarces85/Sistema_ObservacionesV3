@@ -274,9 +274,14 @@ $usuarios = $userModel->getAll();
 
     // Eliminar usuario
     async function deleteUser(userId, username) {
-        if (!confirm(`¿Está seguro de eliminar al usuario "${username}"?\n\nEsta acción no se puede deshacer.`)) {
-            return;
-        }
+        const confirmed = await remConfirm({
+            title: 'Eliminar usuario',
+            message: `¿Está seguro de eliminar al usuario "${username}"? Esta acción no se puede deshacer.`,
+            confirmText: 'Eliminar definitivamente',
+            cancelText: 'Cancelar',
+            danger: true,
+        });
+        if (!confirmed) return;
 
         try {
             showLoading();
@@ -300,9 +305,14 @@ $usuarios = $userModel->getAll();
 
     // Restablecer contraseña
     async function resetPassword(userId, username) {
-        if (!confirm(`¿Restablecer la contraseña del usuario "${username}"?\n\nLa contraseña volverá a: admin123. Esta es una credencial temporal y debe cambiarse después del ingreso.`)) {
-            return;
-        }
+        const confirmed = await remConfirm({
+            title: 'Restablecer contraseña',
+            message: `Se generará una contraseña temporal aleatoria para "${username}". Si SMTP está configurado, se enviará por email; en caso contrario, se mostrará al supervisor para que la comunique por canal seguro.`,
+            confirmText: 'Restablecer y enviar/generar',
+            cancelText: 'Cancelar',
+            danger: true,
+        });
+        if (!confirmed) return;
 
         try {
             showLoading();
@@ -317,8 +327,19 @@ $usuarios = $userModel->getAll();
 
             hideLoading();
 
-            if (response.success) {
-                showMessage(`Contraseña de "${username}" restablecida a: admin123. Solicite cambio en el próximo ingreso.`, 'success');
+            if (response && response.success) {
+                const data = response.data || {};
+                if (data.email_sent) {
+                    showMessage(`Contraseña de "${username}" enviada por email. Solicite cambio en el próximo ingreso.`, 'success');
+                } else if (data.temporary_password) {
+                    await remAlert({
+                        title: 'Contraseña temporal generada',
+                        variant: 'warning',
+                        message: `<p>No se pudo enviar por email. Comunique esta contraseña al usuario <strong>${escapeHtml(username)}</strong> por canal seguro y pídale cambio inmediato.</p><p style="margin-top:12px; padding:12px; background:#fef3c7; border-radius:8px; font-family:monospace; font-size:16px; text-align:center;"><strong>${escapeHtml(data.temporary_password)}</strong></p>`,
+                    });
+                } else {
+                    showMessage(`Contraseña de "${username}" restablecida.`, 'success');
+                }
             }
         } catch (error) {
             hideLoading();

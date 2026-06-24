@@ -64,17 +64,49 @@ de cargar credenciales:
    - Editar host, user, password
    - En el VirtualHost de Apache agregar `SetEnv REM_ENV_FILE /etc/rem/env.php`
 
-2. **Variables de entorno del sistema** (alternativa):
+2. **Variables de entorno del sistema** (alternativa o complemento):
    - `REM_ENVIRONMENT` (production | development)
    - `REM_DB_USER`, `REM_DB_PASS`
    - `REM_PHP_ERROR_LOG`
    - `REM_COOKIE_SECURE` (0 | 1)
+
+3. **Archivo local para desarrollo** (no usar en produccion):
+   - `config/.env.local.php` (gitignored) se carga automaticamente
+     solo si no hay env file. Pensado para que el equipo local no
+     tenga que configurar nada.
 
 Comportamiento automatico en produccion:
 - `display_errors = 0`, `log_errors = 1`, `error_log` configurable.
 - `session.cookie_secure = 1`, `session.cookie_httponly = 1`,
   `session.cookie_samesite = Lax`, `session.use_strict_mode = 1`.
 - Credenciales de BD nunca quedan en el codigo del repo.
+- Si no hay env file ni env vars, devuelve error 500 con
+  instruccion clara (no cae en defaults inseguros).
+
+### SMTP para reset de contrasena
+
+`includes/Mailer.php` envia el password temporal al usuario cuando
+se restablece via `api/users.php?action=reset_password`. Si SMTP
+no esta configurado, la API devuelve el password al supervisor
+para comunicacion manual. Configurar en `/etc/rem/env.php`:
+
+```php
+return [
+    // ...
+    'smtp' => [
+        'host' => 'smtp.example.cl',
+        'port' => 587,
+        'user' => 'rem@example.cl',
+        'pass' => '...',
+        'from' => 'no-reply@rem.example.cl',
+        'from_name' => 'Sistema de Observaciones REM',
+        'secure' => 'tls',
+    ],
+];
+```
+
+O via env vars: `REM_SMTP_HOST`, `REM_SMTP_PORT`, `REM_SMTP_USER`,
+`REM_SMTP_PASS`, `REM_SMTP_FROM`, `REM_SMTP_FROM_NAME`, `REM_SMTP_SECURE`.
 
 ### Apache VirtualHost (`/etc/apache2/sites-available/rem.conf`)
 

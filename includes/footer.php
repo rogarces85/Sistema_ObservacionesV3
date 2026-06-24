@@ -39,6 +39,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
     <script src="assets/js/charts.js" defer></script>
     <script src="assets/js/theme.js" defer></script>
+    <script src="assets/js/confirm-modal.js"></script>
     <script src="assets/js/app.js" defer></script>
 </body>
 </html>

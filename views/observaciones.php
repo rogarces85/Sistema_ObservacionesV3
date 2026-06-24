@@ -899,7 +899,15 @@ global $TIPOS_ERROR, $MESES;
     function editObservation(id) { observationForm.edit(id); }
 
     async function deleteObservation(id) {
-        const reason = prompt('Motivo para enviar esta observación a papelera:', 'Eliminado por supervisor desde observaciones');
+        const reason = await remPrompt({
+            title: 'Enviar a papelera',
+            message: 'Indique el motivo para enviar esta observación a la papelera.',
+            label: 'Motivo',
+            placeholder: 'Eliminado por supervisor desde observaciones',
+            multiline: true,
+            confirmText: 'Enviar a papelera',
+            cancelText: 'Cancelar',
+        });
         if (reason === null) return;
 
         try {
