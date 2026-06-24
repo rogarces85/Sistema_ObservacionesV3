@@ -56,41 +56,25 @@ sudo chmod -R 770 /var/www/rem/uploads
 
 ### `config/config.php`
 
-Crear `/etc/rem/env.php` (fuera del web root) con:
+`config/config.php` ya viene endurecido en `main` y soporta dos formas
+de cargar credenciales:
 
-```php
-<?php
-return [
-    'host' => '10.8.152.199',
-    'port' => 3306,
-    'name' => 'observaciones_rem',
-    'user' => 'rem_app',
-    'pass' => 'CAMBIAR_EN_INSTALACION',
-    'charset' => 'utf8mb4'
-];
-```
+1. **Archivo env via `REM_ENV_FILE`** (recomendado en produccion):
+   - Copiar `config/config.production.example` a `/etc/rem/env.php`
+   - Editar host, user, password
+   - En el VirtualHost de Apache agregar `SetEnv REM_ENV_FILE /etc/rem/env.php`
 
-Y modificar `config/config.php`:
+2. **Variables de entorno del sistema** (alternativa):
+   - `REM_ENVIRONMENT` (production | development)
+   - `REM_DB_USER`, `REM_DB_PASS`
+   - `REM_PHP_ERROR_LOG`
+   - `REM_COOKIE_SECURE` (0 | 1)
 
-```php
-define('ENVIRONMENT', 'production');
-
-$dbConfig = [
-    'production' => require '/etc/rem/env.php',
-    'development' => [
-        // datos locales
-    ]
-];
-
-// Sesion endurecida
-ini_set('display_errors', 0);
-ini_set('log_errors', 1);
-ini_set('error_log', '/var/log/rem/php-error.log');
-ini_set('session.cookie_secure', 1);
-ini_set('session.cookie_httponly', 1);
-ini_set('session.cookie_samesite', 'Lax');
-ini_set('session.use_strict_mode', 1);
-```
+Comportamiento automatico en produccion:
+- `display_errors = 0`, `log_errors = 1`, `error_log` configurable.
+- `session.cookie_secure = 1`, `session.cookie_httponly = 1`,
+  `session.cookie_samesite = Lax`, `session.use_strict_mode = 1`.
+- Credenciales de BD nunca quedan en el codigo del repo.
 
 ### Apache VirtualHost (`/etc/apache2/sites-available/rem.conf`)
 

@@ -1,0 +1,24 @@
+<?php
+/**
+ * Ejemplo de archivo de configuracion para produccion.
+ *
+ * En el servidor real, copiar este archivo a una ruta fuera del web root,
+ * por ejemplo /etc/rem/env.php, y editar las credenciales.
+ *
+ * Permisos recomendados:
+ *   chown root:www-data /etc/rem/env.php
+ *   chmod 640 /etc/rem/env.php
+ *
+ * Configurar la variable de entorno REM_ENV_FILE apuntando a este archivo,
+ * por ejemplo en el VirtualHost de Apache:
+ *   SetEnv REM_ENV_FILE /etc/rem/env.php
+ */
+
+return [
+    'host'    => '10.8.152.199',
+    'port'    => 3306,
+    'name'    => 'observaciones_rem',
+    'user'    => 'rem_app',
+    'pass'    => 'CAMBIAR_POR_PASSWORD_SEGURA_DESPUES_DE_INSTALAR',
+    'charset' => 'utf8mb4',
+];

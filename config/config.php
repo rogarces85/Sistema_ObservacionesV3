@@ -1,31 +1,55 @@
 <?php
 /**
- * Configuración de Base de Datos
- * Sistema de Observaciones REM - Servicio de Salud Osorno
+ * Configuracion del Sistema de Observaciones REM
+ *
+ * En produccion se recomienda cargar credenciales desde un archivo
+ * fuera del web root. Definir REM_ENV_FILE apuntando a un PHP que
+ * retorne el array de configuracion (ver config/config.production.example).
+ *
+ * Orden de resolucion:
+ *   1. REM_ENV_FILE (si existe y retorna array)
+ *   2. Variables de entorno del sistema (REM_DB_HOST, etc.)
+ *   3. Valores por defecto del archivo (solo development)
  */
 
-define('ENVIRONMENT', 'production'); // 'production' o 'development'
+define('ENVIRONMENT', getenv('REM_ENVIRONMENT') ?: 'production');
+define('APP_VERSION', '2.1.0');
 
-$dbConfig = [
-    'production' => [
-        'host' => '10.8.152.199',
-        'port' => '3306',
-        'name' => 'observaciones_rem',
-        'user' => 'root',
-        'pass' => 'estadi2021',
-        'charset' => 'utf8mb4'
-    ],
-    'development' => [
-        'host' => 'localhost',
-        'port' => '3306',
-        'name' => 'observaciones_rem',
-        'user' => 'root',
-        'pass' => '',
-        'charset' => 'utf8mb4'
-    ]
-];
+/**
+ * Cargar configuracion de BD.
+ */
+function rem_load_db_config() {
+    $envFile = getenv('REM_ENV_FILE');
+    if ($envFile && is_file($envFile)) {
+        $loaded = require $envFile;
+        if (is_array($loaded)) {
+            return $loaded;
+        }
+    }
 
-$config = $dbConfig[ENVIRONMENT];
+    $fallback = [
+        'production' => [
+            'host'    => '10.8.152.199',
+            'port'    => 3306,
+            'name'    => 'observaciones_rem',
+            'user'    => getenv('REM_DB_USER') ?: 'root',
+            'pass'    => getenv('REM_DB_PASS') ?: 'estadi2021',
+            'charset' => 'utf8mb4'
+        ],
+        'development' => [
+            'host'    => 'localhost',
+            'port'    => 3306,
+            'name'    => 'observaciones_rem',
+            'user'    => 'root',
+            'pass'    => '',
+            'charset' => 'utf8mb4'
+        ]
+    ];
+
+    return $fallback[ENVIRONMENT] ?? $fallback['development'];
+}
+
+$config = rem_load_db_config();
 
 define('DB_HOST', $config['host']);
 define('DB_PORT', $config['port']);
@@ -39,21 +63,40 @@ define('BASE_PATH', dirname(__DIR__));
 define('UPLOAD_PATH', BASE_PATH . '/uploads');
 define('ASSETS_PATH', BASE_PATH . '/assets');
 
-// Configuración de la aplicación
+// Configuracion de la aplicacion
 define('APP_NAME', 'Sistema de Observaciones REM');
-define('APP_VERSION', '2.0.0');
-define('SESSION_NAME', 'rem_session');
 
 // Zona horaria
 date_default_timezone_set('America/Santiago');
 
-// Configuración de sesión
+// Errores segun entorno
+if (ENVIRONMENT === 'production') {
+    ini_set('display_errors', 0);
+    ini_set('display_startup_errors', 0);
+    ini_set('log_errors', 1);
+    ini_set('error_log', getenv('REM_PHP_ERROR_LOG') ?: '/var/log/rem/php-error.log');
+} else {
+    ini_set('display_errors', 1);
+    ini_set('display_startup_errors', 1);
+    ini_set('log_errors', 1);
+}
+
+// Configuracion de sesion
 ini_set('session.cookie_httponly', 1);
 ini_set('session.use_only_cookies', 1);
-ini_set('session.cookie_secure', 0); // Cambiar a 1 si se usa HTTPS
+ini_set('session.use_strict_mode', 1);
+ini_set('session.cookie_samesite', 'Lax');
 
-// Iniciar sesión si no está iniciada
+// cookie_secure: 1 por defecto en produccion con HTTPS, override por env
+$cookieSecure = getenv('REM_COOKIE_SECURE');
+if ($cookieSecure === '0') {
+    ini_set('session.cookie_secure', 0);
+} else {
+    ini_set('session.cookie_secure', ENVIRONMENT === 'production' ? 1 : 0);
+}
+
+// Iniciar sesion si no esta iniciada
 if (session_status() === PHP_SESSION_NONE) {
-    session_name(SESSION_NAME);
+    session_name('rem_session');
     session_start();
 }
