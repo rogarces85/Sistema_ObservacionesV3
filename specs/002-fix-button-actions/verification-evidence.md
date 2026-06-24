@@ -151,3 +151,45 @@ The application is currently configured with `ENVIRONMENT=production`, which poi
 | Follow-up | Perfil | supervisor | Change password submit | Submit should not allow double submit and should show error feedback | Cambiar Contraseña button is disabled during request, response.success validated, error path now shows `showError`, success resets the form | No | Pass |
 | Follow-up | Versionado | supervisor | Snapshot and rollback submit | Snapshot creation and rollback should not allow double submit; rollback needs strict ACEPTAR confirmation | Crear snapshot and rollback buttons disabled during requests; rollback requires `confirm` and typed `ACEPTAR`; rollback uses data attributes for stable selector; explicit error feedback | No | Pass |
 | Follow-up | Perfil/Versionado | supervisor | Safe HTTP smoke | Page and list should load without mutation | `php -l views/perfil.php`, `php -l views/versionado.php` and `php -l api/versioning.php` passed; authenticated supervisor loaded `?page=perfil&year=2026`, `?page=versionado&year=2026`, and `api/versioning.php?action=list` successfully | No | Pass |
+
+## Controlled Mutation Evidence (with user approval)
+
+The user authorized controlled mutations against the production database
+(without permanent deletions). All tests were executed with the
+`X-CSRF-TOKEN` header and reverted to the original state where possible.
+
+| Test | Endpoint | Result | Notes |
+|---|---|---|---|
+| Approve observation 507 (pendiente) | `api/supervision.php?action=approve` | OK | 507 transitioned `pendiente` -> `aprobado` (sin_observacion) |
+| Approve already-aprobada 415 | `api/supervision.php?action=approve` | Rejected | "Solo se pueden gestionar observaciones pendientes" |
+| Approve without CSRF token | `api/supervision.php?action=approve` | Rejected | "Token CSRF invalido o expirado" |
+| Cancel observation 506 (pendiente) | `api/supervision.php?action=cancel` | OK | 506 transitioned `pendiente` -> `rechazado` |
+| Cancel already-aprobada 507 | `api/supervision.php?action=cancel` | Rejected | Same guard message |
+| Soft delete 506 (move to trash) | `api/observations.php?id=506 DELETE` | OK | Created `deleted_id=4` with motivo "prueba controlada" |
+| Permanent delete without `confirm_irreversible` | `api/deleted.php` permanent_delete | Rejected | "Debe confirmar que la eliminacion permanente es irreversible" |
+| Restore deleted_id=4 | `api/deleted.php?action=restore` | OK | 506 reappeared, estado remains `rechazado` |
+| Create observation as supervisor | `api/observations.php` POST | Rejected | "Solo los registradores pueden crear observaciones" |
+| Create observation as registrador without assignment | `api/observations.php` POST | Rejected | "El establecimiento no esta asignado a su usuario para el mes seleccionado" |
+| Edit observation 507 (supervisor) | `api/observations.php?id=507 PUT` | OK | detalle_observacion updated, then restored to original "Sin observacion" |
+| Edit observation 505 by non-owner registrador | `api/observations.php?id=505 PUT` | Rejected | "No tiene permisos para editar esta observacion" |
+| Toggle supervisor1 self off | `api/users.php?id=1 PUT` | Rejected | "No puede desactivar su propia cuenta" |
+| Toggle user 4 (Roxana) off | `api/users.php?id=4 PUT` | OK | activo=0, reactivated to 1 |
+| Reset user 4 password without `confirm_reset` | `api/users.php?id=4 PUT` | Rejected | "Debe confirmar el restablecimiento de contrasena" |
+| Reset supervisor1 self | `api/users.php?id=1 PUT` | Rejected | "Use la seccion de perfil para cambiar su propia contrasena" |
+| Reset user 4 with `confirm_reset=true` | `api/users.php?id=4 PUT` | OK | Password set to admin123 (reversible default) |
+| Remove temporary assignment reg2/est16 | `api/assignments.php` POST remover | OK | Assignment count 19 -> 18 |
+| Re-assign reg2/est16 meses 2,3 | `api/assignments.php` POST asignar | OK | Assignment count 18 -> 19 |
+| Enqueue invalid report type | `api/report_queue.php?action=enqueue` | Rejected | "Tipo de reporte no permitido" |
+| Enqueue valid Excel report | `api/report_queue.php?action=enqueue` | OK | id=1 (PENDIENTE) |
+| Create version snapshot | `api/versioning.php?action=create` | OK | id=2 with descripcion "PRUEBA MUTACION CONTROLADA" |
+
+Final state changes (delta vs. pre-test):
+- 506: `pendiente` -> `rechazado` (kept; permanent state from cancel).
+- 507: estado `aprobado` (kept; matches approve test).
+- User 4: still `activo=1`.
+- Report queue: 1 PENDIENTE report (id=1).
+- Versioning: 1 new snapshot (id=2). Can be removed manually by the team
+  if not needed.
+
+Permanent deletes were intentionally NOT executed. The user prohibited
+permanent deletions from the official database.
