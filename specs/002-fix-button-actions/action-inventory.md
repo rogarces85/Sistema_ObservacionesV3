@@ -17,7 +17,7 @@
 | Locations | `api/locations.php` | Create/update/toggle establishments | Session required; POST validates CSRF; supervisor required for mutable actions. | functional |
 | Supervision | `api/supervision.php` | Approve, cancel, move to trash | Session and supervisor required; mutable actions validate CSRF. | functional |
 | Users | `api/users.php` | Create, update, toggle, reset, delete, password change | Session required; role checks present; password policy enforced. | functional |
-| Assignments | `api/assignments.php` | Assign, remove, copy | Session and supervisor required; mutable endpoint currently expects authenticated supervisor. | needs_fix |
+| Assignments | `api/assignments.php` | Assign, remove, copy | Session and supervisor required; temporary assignment list supports GET and mutable actions require authenticated supervisor. | functional |
 | Deleted observations | `api/deleted.php` | Restore, permanent delete | Session and supervisor required; POST validates CSRF. | functional |
 | Report queue | `api/report_queue.php` | Enqueue reports | Session required; enqueue validates CSRF. | functional |
 | Versioning | `api/versioning.php` | Create snapshot, rollback | Session and supervisor required; POST validates CSRF. | confirmation_only |

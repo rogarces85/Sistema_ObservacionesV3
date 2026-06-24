@@ -438,7 +438,7 @@ $comunas = $locationModel->getComunas();
         // Mostrar/ocultar contador de seleccionadas
         if (hasSelection) {
             countDisplay.classList.remove('d-none');
-            countDisplay.querySelector('.font-medium').textContent = selectedIds.length;
+            countDisplay.querySelector('.fw-semibold').textContent = selectedIds.length;
         } else {
             countDisplay.classList.add('d-none');
         }
@@ -717,7 +717,7 @@ $comunas = $locationModel->getComunas();
 
         if (comunaId) {
             try {
-                const response = await fetch(`api/locations.php?action=get_establecimientos&comuna_id=${comunaId}`);
+                const response = await fetch(`api/locations.php?action=establecimientos&comuna_id=${comunaId}`);
                 const data = await response.json();
 
                 if (data.success) {

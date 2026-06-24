@@ -74,7 +74,7 @@
 - [X] T018 [US1] Ensure import confirmation in `views/observaciones.php` restores progress/action controls after success and failure and leaves the user able to retry
 - [X] T019 [US1] Ensure observation detail and edit flows in `views/observaciones.php` display user-visible errors when `api/observations.php` rejects or cannot load a record
 - [X] T020 [US1] Run `php -l views/dashboard.php`, `php -l views/observaciones.php`, `php -l api/import.php`, and `php -l api/observations.php` and record results in `specs/002-fix-button-actions/verification-evidence.md`
-- [ ] T021 [US1] Perform the registrador quickstart steps for Dashboard and Observaciones from `specs/002-fix-button-actions/quickstart.md` and record evidence in `specs/002-fix-button-actions/verification-evidence.md`
+- [X] T021 [US1] Perform the registrador quickstart steps for Dashboard and Observaciones from `specs/002-fix-button-actions/quickstart.md` and record evidence in `specs/002-fix-button-actions/verification-evidence.md`
 
 **Checkpoint**: US1 is complete when registrador observation entry, import preview, detail/edit, and template actions are functional or intentionally disabled with explanation.
 
@@ -88,27 +88,27 @@
 
 ### Verification for User Story 2
 
-- [ ] T022 [P] [US2] Verify current Supervisión filters, dependent establishment loading, selection counter, and mass-action behavior in `views/supervision.php` and record findings in `specs/002-fix-button-actions/verification-evidence.md`
-- [ ] T023 [P] [US2] Verify current Usuarios create/edit/toggle/reset/audit/delete behavior in `views/usuarios.php` and `api/users.php` and record findings in `specs/002-fix-button-actions/verification-evidence.md`
-- [ ] T024 [P] [US2] Verify current Asignaciones year, assign/reassign, annual/temporary, remove, copy, and temporary-list behavior in `views/asignaciones.php` and `api/assignments.php` and record findings in `specs/002-fix-button-actions/verification-evidence.md`
-- [ ] T025 [P] [US2] Verify current Eliminadas and Establecimientos action behavior in `views/eliminadas.php`, `api/deleted.php`, `views/establecimientos.php`, and `api/locations.php` and record findings in `specs/002-fix-button-actions/verification-evidence.md`
+- [X] T022 [P] [US2] Verify current Supervisión filters, dependent establishment loading, selection counter, and mass-action behavior in `views/supervision.php` and record findings in `specs/002-fix-button-actions/verification-evidence.md`
+- [X] T023 [P] [US2] Verify current Usuarios create/edit/toggle/reset/audit/delete behavior in `views/usuarios.php` and `api/users.php` and record findings in `specs/002-fix-button-actions/verification-evidence.md`
+- [X] T024 [P] [US2] Verify current Asignaciones year, assign/reassign, annual/temporary, remove, copy, and temporary-list behavior in `views/asignaciones.php` and `api/assignments.php` and record findings in `specs/002-fix-button-actions/verification-evidence.md`
+- [X] T025 [P] [US2] Verify current Eliminadas and Establecimientos action behavior in `views/eliminadas.php`, `api/deleted.php`, `views/establecimientos.php`, and `api/locations.php` and record findings in `specs/002-fix-button-actions/verification-evidence.md`
 
 ### Implementation for User Story 2
 
-- [ ] T026 [US2] Fix Supervisión comuna-dependent establishment loading in `views/supervision.php` to use the normalized locations contract from `api/locations.php`
-- [ ] T027 [US2] Fix Supervisión selected-count update in `views/supervision.php` so the displayed count uses the actual DOM structure and mass-action buttons stay synchronized
-- [ ] T028 [US2] Harden Supervisión approve/cancel/delete feedback in `views/supervision.php` so validation failures and server errors keep the confirmation modal recoverable
-- [ ] T029 [US2] Align new-user password field attributes, hints, and client validation in `views/usuarios.php` with the real policy of 8 characters, one uppercase letter, and one number
-- [ ] T030 [US2] Clarify reset-password messaging in `views/usuarios.php` so default reset behavior is distinct from the new-user password policy
-- [ ] T031 [US2] Ensure user create/edit/toggle/reset/audit/delete error paths in `views/usuarios.php` show actionable feedback from `api/users.php`
-- [ ] T032 [US2] Fix Asignaciones selected-registrador action visibility in `views/asignaciones.php` by using consistent visibility classes for `accionesAsignacion`
-- [ ] T033 [US2] Fix Asignaciones annual/temporary month selector visibility in `views/asignaciones.php` by using consistent visibility classes for `mesesEspecificosContainer`
-- [ ] T034 [US2] Move or expose temporary reassignment listing as a GET-compatible action in `api/assignments.php` so `views/asignaciones.php` can load `action=temporales&anio=...`
-- [ ] T035 [US2] Ensure Asignaciones save/remove/copy/temporary-remove flows in `views/asignaciones.php` refresh registrador list, assigned establishments, and temporary list consistently after success
-- [ ] T036 [US2] Confirm Eliminadas restore and permanent-delete confirmation behavior in `views/eliminadas.php` keeps irreversible confirmation mandatory and records skipped permanent-delete evidence in `specs/002-fix-button-actions/verification-evidence.md`
-- [ ] T037 [US2] Confirm Establecimientos create/edit/toggle validation and duplicate-code feedback in `views/establecimientos.php` and `api/locations.php`; patch only if observed feedback is missing or ambiguous
-- [ ] T038 [US2] Run `php -l views/supervision.php`, `php -l views/usuarios.php`, `php -l views/asignaciones.php`, `php -l views/eliminadas.php`, `php -l views/establecimientos.php`, `php -l api/users.php`, `php -l api/assignments.php`, `php -l api/deleted.php`, and `php -l api/locations.php` and record results in `specs/002-fix-button-actions/verification-evidence.md`
-- [ ] T039 [US2] Perform the supervisor quickstart steps for Supervisión, Usuarios, Asignaciones, Eliminadas, and Establecimientos from `specs/002-fix-button-actions/quickstart.md` and record evidence in `specs/002-fix-button-actions/verification-evidence.md`
+- [X] T026 [US2] Fix Supervisión comuna-dependent establishment loading in `views/supervision.php` to use the normalized locations contract from `api/locations.php`
+- [X] T027 [US2] Fix Supervisión selected-count update in `views/supervision.php` so the displayed count uses the actual DOM structure and mass-action buttons stay synchronized
+- [X] T028 [US2] Harden Supervisión approve/cancel/delete feedback in `views/supervision.php` so validation failures and server errors keep the confirmation modal recoverable
+- [X] T029 [US2] Align new-user password field attributes, hints, and client validation in `views/usuarios.php` with the real policy of 8 characters, one uppercase letter, and one number
+- [X] T030 [US2] Clarify reset-password messaging in `views/usuarios.php` so default reset behavior is distinct from the new-user password policy
+- [X] T031 [US2] Ensure user create/edit/toggle/reset/audit/delete error paths in `views/usuarios.php` show actionable feedback from `api/users.php`
+- [X] T032 [US2] Fix Asignaciones selected-registrador action visibility in `views/asignaciones.php` by using consistent visibility classes for `accionesAsignacion`
+- [X] T033 [US2] Fix Asignaciones annual/temporary month selector visibility in `views/asignaciones.php` by using consistent visibility classes for `mesesEspecificosContainer`
+- [X] T034 [US2] Move or expose temporary reassignment listing as a GET-compatible action in `api/assignments.php` so `views/asignaciones.php` can load `action=temporales&anio=...`
+- [X] T035 [US2] Ensure Asignaciones save/remove/copy/temporary-remove flows in `views/asignaciones.php` refresh registrador list, assigned establishments, and temporary list consistently after success
+- [X] T036 [US2] Confirm Eliminadas restore and permanent-delete confirmation behavior in `views/eliminadas.php` keeps irreversible confirmation mandatory and records skipped permanent-delete evidence in `specs/002-fix-button-actions/verification-evidence.md`
+- [X] T037 [US2] Confirm Establecimientos create/edit/toggle validation and duplicate-code feedback in `views/establecimientos.php` and `api/locations.php`; patch only if observed feedback is missing or ambiguous
+- [X] T038 [US2] Run `php -l views/supervision.php`, `php -l views/usuarios.php`, `php -l views/asignaciones.php`, `php -l views/eliminadas.php`, `php -l views/establecimientos.php`, `php -l api/users.php`, `php -l api/assignments.php`, `php -l api/deleted.php`, and `php -l api/locations.php` and record results in `specs/002-fix-button-actions/verification-evidence.md`
+- [X] T039 [US2] Perform the supervisor quickstart steps for Supervisión, Usuarios, Asignaciones, Eliminadas, and Establecimientos from `specs/002-fix-button-actions/quickstart.md` and record evidence in `specs/002-fix-button-actions/verification-evidence.md`
 
 **Checkpoint**: US2 is complete when supervisor administrative actions are functional, recoverable on error, role-safe, and confirmed before high-impact changes.
 
@@ -122,21 +122,21 @@
 
 ### Verification for User Story 3
 
-- [ ] T040 [P] [US3] Verify current Reportes filter, tab, export, PDF, queue, refresh, and download behavior in `views/reportes.php`, `api/reports.php`, `api/export.php`, and `api/report_queue.php` and record findings in `specs/002-fix-button-actions/verification-evidence.md`
-- [ ] T041 [P] [US3] Verify current Perfil password-change validation and feedback in `views/perfil.php` and `api/users.php` and record findings in `specs/002-fix-button-actions/verification-evidence.md`
-- [ ] T042 [P] [US3] Verify current Versionado create snapshot and rollback warning behavior in `views/versionado.php` and `api/versioning.php` without executing rollback and record findings in `specs/002-fix-button-actions/verification-evidence.md`
+- [X] T040 [P] [US3] Verify current Reportes filter, tab, export, PDF, queue, refresh, and download behavior in `views/reportes.php`, `api/reports.php`, `api/export.php`, and `api/report_queue.php` and record findings in `specs/002-fix-button-actions/verification-evidence.md`
+- [X] T041 [P] [US3] Verify current Perfil password-change validation and feedback in `views/perfil.php` and `api/users.php` and record findings in `specs/002-fix-button-actions/verification-evidence.md`
+- [X] T042 [P] [US3] Verify current Versionado create snapshot and rollback warning behavior in `views/versionado.php` and `api/versioning.php` without executing rollback and record findings in `specs/002-fix-button-actions/verification-evidence.md`
 
 ### Implementation for User Story 3
 
-- [ ] T043 [US3] Fix Reportes comuna-dependent establishment loading in `views/reportes.php` to use the normalized locations contract from `api/locations.php`
-- [ ] T044 [US3] Update Reportes export parameter construction in `views/reportes.php` so trimester selections map to the full visible period rather than an empty month
-- [ ] T045 [US3] Align Reportes queue payloads in `views/reportes.php` with supported report categories or clearly disable unsupported active-tab queue actions with explanation
-- [ ] T046 [US3] Update `api/report_queue.php` to support any report category intentionally left enabled by `views/reportes.php`, including `serie_detalle` and `hoja_detalle` if those tabs remain queueable
-- [ ] T047 [US3] Ensure Reportes empty-result and export/download failures in `views/reportes.php` show clear feedback rather than silent windows or no-op buttons
-- [ ] T048 [US3] Align Perfil password field attributes, hints, and client validation in `views/perfil.php` with the real policy of 8 characters, one uppercase letter, and one number
-- [ ] T049 [US3] Improve Versionado rollback confirmation text in `views/versionado.php` to explicitly state that rollback modifies system files and must not be used without a maintenance window
-- [ ] T050 [US3] Run `php -l views/reportes.php`, `php -l views/perfil.php`, `php -l views/versionado.php`, `php -l api/report_queue.php`, `php -l api/reports.php`, `php -l api/export.php`, `php -l api/users.php`, and `php -l api/versioning.php` and record results in `specs/002-fix-button-actions/verification-evidence.md`
-- [ ] T051 [US3] Perform the quickstart steps for Reportes, Perfil, and Versionado from `specs/002-fix-button-actions/quickstart.md` and record evidence in `specs/002-fix-button-actions/verification-evidence.md`
+- [X] T043 [US3] Fix Reportes comuna-dependent establishment loading in `views/reportes.php` to use the normalized locations contract from `api/locations.php`
+- [X] T044 [US3] Update Reportes export parameter construction in `views/reportes.php` so trimester selections map to the full visible period rather than an empty month
+- [X] T045 [US3] Align Reportes queue payloads in `views/reportes.php` with supported report categories or clearly disable unsupported active-tab queue actions with explanation
+- [X] T046 [US3] Update `api/report_queue.php` to support any report category intentionally left enabled by `views/reportes.php`, including `serie_detalle` and `hoja_detalle` if those tabs remain queueable
+- [X] T047 [US3] Ensure Reportes empty-result and export/download failures in `views/reportes.php` show clear feedback rather than silent windows or no-op buttons
+- [X] T048 [US3] Align Perfil password field attributes, hints, and client validation in `views/perfil.php` with the real policy of 8 characters, one uppercase letter, and one number
+- [X] T049 [US3] Improve Versionado rollback confirmation text in `views/versionado.php` to explicitly state that rollback modifies system files and must not be used without a maintenance window
+- [X] T050 [US3] Run `php -l views/reportes.php`, `php -l views/perfil.php`, `php -l views/versionado.php`, `php -l api/report_queue.php`, `php -l api/reports.php`, `php -l api/export.php`, `php -l api/users.php`, and `php -l api/versioning.php` and record results in `specs/002-fix-button-actions/verification-evidence.md`
+- [X] T051 [US3] Perform the quickstart steps for Reportes, Perfil, and Versionado from `specs/002-fix-button-actions/quickstart.md` and record evidence in `specs/002-fix-button-actions/verification-evidence.md`
 
 **Checkpoint**: US3 is complete when reports reflect visible filters, profile password validation matches policy, and versioning actions warn clearly before high-impact operations.
 
@@ -146,13 +146,13 @@
 
 **Purpose**: Verify coverage, documentation consistency, and readiness for handoff.
 
-- [ ] T052 [P] Check `specs/002-fix-button-actions/action-inventory.md` against `specs/002-fix-button-actions/contracts/action-behavior.md` and mark every action functional, disabled with explanation, removed, or deferred with reason
-- [ ] T053 [P] Check modified UI against Tabler-only and no-new-inline-style expectations from `.specify/memory/constitution.md`
-- [ ] T054 [P] Search modified files for obsolete endpoint references such as `action=get_establecimientos` and record result in `specs/002-fix-button-actions/verification-evidence.md`
-- [ ] T055 Update `README.md` only if final behavior changes operating guidance, credentials, password-policy wording, report behavior, or action workflow expectations
-- [ ] T056 Run final PHP syntax validation for all touched PHP files and record exact command/output in `specs/002-fix-button-actions/verification-evidence.md`
-- [ ] T057 Complete the full role smoke checklist from `specs/002-fix-button-actions/quickstart.md` and record skipped destructive actions with reasons in `specs/002-fix-button-actions/verification-evidence.md`
-- [ ] T058 Review `specs/002-fix-button-actions/tasks.md`, `specs/002-fix-button-actions/verification-evidence.md`, and `specs/002-fix-button-actions/action-inventory.md` for unresolved placeholders before handoff
+- [X] T052 [P] Check `specs/002-fix-button-actions/action-inventory.md` against `specs/002-fix-button-actions/contracts/action-behavior.md` and mark every action functional, disabled with explanation, removed, or deferred with reason
+- [X] T053 [P] Check modified UI against Tabler-only and no-new-inline-style expectations from `.specify/memory/constitution.md`
+- [X] T054 [P] Search modified files for obsolete endpoint references such as `action=get_establecimientos` and record result in `specs/002-fix-button-actions/verification-evidence.md`
+- [X] T055 Update `README.md` only if final behavior changes operating guidance, credentials, password-policy wording, report behavior, or action workflow expectations
+- [X] T056 Run final PHP syntax validation for all touched PHP files and record exact command/output in `specs/002-fix-button-actions/verification-evidence.md`
+- [X] T057 Complete the full role smoke checklist from `specs/002-fix-button-actions/quickstart.md` and record skipped destructive actions with reasons in `specs/002-fix-button-actions/verification-evidence.md`
+- [X] T058 Review `specs/002-fix-button-actions/tasks.md`, `specs/002-fix-button-actions/verification-evidence.md`, and `specs/002-fix-button-actions/action-inventory.md` for unresolved placeholders before handoff
 
 ---
 

@@ -44,6 +44,14 @@ try {
     $userRole = $user['rol'];
     
     $year = $parametros['year'] ?? date('Y');
+    $meses = [];
+    if (!empty($parametros['meses']) && is_array($parametros['meses'])) {
+        $meses = array_values(array_filter($parametros['meses']));
+    } elseif (!empty($parametros['mes'])) {
+        $meses = [$parametros['mes']];
+    }
+    $comunaIds = !empty($parametros['comuna_id']) ? [(int)$parametros['comuna_id']] : [];
+    $establecimientoId = !empty($parametros['establecimiento_id']) ? (int)$parametros['establecimiento_id'] : null;
     $filename = "Reporte_{$report['tipo_reporte']}_{$report['id']}_" . date('Y-m-d_His') . ".{$report['formato']}";
     $outputPath = __DIR__ . '/uploads/reportes/' . $filename;
 
@@ -61,6 +69,7 @@ try {
         case 'general':
             $filters = ['anio' => $year];
             if (!empty($parametros['mes'])) $filters['mes'] = $parametros['mes'];
+            if (!empty($meses)) $filters['meses'] = $meses;
             if (!empty($parametros['estado'])) $filters['estado'] = $parametros['estado'];
             if (!empty($parametros['establecimiento_id'])) $filters['establecimiento_id'] = $parametros['establecimiento_id'];
             if ($userRole === ROL_REGISTRADOR) $filters['usuario_registro_id'] = $userId;
@@ -74,22 +83,35 @@ try {
         case 'detallado':
             // Solo PDF
             $filters = ['anio' => $year];
+            if (!empty($meses)) $filters['meses'] = $meses;
+            if (!empty($parametros['comuna_id'])) $filters['comuna_id'] = $parametros['comuna_id'];
+            if (!empty($parametros['establecimiento_id'])) $filters['establecimiento_id'] = $parametros['establecimiento_id'];
             $data = $obsModel->reporteDetalladoPDF($filters, $userId, $userRole);
             break;
-            
+             
         case 'errores_establecimiento':
-            $data = $obsModel->reporteErroresPorEstablecimiento($year, $userId, $userRole);
+            $data = $obsModel->reporteErroresPorEstablecimiento($year, $userId, $userRole, $meses, $comunaIds, $establecimientoId);
             $title = "Errores por Establecimiento - Año {$year}";
             break;
 
         case 'fuera_plazo_establecimiento':
-            $data = $obsModel->reporteFueraPlazoPorEstablecimiento($year, $userId, $userRole);
+            $data = $obsModel->reporteFueraPlazoPorEstablecimiento($year, $userId, $userRole, $meses, $comunaIds, $establecimientoId);
             $title = "Fuera de Plazo por Establecimiento - Año {$year}";
             break;
 
         case 'validador_establecimiento':
-            $data = $obsModel->reporteValidadorPorEstablecimiento($year, $userId, $userRole);
+            $data = $obsModel->reporteValidadorPorEstablecimiento($year, $userId, $userRole, $meses, $comunaIds, $establecimientoId);
             $title = "Uso de Validador por Establecimiento - Año {$year}";
+            break;
+
+        case 'serie_detalle':
+            $data = $obsModel->reportePorSerieDetalle($year, $userId, $userRole, $meses, $comunaIds, $establecimientoId);
+            $title = "Errores por Serie REM - Año {$year}";
+            break;
+
+        case 'hoja_detalle':
+            $data = $obsModel->reportePorHojaDetalle($year, $userId, $userRole, $meses, $comunaIds, $establecimientoId);
+            $title = "Errores por Hoja REM - Año {$year}";
             break;
             
         default:

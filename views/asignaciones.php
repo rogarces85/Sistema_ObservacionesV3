@@ -279,8 +279,7 @@ $registradores = $asignacionModel->getEstadisticasAsignaciones($anioSeleccionado
         }
 
         document.getElementById('registradorSeleccionadoTexto').textContent = `Gestionando: ${nombre} — Año ${anioActual}`;
-        document.getElementById('accionesAsignacion').classList.remove('hidden');
-        document.getElementById('accionesAsignacion').classList.add('flex');
+        document.getElementById('accionesAsignacion').classList.remove('d-none');
 
         await cargarEstablecimientosAsignados(id);
     }
@@ -422,7 +421,7 @@ $registradores = $asignacionModel->getEstadisticasAsignaciones($anioSeleccionado
 
     function toggleMesesAsignacion() {
         const esMeses = document.querySelector('input[name="periodoAsignacion"]:checked').value === 'MESES';
-        document.getElementById('mesesEspecificosContainer').classList.toggle('hidden', !esMeses);
+        document.getElementById('mesesEspecificosContainer').classList.toggle('d-none', !esMeses);
     }
 
     function toggleTipoAsignacion() {
@@ -432,7 +431,7 @@ $registradores = $asignacionModel->getEstadisticasAsignaciones($anioSeleccionado
         if (esTemporal) {
             // Forzar selección de meses específicos para temporal
             document.querySelector('input[name="periodoAsignacion"][value="MESES"]').checked = true;
-            document.getElementById('mesesEspecificosContainer').classList.remove('hidden');
+            document.getElementById('mesesEspecificosContainer').classList.remove('d-none');
             // Deshabilitar opción "Todo el año" para temporal
             document.querySelector('input[name="periodoAsignacion"][value="ALL"]').disabled = true;
             document.querySelector('input[name="periodoAsignacion"][value="ALL"]').parentElement.style.opacity = '0.5';

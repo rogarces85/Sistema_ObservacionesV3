@@ -689,7 +689,7 @@ class Observation
         return $this->db->query($sql, $params);
     }
 
-    public function reporteValidadorPorEstablecimiento($year, $userId = null, $userRole = null)
+    public function reporteValidadorPorEstablecimiento($year, $userId = null, $userRole = null, $meses = [], $comunaIds = [], $establecimientoId = null)
     {
         $sql = "SELECT e.id, e.nombre, e.nombre_corto, COUNT(*) as total 
                 FROM observaciones o 
@@ -699,6 +699,20 @@ class Observation
         if ($userRole === ROL_REGISTRADOR && $userId) {
             $sql .= " AND o.usuario_registro_id = ?";
             $params[] = $userId;
+        }
+        if (!empty($meses)) {
+            $placeholders = implode(',', array_fill(0, count($meses), '?'));
+            $sql .= " AND o.mes IN ($placeholders)";
+            $params = array_merge($params, $meses);
+        }
+        if (!empty($comunaIds)) {
+            $placeholders = implode(',', array_fill(0, count($comunaIds), '?'));
+            $sql .= " AND e.comuna_id IN ($placeholders)";
+            $params = array_merge($params, $comunaIds);
+        }
+        if ($establecimientoId) {
+            $sql .= " AND o.establecimiento_id = ?";
+            $params[] = $establecimientoId;
         }
         $sql .= " GROUP BY e.id, e.nombre, e.nombre_corto ORDER BY total DESC";
         return $this->db->query($sql, $params);
@@ -723,15 +737,30 @@ class Observation
     /**
      * GRUPO D: Reporte por Serie REM × Tipo Error
      */
-    public function reportePorSerieDetalle($year, $userId = null, $userRole = null)
+    public function reportePorSerieDetalle($year, $userId = null, $userRole = null, $meses = [], $comunaIds = [], $establecimientoId = null)
     {
         $sql = "SELECT o.codigo_serie, o.tipo_error, COUNT(*) as total 
-                FROM observaciones o 
+                FROM observaciones o
+                INNER JOIN establecimientos e ON o.establecimiento_id = e.id
                 WHERE o.anio = ? AND o.codigo_serie IS NOT NULL AND o.codigo_serie != ''";
         $params = [$year];
         if ($userRole === ROL_REGISTRADOR && $userId) {
             $sql .= " AND o.usuario_registro_id = ?";
             $params[] = $userId;
+        }
+        if (!empty($meses)) {
+            $placeholders = implode(',', array_fill(0, count($meses), '?'));
+            $sql .= " AND o.mes IN ($placeholders)";
+            $params = array_merge($params, $meses);
+        }
+        if (!empty($comunaIds)) {
+            $placeholders = implode(',', array_fill(0, count($comunaIds), '?'));
+            $sql .= " AND e.comuna_id IN ($placeholders)";
+            $params = array_merge($params, $comunaIds);
+        }
+        if ($establecimientoId) {
+            $sql .= " AND o.establecimiento_id = ?";
+            $params[] = $establecimientoId;
         }
         $sql .= " GROUP BY o.codigo_serie, o.tipo_error ORDER BY o.codigo_serie, total DESC";
         return $this->db->query($sql, $params);
@@ -740,15 +769,30 @@ class Observation
     /**
      * GRUPO D: Reporte por Hoja REM × Descripción
      */
-    public function reportePorHojaDetalle($year, $userId = null, $userRole = null)
+    public function reportePorHojaDetalle($year, $userId = null, $userRole = null, $meses = [], $comunaIds = [], $establecimientoId = null)
     {
         $sql = "SELECT o.codigo_hoja, o.tipo_error, o.detalle_observacion, COUNT(*) as total 
-                FROM observaciones o 
+                FROM observaciones o
+                INNER JOIN establecimientos e ON o.establecimiento_id = e.id
                 WHERE o.anio = ? AND o.codigo_hoja IS NOT NULL AND o.codigo_hoja != ''";
         $params = [$year];
         if ($userRole === ROL_REGISTRADOR && $userId) {
             $sql .= " AND o.usuario_registro_id = ?";
             $params[] = $userId;
+        }
+        if (!empty($meses)) {
+            $placeholders = implode(',', array_fill(0, count($meses), '?'));
+            $sql .= " AND o.mes IN ($placeholders)";
+            $params = array_merge($params, $meses);
+        }
+        if (!empty($comunaIds)) {
+            $placeholders = implode(',', array_fill(0, count($comunaIds), '?'));
+            $sql .= " AND e.comuna_id IN ($placeholders)";
+            $params = array_merge($params, $comunaIds);
+        }
+        if ($establecimientoId) {
+            $sql .= " AND o.establecimiento_id = ?";
+            $params[] = $establecimientoId;
         }
         $sql .= " GROUP BY o.codigo_hoja, o.tipo_error ORDER BY total DESC";
         return $this->db->query($sql, $params);

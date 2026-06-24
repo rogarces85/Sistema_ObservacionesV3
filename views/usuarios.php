@@ -143,9 +143,10 @@ $usuarios = $userModel->getAll();
                     </div>
                     <div class="mb-3" id="passwordField">
                         <label class="form-label required">Contraseña</label>
-                        <input type="password" id="password" name="password" class="form-control" minlength="6"
-                            placeholder="Mínimo 6 caracteres">
-                        <div class="form-hint">Deje en blanco para mantener la contraseña actual (solo al editar)</div>
+                        <input type="password" id="password" name="password" class="form-control" minlength="8"
+                            pattern="(?=.*[A-Z])(?=.*\d).{8,}"
+                            placeholder="Mínimo 8 caracteres, una mayúscula y un número">
+                        <div class="form-hint">Debe tener al menos 8 caracteres, una mayúscula y un número. Deje en blanco para mantener la contraseña actual al editar.</div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label required">Nombre Completo</label>
@@ -238,7 +239,7 @@ $usuarios = $userModel->getAll();
             }
         } catch (error) {
             hideLoading();
-            showMessage(error.message, 'error');
+            showMessage(error.message || 'No se pudo guardar el usuario', 'error');
         }
     }
 
@@ -257,7 +258,7 @@ $usuarios = $userModel->getAll();
                 setTimeout(() => location.reload(), 1000);
             }
         } catch (error) {
-            showMessage(error.message, 'error');
+            showMessage(error.message || 'No se pudo actualizar el estado del usuario', 'error');
             location.reload();
         }
     }
@@ -283,13 +284,13 @@ $usuarios = $userModel->getAll();
             }
         } catch (error) {
             hideLoading();
-            showMessage(error.message, 'error');
+            showMessage(error.message || 'No se pudo eliminar el usuario', 'error');
         }
     }
 
     // Restablecer contraseña
     async function resetPassword(userId, username) {
-        if (!confirm(`¿Restablecer la contraseña del usuario "${username}"?\n\nLa contraseña volverá a: admin123`)) {
+        if (!confirm(`¿Restablecer la contraseña del usuario "${username}"?\n\nLa contraseña volverá a: admin123. Esta es una credencial temporal y debe cambiarse después del ingreso.`)) {
             return;
         }
 
@@ -306,11 +307,11 @@ $usuarios = $userModel->getAll();
             hideLoading();
 
             if (response.success) {
-                showMessage(`Contraseña de "${username}" restablecida a: admin123`, 'success');
+                showMessage(`Contraseña de "${username}" restablecida a: admin123. Solicite cambio en el próximo ingreso.`, 'success');
             }
         } catch (error) {
             hideLoading();
-            showMessage(error.message, 'error');
+            showMessage(error.message || 'No se pudo restablecer la contraseña', 'error');
         }
     }
 

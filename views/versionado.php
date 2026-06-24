@@ -93,7 +93,9 @@ async function createVersion() {
 }
 
 async function rollbackVersion(id, tag) {
-    if (!confirm('¿Ejecutar rollback a ' + tag + '? Esta acción modificará archivos del sistema.')) return;
+    const warning = '¿Ejecutar rollback a ' + tag + '?\n\nEsta acción modificará archivos del sistema y puede afectar a usuarios conectados. Úsela solo con respaldo verificado, ventana de mantenimiento y autorización explícita.\n\nEscriba ACEPTAR en la siguiente confirmación para continuar.';
+    if (!confirm(warning)) return;
+    if (prompt('Para confirmar rollback escriba ACEPTAR:') !== 'ACEPTAR') return;
     try {
         showLoading();
         const response = await fetchAPI('versioning.php?action=rollback&id=' + id, { method: 'POST', body: '{}' });

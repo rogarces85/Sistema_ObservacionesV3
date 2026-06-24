@@ -305,7 +305,7 @@ async function loadEstablecimientos() {
 
     if (comunaId) {
         try {
-            const response = await fetch(`api/locations.php?action=get_establecimientos&comuna_id=${comunaId}`);
+            const response = await fetch(`api/locations.php?action=establecimientos&comuna_id=${comunaId}`);
             const data = await response.json();
             if (data.success) {
                 data.data.forEach(est => {
@@ -316,7 +316,7 @@ async function loadEstablecimientos() {
                 });
             }
         } catch (error) {
-            console.error('Error al cargar establecimientos:', error);
+            showError('No se pudieron cargar los establecimientos de la comuna seleccionada');
         }
     }
 }
@@ -349,7 +349,7 @@ async function loadErrorReports() {
     try {
         const resp = await fetch(url);
         const json = await resp.json();
-        if (!json.success) { console.error(json.message); return; }
+        if (!json.success) { throw new Error(json.message || 'No se pudieron cargar los reportes'); }
 
         cachedData = json.data;
         tabDataLoaded = {}; // Reset: all tabs need reload
@@ -366,7 +366,7 @@ async function loadErrorReports() {
         }
 
     } catch (e) {
-        console.error('Error cargando reportes:', e);
+        showError(e.message || 'Error cargando reportes');
     }
 }
 
@@ -459,11 +459,11 @@ async function loadPlazoAgregado() {
     try {
         const resp = await fetch(url);
         const json = await resp.json();
-        if (!json.success) return;
+        if (!json.success) throw new Error(json.message || 'No se pudo cargar el reporte de plazos');
         renderPlazoChart(json.data);
         tabDataLoaded['tab-plazos'] = true;
     } catch (e) {
-        console.error('Error cargando reporte plazo agregado:', e);
+        showError(e.message || 'Error cargando reporte de plazos');
     }
 }
 
@@ -510,11 +510,11 @@ async function loadValidadorAgregado() {
     try {
         const resp = await fetch(url);
         const json = await resp.json();
-        if (!json.success) return;
+        if (!json.success) throw new Error(json.message || 'No se pudo cargar el reporte de validador');
         renderValidadorChart(json.data);
         tabDataLoaded['tab-validador'] = true;
     } catch (e) {
-        console.error('Error cargando reporte validador agregado:', e);
+        showError(e.message || 'Error cargando reporte de validador');
     }
 }
 
@@ -599,11 +599,12 @@ function getExportFilters() {
     const params = new URLSearchParams();
     params.set('year', document.getElementById('filterYear').value);
 
-    const mes = document.getElementById('filterMes').value;
+    const meses = getMesesFiltro();
     const comunaId = document.getElementById('filterComuna').value;
     const establecimientoId = document.getElementById('filterEstablecimiento').value;
 
-    if (mes) params.set('month', mes);
+    if (meses.length === 1) params.set('month', meses[0]);
+    if (meses.length > 1) params.set('months', meses.join(','));
     if (comunaId) params.set('comuna_id', comunaId);
     if (establecimientoId) params.set('establecimiento_id', establecimientoId);
 
@@ -630,7 +631,7 @@ function getQueuePayload(format) {
     const tipo = format === 'pdf' ? 'detallado' : (EXPORT_REPORT_TYPES[activeTab] || 'errores_establecimiento');
     const params = {
         year: document.getElementById('filterYear').value,
-        mes: document.getElementById('filterMes').value || undefined,
+        meses: getMesesFiltro(),
         establecimiento_id: document.getElementById('filterEstablecimiento').value || undefined,
         comuna_id: document.getElementById('filterComuna').value || undefined
     };

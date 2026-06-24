@@ -67,7 +67,7 @@ try {
         $formato = $input['formato'] ?? 'xlsx';
         $parametros = $input['parametros'] ?? [];
 
-        $allowedTypes = ['general', 'detallado', 'errores_establecimiento', 'fuera_plazo_establecimiento', 'validador_establecimiento'];
+        $allowedTypes = ['general', 'detallado', 'errores_establecimiento', 'fuera_plazo_establecimiento', 'validador_establecimiento', 'serie_detalle', 'hoja_detalle'];
         $allowedFormats = ['xlsx', 'excel', 'pdf'];
         if (!in_array($tipo, $allowedTypes, true)) jsonResponse(false, null, 'Tipo de reporte no permitido', 400);
         if (!in_array($formato, $allowedFormats, true)) jsonResponse(false, null, 'Formato no permitido', 400);

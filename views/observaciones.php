@@ -1150,24 +1150,24 @@ global $TIPOS_ERROR, $MESES;
                 const respuestaSection = document.getElementById('detailRespuestaSection');
                 if (obs.respuesta) {
                     document.getElementById('detailRespuesta').textContent = obs.respuesta;
-                    respuestaSection.classList.remove('hidden');
+                    respuestaSection.classList.remove('d-none');
                 } else {
-                    respuestaSection.classList.add('hidden');
+                    respuestaSection.classList.add('d-none');
                 }
 
                 const clasifSection = document.getElementById('detailClasificacionSection');
                 if (obs.clasificacion) {
                     document.getElementById('detailClasificacion').textContent = obs.clasificacion;
-                    clasifSection.classList.remove('hidden');
+                    clasifSection.classList.remove('d-none');
                 } else {
-                    clasifSection.classList.add('hidden');
+                    clasifSection.classList.add('d-none');
                 }
                 const detErrorSection = document.getElementById('detailDetalleErrorSection');
                 if (obs.detalle_error) {
                     document.getElementById('detailDetalleError').textContent = obs.detalle_error;
-                    detErrorSection.classList.remove('hidden');
+                    detErrorSection.classList.remove('d-none');
                 } else {
-                    detErrorSection.classList.add('hidden');
+                    detErrorSection.classList.add('d-none');
                 }
 
                 document.getElementById('detailRegistradoPor').textContent = obs.nombre_registro || '-';
@@ -1178,9 +1178,9 @@ global $TIPOS_ERROR, $MESES;
                 if (obs.nombre_supervisor) {
                     document.getElementById('detailSupervisadoPor').textContent = obs.nombre_supervisor;
                     document.getElementById('detailFechaSupervision').textContent = obs.fecha_supervision ? formatDate(obs.fecha_supervision) : '-';
-                    supervisorInfo.classList.remove('hidden');
+                    supervisorInfo.classList.remove('d-none');
                 } else {
-                    supervisorInfo.classList.add('hidden');
+                    supervisorInfo.classList.add('d-none');
                 }
 
                 const validadorEl = document.getElementById('detailValidador');

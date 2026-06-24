@@ -72,13 +72,14 @@ $activity = array_slice($activity, 0, 8);
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label required">Nueva Contraseña</label>
-                                    <input type="password" id="newPassword" name="new_password" class="form-control" required minlength="6"
-                                        placeholder="Mínimo 6 caracteres">
-                                    <div class="form-hint">Debe tener al menos 6 caracteres</div>
+                                    <input type="password" id="newPassword" name="new_password" class="form-control" required minlength="8"
+                                        pattern="(?=.*[A-Z])(?=.*\d).{8,}"
+                                        placeholder="Mínimo 8 caracteres, una mayúscula y un número">
+                                    <div class="form-hint">Debe tener al menos 8 caracteres, una mayúscula y un número</div>
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label required">Confirmar Nueva Contraseña</label>
-                                    <input type="password" id="confirmPassword" name="confirm_password" class="form-control" required minlength="6"
+                                    <input type="password" id="confirmPassword" name="confirm_password" class="form-control" required minlength="8"
                                         placeholder="Repita la nueva contraseña">
                                 </div>
                                 <button type="submit" class="btn btn-primary w-100">
@@ -140,9 +141,8 @@ $activity = array_slice($activity, 0, 8);
             return;
         }
 
-        // Validar longitud mínima
-        if (newPassword.length < 6) {
-            showMessage('La contraseña debe tener al menos 6 caracteres', 'error');
+        if (!/(?=.*[A-Z])(?=.*\d).{8,}/.test(newPassword)) {
+            showMessage('La contraseña debe tener al menos 8 caracteres, una mayúscula y un número', 'error');
             return;
         }
 
