@@ -21,6 +21,17 @@ function jsonResponse($success, $data = null, $message = '', $statusCode = 200)
     exit;
 }
 
+function safeReport($key, callable $callback, array &$errors)
+{
+    try {
+        return $callback();
+    } catch (Throwable $e) {
+        error_log("Error en reporte {$key}: " . $e->getMessage());
+        $errors[$key] = $e->getMessage();
+        return [];
+    }
+}
+
 if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
     jsonResponse(false, null, 'No autorizado', 401);
 }
@@ -141,13 +152,15 @@ try {
             if (!is_array($meses)) $meses = $meses ? [$meses] : [];
             if (!is_array($comunaIds)) $comunaIds = $comunaIds ? [$comunaIds] : [];
             $comunaIds = array_map('intval', $comunaIds);
+            $errors = [];
 
             jsonResponse(true, [
-                'errores_establecimiento' => $obsModel->reporteErroresPorEstablecimiento($year, $userId, $userRole, $meses, $comunaIds, $establecimientoId),
-                'fuera_plazo_establecimiento' => $obsModel->reporteFueraPlazoPorEstablecimiento($year, $userId, $userRole, $meses, $comunaIds, $establecimientoId),
-                'no_validador_establecimiento' => $obsModel->reporteNoValidadorPorEstablecimiento($year, $userId, $userRole, $meses, $comunaIds, $establecimientoId),
-                'errores_serie' => $obsModel->reporteErroresPorSerie($year, $userId, $userRole, $meses, $comunaIds, $establecimientoId),
-                'errores_hoja' => $obsModel->reporteErroresPorHoja($year, $userId, $userRole, $meses, $comunaIds, $establecimientoId)
+                'errores_establecimiento' => safeReport('errores_establecimiento', function () use ($obsModel, $year, $userId, $userRole, $meses, $comunaIds, $establecimientoId) { return $obsModel->reporteErroresPorEstablecimiento($year, $userId, $userRole, $meses, $comunaIds, $establecimientoId); }, $errors),
+                'fuera_plazo_establecimiento' => safeReport('fuera_plazo_establecimiento', function () use ($obsModel, $year, $userId, $userRole, $meses, $comunaIds, $establecimientoId) { return $obsModel->reporteFueraPlazoPorEstablecimiento($year, $userId, $userRole, $meses, $comunaIds, $establecimientoId); }, $errors),
+                'no_validador_establecimiento' => safeReport('no_validador_establecimiento', function () use ($obsModel, $year, $userId, $userRole, $meses, $comunaIds, $establecimientoId) { return $obsModel->reporteNoValidadorPorEstablecimiento($year, $userId, $userRole, $meses, $comunaIds, $establecimientoId); }, $errors),
+                'errores_serie' => safeReport('errores_serie', function () use ($obsModel, $year, $userId, $userRole, $meses, $comunaIds, $establecimientoId) { return $obsModel->reporteErroresPorSerie($year, $userId, $userRole, $meses, $comunaIds, $establecimientoId); }, $errors),
+                'errores_hoja' => safeReport('errores_hoja', function () use ($obsModel, $year, $userId, $userRole, $meses, $comunaIds, $establecimientoId) { return $obsModel->reporteErroresPorHoja($year, $userId, $userRole, $meses, $comunaIds, $establecimientoId); }, $errors),
+                'errors' => $errors
             ]);
             break;
 
@@ -175,7 +188,7 @@ try {
             break;
     }
 
-} catch (Exception $e) {
+} catch (Throwable $e) {
     error_log("Error en API reports: " . $e->getMessage());
     jsonResponse(false, null, 'Error en el servidor: ' . $e->getMessage(), 500);
 }

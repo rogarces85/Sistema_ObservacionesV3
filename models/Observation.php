@@ -1129,13 +1129,23 @@ class Observation
 
         // Filtro por trimestre
         if ($trimestre !== null) {
-            $meses = match ($trimestre) {
-                1 => ['Enero', 'Febrero', 'Marzo'],
-                2 => ['Abril', 'Mayo', 'Junio'],
-                3 => ['Julio', 'Agosto', 'Septiembre'],
-                4 => ['Octubre', 'Noviembre', 'Diciembre'],
-                default => []
-            };
+            switch ((int)$trimestre) {
+                case 1:
+                    $meses = ['Enero', 'Febrero', 'Marzo'];
+                    break;
+                case 2:
+                    $meses = ['Abril', 'Mayo', 'Junio'];
+                    break;
+                case 3:
+                    $meses = ['Julio', 'Agosto', 'Septiembre'];
+                    break;
+                case 4:
+                    $meses = ['Octubre', 'Noviembre', 'Diciembre'];
+                    break;
+                default:
+                    $meses = [];
+                    break;
+            }
             if (!empty($meses)) {
                 $placeholders = implode(',', array_fill(0, count($meses), '?'));
                 $sql .= " AND o.mes IN ($placeholders)";

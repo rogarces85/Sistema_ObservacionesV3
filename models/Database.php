@@ -66,7 +66,7 @@ class Database
             $stmt->execute($params);
             return $stmt->fetchAll();
         } catch (PDOException $e) {
-            error_log("Error en query: " . $e->getMessage());
+            error_log("Error en query: " . $e->getMessage() . " | SQL: " . $sql . " | Params: " . json_encode($params, JSON_UNESCAPED_UNICODE));
             throw new Exception("Error al ejecutar la consulta.");
         }
     }
@@ -81,7 +81,7 @@ class Database
             $stmt->execute($params);
             return $stmt->fetch();
         } catch (PDOException $e) {
-            error_log("Error en queryOne: " . $e->getMessage());
+            error_log("Error en queryOne: " . $e->getMessage() . " | SQL: " . $sql . " | Params: " . json_encode($params, JSON_UNESCAPED_UNICODE));
             throw new Exception("Error al ejecutar la consulta.");
         }
     }
@@ -95,7 +95,7 @@ class Database
             $stmt = $this->connection->prepare($sql);
             return $stmt->execute($params);
         } catch (PDOException $e) {
-            error_log("Error en execute: " . $e->getMessage());
+            error_log("Error en execute: " . $e->getMessage() . " | SQL: " . $sql . " | Params: " . json_encode($params, JSON_UNESCAPED_UNICODE));
             throw new Exception("Error al ejecutar la operación.");
         }
     }

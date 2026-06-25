@@ -14,15 +14,21 @@ $userInitials = strtoupper(substr($userName, 0, 2));
 $tieneAsignaciones = false;
 $registradoresSinAsignaciones = [];
 
-if ($userRole === ROL_REGISTRADOR) {
-    $tieneAsignaciones = $asigModel->tieneAsignaciones($userId, $currentYear);
-} elseif ($userRole === ROL_SUPERVISOR) {
-    $registradoresSinAsignaciones = $asigModel->getRegistradoresSinAsignaciones($currentYear);
-}
+try {
+    if ($userRole === ROL_REGISTRADOR) {
+        $tieneAsignaciones = $asigModel->tieneAsignaciones($userId, $currentYear);
+    } elseif ($userRole === ROL_SUPERVISOR) {
+        $registradoresSinAsignaciones = $asigModel->getRegistradoresSinAsignaciones($currentYear);
+    }
 
-$stats = $obsModel->getStats($currentYear, $userId, $userRole);
-$recentObs = $obsModel->getAll($currentYear, $userId, $userRole);
-$recentObs = array_slice($recentObs, 0, 5);
+    $stats = $obsModel->getStats($currentYear, $userId, $userRole);
+    $recentObs = $obsModel->getAll($currentYear, $userId, $userRole);
+    $recentObs = array_slice($recentObs, 0, 5);
+} catch (Throwable $e) {
+    error_log('Error al cargar dashboard: ' . $e->getMessage());
+    $stats = ['total' => 0, 'por_estado' => [], 'por_mes' => [], 'por_tipo_error' => []];
+    $recentObs = [];
+}
 
 $pendientes = 0;
 $aprobados = 0;

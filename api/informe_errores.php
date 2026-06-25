@@ -54,12 +54,23 @@ try {
 
     // Nombre del período para mostrar
     if ($tipo === 'trimestral') {
-        $periodo = match ($trimestre) {
-            1 => '1° Trimestre',
-            2 => '2° Trimestre',
-            3 => '3° Trimestre',
-            4 => '4° Trimestre',
-        };
+        switch ($trimestre) {
+            case 1:
+                $periodo = '1° Trimestre';
+                break;
+            case 2:
+                $periodo = '2° Trimestre';
+                break;
+            case 3:
+                $periodo = '3° Trimestre';
+                break;
+            case 4:
+                $periodo = '4° Trimestre';
+                break;
+            default:
+                $periodo = 'Trimestre';
+                break;
+        }
     } else {
         $periodo = 'Anual';
     }
@@ -78,6 +89,6 @@ try {
             'emitido' => date('d/m/Y H:i')
         ], 'Informe generado exitosamente');
     }
-} catch (Exception $e) {
+} catch (Throwable $e) {
     jsonResponse(false, null, 'Error al generar el informe: ' . $e->getMessage(), 500);
 }
