@@ -1,0 +1,22 @@
+# /etc/systemd/system/rem-worker.service
+# Ejecuta un ciclo del worker de reportes como one-shot.
+# Activado por rem-worker.timer.
+
+[Unit]
+Description=Sistema REM - Worker de reportes (one-shot)
+After=mysql.service network.target
+Requires=mysql.service
+
+[Service]
+Type=oneshot
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/rem
+Environment="REM_ENV_FILE=/etc/rem/env.php"
+Environment="REM_ENVIRONMENT=production"
+ExecStart=/usr/bin/php8.2 /var/www/rem/worker_reportes.php
+StandardOutput=append:/var/log/rem/worker.log
+StandardError=append:/var/log/rem/worker.log
+Nice=10
+TimeoutStartSec=300
+SuccessExitStatus=0 1

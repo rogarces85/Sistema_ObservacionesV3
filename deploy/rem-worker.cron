@@ -1,0 +1,13 @@
+# /etc/cron.d/rem-worker
+# Alternativa cron al timer de systemd. Use SOLO si su sistema no usa
+# systemd o si prefiere cron. El timer (rem-worker.timer) es
+# recomendado porque es resiliente a caidas del sistema.
+#
+# Para activar: quitar este comentario, ajustar y copiar a /etc/cron.d/
+#   sudo cp deploy/rem-worker.cron /etc/cron.d/rem-worker
+#   sudo chmod 644 /etc/cron.d/rem-worker
+#
+# Para desactivar timer systemd si usa cron:
+#   sudo systemctl disable --now rem-worker.timer
+
+# * * * * * www-data /usr/bin/php8.2 /var/www/rem/worker_reportes.php >> /var/log/rem/worker.log 2>&1

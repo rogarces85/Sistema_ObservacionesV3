@@ -1,0 +1,16 @@
+# /etc/systemd/system/rem-worker.timer
+# Dispara el worker cada minuto (Persistent=true para ejecutar
+# ciclos perdidos si el servidor estuvo apagado).
+
+[Unit]
+Description=Sistema REM - Timer del worker de reportes
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=60s
+AccuracySec=5s
+Persistent=true
+Unit=rem-worker.service
+
+[Install]
+WantedBy=timers.target
