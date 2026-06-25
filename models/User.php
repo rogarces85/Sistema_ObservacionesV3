@@ -24,6 +24,10 @@ class User
         $sql = "SELECT * FROM usuarios WHERE username = ? AND activo = 1";
         $user = $this->db->queryOne($sql, [$username]);
 
+        if ($user && !array_key_exists('password_hash', $user)) {
+            throw new Exception('La tabla usuarios no tiene la columna password_hash. Revise que la base de datos del servidor tenga la estructura actualizada.');
+        }
+
         if ($user && password_verify($password, $user['password_hash'])) {
             // No retornar el hash de contraseña
             unset($user['password_hash']);

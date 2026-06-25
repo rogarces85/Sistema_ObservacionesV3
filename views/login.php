@@ -177,16 +177,22 @@ $initialTheme = in_array($initialTheme, ['light', 'dark'], true) ? $initialTheme
                     body: JSON.stringify(formData)
                 });
 
-                const data = await response.json();
+                const text = await response.text();
+                let data = {};
+                try {
+                    data = text ? JSON.parse(text) : {};
+                } catch (error) {
+                    data = { success: false, message: text || 'Respuesta inválida del servidor' };
+                }
 
-                if (data.success) {
+                if (response.ok && data.success) {
                     loginSuccessText.textContent = '¡Login exitoso! Redirigiendo...';
                     loginSuccess.classList.remove('d-none');
                     setTimeout(function () {
                         window.location.href = 'index.php';
                     }, 800);
                 } else {
-                    loginErrorText.textContent = data.message || 'Credenciales inválidas';
+                    loginErrorText.textContent = data.message || 'Error al iniciar sesión';
                     loginError.classList.remove('d-none');
                     loginBtn.disabled = false;
                     loginBtnLabel.textContent = 'Iniciar sesión';

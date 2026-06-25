@@ -115,7 +115,7 @@ try {
             jsonResponse(false, null, 'Acción no válida', 400);
     }
 
-} catch (Exception $e) {
+} catch (Throwable $e) {
     error_log("Error en API auth: " . $e->getMessage());
     jsonResponse(false, null, 'Error en el servidor: ' . $e->getMessage(), 500);
 }
