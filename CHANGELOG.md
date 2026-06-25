@@ -10,6 +10,9 @@
 - `deploy/TRAINING.md`: plan de capacitacion para go-live.
 - `deploy/CUTOVER.md`: checklist de corte del ambiente dev.
 - `docs/releases/2.1.0.md`: notas orientadas a usuarios finales.
+- `docs/releases/2.1.0-internal.md`: notas tecnicas para desarrollo/soporte.
+- `docs/releases/2.1.0-GO-LIVE.md`: acta de go-live.
+- Tag `v2.1.0` firmado y pusheado a `origin`.
 
 ### Seguridad
 - CSRF obligatorio en endpoints mutables de `users`, `assignments`,
