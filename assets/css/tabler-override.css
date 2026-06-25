@@ -907,6 +907,17 @@ a:focus-visible {
   justify-content: space-between;
 }
 
+.notif-dropdown .notif-section-title {
+  padding: 0.55rem 1rem 0.4rem;
+  background: var(--tblr-bg-surface-2);
+  color: var(--tblr-muted);
+  font-size: 0.72rem;
+  font-weight: var(--tblr-font-weight-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--tblr-border-color);
+}
+
 .notif-dropdown .notif-item {
   padding: 0.75rem 1rem;
   display: flex;
@@ -936,6 +947,78 @@ a:focus-visible {
   font-size: 0.75rem;
   color: var(--tblr-muted);
 }
+
+.notif-dropdown .notif-pending-item:hover,
+.notif-dropdown .notif-pending-item:focus {
+  background: var(--tblr-bg-surface-2);
+}
+
+.notif-registrador-dot {
+  width: 0.85rem;
+  height: 0.85rem;
+  border-radius: 999px;
+  flex: 0 0 auto;
+  margin-top: 0.25rem;
+  background: var(--notif-color, var(--tblr-primary));
+  box-shadow: 0 0 0 0.2rem color-mix(in srgb, var(--notif-color, var(--tblr-primary)) 16%, transparent);
+}
+
+.notif-color-0 { --notif-color: #206bc4; }
+.notif-color-1 { --notif-color: #2fb344; }
+.notif-color-2 { --notif-color: #f76707; }
+.notif-color-3 { --notif-color: #ae3ec9; }
+.notif-color-4 { --notif-color: #0ca678; }
+.notif-color-5 { --notif-color: #d6336c; }
+.notif-color-6 { --notif-color: #1098ad; }
+.notif-color-7 { --notif-color: #e67700; }
+.notif-color-8 { --notif-color: #5c7cfa; }
+.notif-color-9 { --notif-color: #c92a2a; }
+
+/* === Establecimientos agrupados por comuna === */
+.comuna-group-row td {
+  background: color-mix(in srgb, var(--comuna-color, var(--tblr-primary)) 9%, var(--tblr-bg-surface));
+  border-top: 1px solid color-mix(in srgb, var(--comuna-color, var(--tblr-primary)) 22%, var(--tblr-border-color));
+  border-bottom: 1px solid color-mix(in srgb, var(--comuna-color, var(--tblr-primary)) 18%, var(--tblr-border-color));
+}
+
+.comuna-group-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--tblr-body-color);
+}
+
+.comuna-color-dot,
+.comuna-row-marker {
+  display: inline-block;
+  background: var(--comuna-color, var(--tblr-primary));
+}
+
+.comuna-color-dot {
+  width: 0.9rem;
+  height: 0.9rem;
+  border-radius: 999px;
+  box-shadow: 0 0 0 0.2rem color-mix(in srgb, var(--comuna-color, var(--tblr-primary)) 16%, transparent);
+}
+
+.comuna-row-marker {
+  width: 0.28rem;
+  height: 1.4rem;
+  border-radius: 999px;
+  margin-right: 0.55rem;
+  vertical-align: middle;
+}
+
+.comuna-color-blue { --comuna-color: #206bc4; }
+.comuna-color-green { --comuna-color: #2fb344; }
+.comuna-color-orange { --comuna-color: #f76707; }
+.comuna-color-purple { --comuna-color: #ae3ec9; }
+.comuna-color-cyan { --comuna-color: #1098ad; }
+.comuna-color-pink { --comuna-color: #d6336c; }
+.comuna-color-lime { --comuna-color: #74b816; }
+.comuna-color-yellow { --comuna-color: #f59f00; }
+.comuna-color-red { --comuna-color: #c92a2a; }
+.comuna-color-indigo { --comuna-color: #5c7cfa; }
 
 /* === Tabs polish === */
 .nav-tabs .nav-link {

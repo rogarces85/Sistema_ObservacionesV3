@@ -49,6 +49,7 @@ $breadcrumbHtml = renderBreadcrumb($currentPage);
     <link rel="stylesheet" href="assets/css/styles.css">
     <link rel="stylesheet" href="assets/css/tokens.css">
     <link rel="stylesheet" href="assets/css/tabler-override.css">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
 </head>
 <body>
     <a class="skip-link" href="#main-content">Saltar al contenido principal</a>

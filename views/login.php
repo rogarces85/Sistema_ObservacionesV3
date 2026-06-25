@@ -145,8 +145,6 @@ $initialTheme = in_array($initialTheme, ['light', 'dark'], true) ? $initialTheme
         </main>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.21.0/dist/tabler-icons.min.css" onerror="this.remove()"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.4.0/dist/js/tabler.min.js" defer></script>
     <script>
         async function handleLogin(event) {
             event.preventDefault();

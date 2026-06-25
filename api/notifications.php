@@ -5,6 +5,7 @@
 
 header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../config/config.php';
+require_once __DIR__ . '/../config/constants.php';
 require_once __DIR__ . '/../models/Notification.php';
 require_once __DIR__ . '/../includes/csrf.php';
 
@@ -21,13 +22,26 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
 
 $notificationModel = new Notification();
 $userId = $_SESSION['user_id'];
+$userRole = $_SESSION['rol'] ?? '';
+$currentYear = (int)($_SESSION['year'] ?? date('Y'));
 $method = $_SERVER['REQUEST_METHOD'];
 $action = $_GET['action'] ?? 'list';
 
 try {
     if ($method === 'GET' && $action === 'list') {
+        $unread = $notificationModel->countUnread($userId);
+        $pendingSummary = [];
+        $pendingTotal = 0;
+
+        if ($userRole === ROL_SUPERVISOR) {
+            $pendingSummary = $notificationModel->getPendingSummaryByRegistrador($currentYear, 10);
+            $pendingTotal = $notificationModel->countPendingForSupervisor($currentYear);
+        }
+
         jsonResponse(true, [
-            'unread' => $notificationModel->countUnread($userId),
+            'unread' => $unread + $pendingTotal,
+            'pending_total' => $pendingTotal,
+            'pending_groups' => $pendingSummary,
             'items' => $notificationModel->getForUser($userId, 10)
         ]);
     }

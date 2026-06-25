@@ -250,7 +250,10 @@ async function initNotifications() {
             notifDot.textContent = data.unread || 0;
             notifDot.classList.toggle('d-none', !data.unread);
 
-            if (!data.items || data.items.length === 0) {
+            const pendingGroups = data.pending_groups || [];
+            const items = data.items || [];
+
+            if (pendingGroups.length === 0 && items.length === 0) {
                 notifList.innerHTML = `
                     <div class="notif-item">
                         <i class="ti ti-info-circle"></i>
@@ -262,15 +265,38 @@ async function initNotifications() {
                 return;
             }
 
-            notifList.innerHTML = data.items.map(item => `
-                <a class="notif-item text-decoration-none ${item.leida == 0 ? 'fw-semibold' : ''}" href="${item.url || '#'}" data-notification-id="${item.id}">
-                    <i class="ti ${item.leida == 0 ? 'ti-bell-ringing' : 'ti-bell'}"></i>
-                    <div>
-                        <div class="notif-title">${escapeHtmlGlobal(item.titulo)}</div>
-                        <div class="notif-time">${escapeHtmlGlobal(item.mensaje)}</div>
-                    </div>
-                </a>
-            `).join('');
+            const pendingHtml = pendingGroups.length > 0 ? `
+                <div class="notif-section-title">Pendientes por registrador</div>
+                ${pendingGroups.map(group => {
+                    const colorIndex = Math.abs(parseInt(group.registrador_id, 10) || 0) % 10;
+                    const total = parseInt(group.total_pendientes, 10) || 0;
+                    const label = total === 1 ? 'observación pendiente' : 'observaciones pendientes';
+                    return `
+                        <a class="notif-item notif-pending-item text-decoration-none" href="?page=supervision">
+                            <span class="notif-registrador-dot notif-color-${colorIndex}" aria-hidden="true"></span>
+                            <div>
+                                <div class="notif-title">${escapeHtmlGlobal(group.registrador_nombre || group.registrador_username || 'Registrador')}</div>
+                                <div class="notif-time"><strong>${total}</strong> ${label}</div>
+                                <div class="notif-time">${escapeHtmlGlobal(group.comunas || 'Sin comunas asociadas')}</div>
+                            </div>
+                        </a>`;
+                }).join('')}
+            ` : '';
+
+            const itemsHtml = items.length > 0 ? `
+                ${pendingGroups.length > 0 ? '<div class="notif-section-title">Otras notificaciones</div>' : ''}
+                ${items.map(item => `
+                    <a class="notif-item text-decoration-none ${item.leida == 0 ? 'fw-semibold' : ''}" href="${item.url || '#'}" data-notification-id="${item.id}">
+                        <i class="ti ${item.leida == 0 ? 'ti-bell-ringing' : 'ti-bell'}"></i>
+                        <div>
+                            <div class="notif-title">${escapeHtmlGlobal(item.titulo)}</div>
+                            <div class="notif-time">${escapeHtmlGlobal(item.mensaje)}</div>
+                        </div>
+                    </a>
+                `).join('')}
+            ` : '';
+
+            notifList.innerHTML = pendingHtml + itemsHtml;
         } catch (error) {
             notifList.innerHTML = '<div class="notif-item text-danger">No se pudieron cargar las notificaciones.</div>';
         }

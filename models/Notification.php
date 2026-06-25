@@ -32,6 +32,36 @@ class Notification
         return $this->db->query($sql, [$userId, (int)$limit]);
     }
 
+    public function getPendingSummaryByRegistrador($year, $limit = 10)
+    {
+        $sql = "SELECT
+                    ur.id AS registrador_id,
+                    ur.nombre_completo AS registrador_nombre,
+                    ur.username AS registrador_username,
+                    COUNT(*) AS total_pendientes,
+                    MAX(o.fecha_registro) AS ultima_fecha,
+                    GROUP_CONCAT(DISTINCT c.nombre ORDER BY c.nombre SEPARATOR ', ') AS comunas
+                FROM observaciones o
+                INNER JOIN usuarios ur ON o.usuario_registro_id = ur.id
+                INNER JOIN establecimientos e ON o.establecimiento_id = e.id
+                INNER JOIN comunas c ON e.comuna_id = c.id
+                WHERE o.anio = ? AND o.estado_actual = 'pendiente'
+                GROUP BY ur.id, ur.nombre_completo, ur.username
+                ORDER BY total_pendientes DESC, ultima_fecha DESC
+                LIMIT ?";
+
+        return $this->db->query($sql, [(int)$year, (int)$limit]);
+    }
+
+    public function countPendingForSupervisor($year)
+    {
+        $row = $this->db->queryOne(
+            "SELECT COUNT(*) AS total FROM observaciones WHERE anio = ? AND estado_actual = 'pendiente'",
+            [(int)$year]
+        );
+        return (int)($row['total'] ?? 0);
+    }
+
     public function countUnread($userId)
     {
         $row = $this->db->queryOne("SELECT COUNT(*) AS total FROM notificaciones WHERE usuario_id = ? AND leida = 0", [$userId]);

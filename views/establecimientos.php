@@ -8,6 +8,33 @@ require_once __DIR__ . '/../models/Location.php';
 $locationModel = new Location();
 $comunas = $locationModel->getAllComunas();
 $establecimientos = $locationModel->getAllEstablecimientosConInactivos();
+
+$comunaColors = ['blue', 'green', 'orange', 'purple', 'cyan', 'pink', 'lime', 'yellow', 'red', 'indigo'];
+$establecimientosPorComuna = [];
+foreach ($establecimientos as $est) {
+    $comunaId = (int)$est['comuna_id'];
+    if (!isset($establecimientosPorComuna[$comunaId])) {
+        $establecimientosPorComuna[$comunaId] = [
+            'id' => $comunaId,
+            'nombre' => $est['comuna_nombre'],
+            'color' => $comunaColors[$comunaId % count($comunaColors)],
+            'establecimientos' => []
+        ];
+    }
+    $establecimientosPorComuna[$comunaId]['establecimientos'][] = $est;
+}
+uasort($establecimientosPorComuna, function ($a, $b) {
+    return strcasecmp($a['nombre'], $b['nombre']);
+});
+foreach ($establecimientosPorComuna as &$grupo) {
+    usort($grupo['establecimientos'], function ($a, $b) {
+        if ((int)$a['activo'] !== (int)$b['activo']) {
+            return (int)$b['activo'] <=> (int)$a['activo'];
+        }
+        return strcasecmp($a['nombre'], $b['nombre']);
+    });
+}
+unset($grupo);
 ?>
 
 <div class="page-wrapper">
@@ -100,33 +127,51 @@ $establecimientos = $locationModel->getAllEstablecimientosConInactivos();
                                     </tr>
                                 </thead>
                                 <tbody id="establecimientosTable">
-                                    <?php foreach ($establecimientos as $est): ?>
-                                        <tr class="establecimiento-row" 
-                                            data-comuna="<?php echo $est['comuna_id']; ?>" 
-                                            data-activo="<?php echo $est['activo'] ? 1 : 0; ?>">
-                                            <td class="font-mono text-secondary"><?php echo htmlspecialchars($est['codigo_establecimiento']); ?></td>
-                                            <td class="fw-semibold <?php echo !$est['activo'] ? 'text-decoration-line-through text-secondary' : ''; ?>">
-                                                <?php echo htmlspecialchars($est['nombre']); ?>
-                                            </td>
-                                            <td class="text-secondary"><?php echo htmlspecialchars($est['nombre_corto']); ?></td>
-                                            <td class="text-secondary"><?php echo htmlspecialchars($est['comuna_nombre']); ?></td>
-                                            <td class="text-center">
-                                                <label class="form-check form-switch mb-0">
-                                                    <input type="checkbox" class="form-check-input" <?php echo $est['activo'] ? 'checked' : ''; ?>
-                                                        onchange="toggleEstablecimiento(<?php echo $est['id']; ?>, this.checked ? 1 : 0, this)">
-                                                    <span class="form-check-label"><?php echo $est['activo'] ? 'Activo' : 'Inactivo'; ?></span>
-                                                </label>
-                                            </td>
-                                            <td class="text-center">
-                                                <div class="btn-list justify-content-center">
-                                                <button onclick='openEditModal(<?php echo json_encode($est); ?>)'
-                                                        class="btn btn-ghost-secondary btn-icon" title="Editar"
-                                                        data-bs-toggle="tooltip" aria-label="Editar">
-                                                        <i class="ti ti-edit"></i>
-                                                    </button>
+                                    <?php foreach ($establecimientosPorComuna as $grupo): ?>
+                                        <tr class="comuna-group-row comuna-color-<?php echo htmlspecialchars($grupo['color']); ?>"
+                                            data-comuna="<?php echo $grupo['id']; ?>">
+                                            <td colspan="6">
+                                                <div class="comuna-group-header">
+                                                    <span class="comuna-color-dot" aria-hidden="true"></span>
+                                                    <span class="fw-bold"><?php echo htmlspecialchars($grupo['nombre']); ?></span>
+                                                    <span class="badge bg-secondary-lt ms-2">
+                                                        <span class="comuna-visible-count"><?php echo count($grupo['establecimientos']); ?></span>
+                                                        establecimientos visibles
+                                                    </span>
                                                 </div>
                                             </td>
                                         </tr>
+                                        <?php foreach ($grupo['establecimientos'] as $est): ?>
+                                            <tr class="establecimiento-row comuna-color-<?php echo htmlspecialchars($grupo['color']); ?>"
+                                                data-comuna="<?php echo $est['comuna_id']; ?>"
+                                                data-activo="<?php echo $est['activo'] ? 1 : 0; ?>">
+                                                <td class="font-mono text-secondary">
+                                                    <span class="comuna-row-marker" aria-hidden="true"></span>
+                                                    <?php echo htmlspecialchars($est['codigo_establecimiento']); ?>
+                                                </td>
+                                                <td class="fw-semibold <?php echo !$est['activo'] ? 'text-decoration-line-through text-secondary' : ''; ?>">
+                                                    <?php echo htmlspecialchars($est['nombre']); ?>
+                                                </td>
+                                                <td class="text-secondary"><?php echo htmlspecialchars($est['nombre_corto']); ?></td>
+                                                <td class="text-secondary"><?php echo htmlspecialchars($est['comuna_nombre']); ?></td>
+                                                <td class="text-center">
+                                                    <label class="form-check form-switch mb-0">
+                                                        <input type="checkbox" class="form-check-input" <?php echo $est['activo'] ? 'checked' : ''; ?>
+                                                            onchange="toggleEstablecimiento(<?php echo $est['id']; ?>, this.checked ? 1 : 0, this)">
+                                                        <span class="form-check-label"><?php echo $est['activo'] ? 'Activo' : 'Inactivo'; ?></span>
+                                                    </label>
+                                                </td>
+                                                <td class="text-center">
+                                                    <div class="btn-list justify-content-center">
+                                                    <button onclick='openEditModal(<?php echo json_encode($est); ?>)'
+                                                            class="btn btn-ghost-secondary btn-icon" title="Editar"
+                                                            data-bs-toggle="tooltip" aria-label="Editar">
+                                                            <i class="ti ti-edit"></i>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
                                     <?php endforeach; ?>
                                 </tbody>
                             </table>
@@ -284,6 +329,8 @@ $establecimientos = $locationModel->getAllEstablecimientosConInactivos();
         const comunaFilter = document.getElementById('filterComuna').value;
         const showInactivos = document.getElementById('showInactivos').checked;
         const rows = document.querySelectorAll('.establecimiento-row');
+        const groups = document.querySelectorAll('.comuna-group-row');
+        const visibleByComuna = {};
         let activos = 0, inactivos = 0;
 
         rows.forEach(row => {
@@ -291,9 +338,19 @@ $establecimientos = $locationModel->getAllEstablecimientosConInactivos();
             const activoMatch = showInactivos || row.dataset.activo === '1';
             const visible = comunaMatch && activoMatch;
             row.style.display = visible ? '' : 'none';
+            if (visible) {
+                visibleByComuna[row.dataset.comuna] = (visibleByComuna[row.dataset.comuna] || 0) + 1;
+            }
 
             if (row.dataset.activo === '1') activos++;
             else inactivos++;
+        });
+
+        groups.forEach(group => {
+            const visibleCount = visibleByComuna[group.dataset.comuna] || 0;
+            group.style.display = visibleCount > 0 ? '' : 'none';
+            const countEl = group.querySelector('.comuna-visible-count');
+            if (countEl) countEl.textContent = visibleCount;
         });
 
         document.getElementById('statActivos').textContent = activos;
