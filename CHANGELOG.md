@@ -2,6 +2,14 @@
 
 ## [2.1.0] - 2026-06-24
 
+### Operacion
+- `deploy/` con 18 scripts y plantillas para produccion:
+  provisionamiento, HTTPS, MySQL usuario, migraciones ordenadas,
+  env file, Apache endurecido, fail2ban, worker systemd timer,
+  backup/restore, healthcheck, primer supervisor, limpieza demo.
+- `deploy/TRAINING.md`: plan de capacitacion pre-go-live.
+- `deploy/CUTOVER.md`: checklist de corte del ambiente dev.
+
 ### Seguridad
 - CSRF obligatorio en endpoints mutables de `users`, `assignments`,
   `deleted`, `observations`, `import` (confirm), `report_queue` y

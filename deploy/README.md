@@ -89,11 +89,13 @@ Scripts y plantillas para llevar el sistema a produccion.
 | `backup.sh` | B11: backup diario BD + uploads |
 | `restore.sh` | B13: restore desde backup (emergencias) |
 | `healthcheck.sh` | B14: chequeo periodico |
+| `TRAINING.md` | B15: plan de capacitacion para go-live |
+| `CUTOVER.md` | B16: checklist de corte del ambiente dev |
 
 ## Post-deploy
 
-- B15: Capacitar al equipo de soporte usando `OPERATIONS.md`.
-- B16: Cortar acceso al ambiente de desarrollo cuando se abra produccion.
+- B15: Capacitar al equipo de soporte siguiendo `TRAINING.md`.
+- B16: Cortar acceso al ambiente de desarrollo siguiendo `CUTOVER.md`.
 
 ## Hardening post-lanzamiento (no bloqueante)
 
