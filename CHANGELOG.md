@@ -7,8 +7,9 @@
   provisionamiento, HTTPS, MySQL usuario, migraciones ordenadas,
   env file, Apache endurecido, fail2ban, worker systemd timer,
   backup/restore, healthcheck, primer supervisor, limpieza demo.
-- `deploy/TRAINING.md`: plan de capacitacion pre-go-live.
+- `deploy/TRAINING.md`: plan de capacitacion para go-live.
 - `deploy/CUTOVER.md`: checklist de corte del ambiente dev.
+- `docs/releases/2.1.0.md`: notas orientadas a usuarios finales.
 
 ### Seguridad
 - CSRF obligatorio en endpoints mutables de `users`, `assignments`,
