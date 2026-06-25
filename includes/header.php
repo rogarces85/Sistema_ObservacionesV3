@@ -195,7 +195,7 @@ $breadcrumbHtml = renderBreadcrumb($currentPage);
                                 <button class="dropdown-item" type="button" id="themeToggle">
                                     <i class="ti ti-moon me-2"></i>Cambiar tema
                                 </button>
-                                <a class="dropdown-item text-danger" href="#" onclick="logout(); return false;">
+                                <a class="dropdown-item text-danger" href="index.php?logout=1" onclick="return logout(event);">
                                     <i class="ti ti-logout me-2"></i>Cerrar sesión
                                 </a>
                             </div>

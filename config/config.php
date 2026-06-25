@@ -115,12 +115,16 @@ ini_set('session.use_only_cookies', 1);
 ini_set('session.use_strict_mode', 1);
 ini_set('session.cookie_samesite', 'Lax');
 
-// cookie_secure: 1 por defecto en produccion con HTTPS, override por env
+// cookie_secure: usar Secure solo si la peticion llega por HTTPS, salvo override por env.
+// En hosting compartido/FTP puede estar en HTTP durante la puesta en marcha.
 $cookieSecure = getenv('REM_COOKIE_SECURE');
-if ($cookieSecure === '0') {
-    ini_set('session.cookie_secure', 0);
+if ($cookieSecure === '0' || $cookieSecure === '1') {
+    ini_set('session.cookie_secure', (int)$cookieSecure);
 } else {
-    ini_set('session.cookie_secure', ENVIRONMENT === 'production' ? 1 : 0);
+    $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+        || (isset($_SERVER['SERVER_PORT']) && (int)$_SERVER['SERVER_PORT'] === 443)
+        || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && strtolower($_SERVER['HTTP_X_FORWARDED_PROTO']) === 'https');
+    ini_set('session.cookie_secure', $isHttps ? 1 : 0);
 }
 
 // Iniciar sesion si no esta iniciada

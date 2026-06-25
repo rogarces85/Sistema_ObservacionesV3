@@ -193,15 +193,18 @@ function getCurrentPage() {
 }
 
 // Logout
-async function logout() {
+async function logout(event) {
+    if (event) event.preventDefault();
+    const fallbackUrl = 'index.php?logout=1';
     if (confirm('¿Está seguro que desea cerrar sesión?')) {
         try {
             await fetchAPI('auth.php?action=logout', { method: 'POST' });
             window.location.href = './index.php';
         } catch (error) {
-            showMessage('Error al cerrar sesión', 'error');
+            window.location.href = fallbackUrl;
         }
     }
+    return false;
 }
 
 // Validar formulario
