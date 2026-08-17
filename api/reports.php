@@ -78,12 +78,12 @@ try {
             if ($report === 'plazo-agregado') {
                 jsonResponse(true, [
                     'establecimientos' => $obsModel->reportePlazoAgregado((int)$year, $meses),
-                    'detalle_mensual' => $obsModel->reportePlazoMensual((int)$year)
+                    'detalle_mensual' => $obsModel->reportePlazoMensual((int)$year, $meses)
                 ]);
             } else {
                 jsonResponse(true, [
                     'establecimientos' => $obsModel->reporteValidadorAgregado((int)$year, $meses),
-                    'detalle_mensual' => $obsModel->reporteValidadorMensual((int)$year)
+                    'detalle_mensual' => $obsModel->reporteValidadorMensual((int)$year, $meses)
                 ]);
             }
             break;
@@ -158,8 +158,8 @@ try {
                 'errores_establecimiento' => safeReport('errores_establecimiento', function () use ($obsModel, $year, $userId, $userRole, $meses, $comunaIds, $establecimientoId) { return $obsModel->reporteErroresPorEstablecimiento($year, $userId, $userRole, $meses, $comunaIds, $establecimientoId); }, $errors),
                 'fuera_plazo_establecimiento' => safeReport('fuera_plazo_establecimiento', function () use ($obsModel, $year, $userId, $userRole, $meses, $comunaIds, $establecimientoId) { return $obsModel->reporteFueraPlazoPorEstablecimiento($year, $userId, $userRole, $meses, $comunaIds, $establecimientoId); }, $errors),
                 'no_validador_establecimiento' => safeReport('no_validador_establecimiento', function () use ($obsModel, $year, $userId, $userRole, $meses, $comunaIds, $establecimientoId) { return $obsModel->reporteNoValidadorPorEstablecimiento($year, $userId, $userRole, $meses, $comunaIds, $establecimientoId); }, $errors),
-                'errores_serie' => safeReport('errores_serie', function () use ($obsModel, $year, $userId, $userRole, $meses, $comunaIds, $establecimientoId) { return $obsModel->reporteErroresPorSerie($year, $userId, $userRole, $meses, $comunaIds, $establecimientoId); }, $errors),
-                'errores_hoja' => safeReport('errores_hoja', function () use ($obsModel, $year, $userId, $userRole, $meses, $comunaIds, $establecimientoId) { return $obsModel->reporteErroresPorHoja($year, $userId, $userRole, $meses, $comunaIds, $establecimientoId); }, $errors),
+                'errores_serie' => safeReport('errores_serie', function () use ($obsModel, $year, $userId, $userRole, $meses, $comunaIds, $establecimientoId) { return $obsModel->reportePorSerieDetalle($year, $userId, $userRole, $meses, $comunaIds, $establecimientoId); }, $errors),
+                'errores_hoja' => safeReport('errores_hoja', function () use ($obsModel, $year, $userId, $userRole, $meses, $comunaIds, $establecimientoId) { return $obsModel->reportePorHojaDetalle($year, $userId, $userRole, $meses, $comunaIds, $establecimientoId); }, $errors),
                 'errors' => $errors
             ]);
             break;

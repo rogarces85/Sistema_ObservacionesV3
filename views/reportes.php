@@ -102,12 +102,6 @@ $mesesList = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto',
                                         <button id="btnExportPdf" class="btn btn-outline-danger" type="button">
                                             <i class="ti ti-file-type-pdf me-1"></i>PDF Detallado
                                         </button>
-                                        <button id="btnQueueExcel" class="btn btn-success" type="button">
-                                            <i class="ti ti-clock-plus me-1"></i>Encolar Excel
-                                        </button>
-                                        <button id="btnQueuePdf" class="btn btn-danger" type="button">
-                                            <i class="ti ti-clock-plus me-1"></i>Encolar PDF
-                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -115,33 +109,6 @@ $mesesList = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto',
                     </div>
                 </div>
 
-                <div class="col-12">
-                    <div class="card">
-                        <div class="card-header d-flex align-items-center justify-content-between">
-                            <h3 class="card-title mb-0"><i class="ti ti-list-check me-2 text-primary"></i>Reportes Asíncronos</h3>
-                            <button id="btnRefreshQueue" class="btn btn-sm btn-outline-secondary" type="button">
-                                <i class="ti ti-refresh me-1"></i>Actualizar
-                            </button>
-                        </div>
-                        <div class="table-responsive">
-                            <table class="table table-vcenter card-table">
-                                <thead>
-                                    <tr>
-                                        <th>ID</th>
-                                        <th>Tipo</th>
-                                        <th>Formato</th>
-                                        <th>Estado</th>
-                                        <th>Fecha</th>
-                                        <th class="text-end">Acción</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="reportQueueBody">
-                                    <tr><td colspan="6" class="text-center text-secondary py-3">Cargando reportes...</td></tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
 
                 <!-- Nav Tabs + Panels -->
                 <div class="col-12">
@@ -178,7 +145,7 @@ $mesesList = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto',
                         <div class="card-body tab-content">
                             <!-- Tab 1: Total Errores -->
                             <div id="tab-errores-est" class="tab-pane active" role="tabpanel">
-                                <div class="report-chart-frame" id="chart1Container">
+                                <div class="report-chart-frame" id="chart1Container" data-export-title="Errores por Establecimiento" data-export-slug="errores_establecimiento">
                                     <canvas id="chartErroresEst"></canvas>
                                 </div>
                                 <div class="table-responsive">
@@ -189,35 +156,29 @@ $mesesList = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto',
                                 </div>
                             </div>
 
-                            <!-- Tab 2: Plazos Entrega -->
+                            <!-- Tab 2: Plazos Entrega (Matriz) -->
                             <div id="tab-plazos" class="tab-pane" role="tabpanel">
-                                <div class="report-chart-frame" id="chart2Container">
-                                    <canvas id="chartPlazoAgregado"></canvas>
-                                </div>
                                 <div class="table-responsive">
-                                    <table class="table table-vcenter card-table table-hover">
-                                        <thead><tr><th>Establecimiento</th><th class="text-end">Dentro plazo</th><th class="text-end">Fuera plazo</th><th class="text-end">Total meses</th></tr></thead>
-                                        <tbody id="tablePlazoResumen"></tbody>
+                                    <table class="table table-bordered table-vcenter card-table">
+                                        <thead><tr><th>Establecimiento</th><th class="text-center">Plazo de Entrega</th></tr></thead>
+                                        <tbody id="tablePlazoMatriz"></tbody>
                                     </table>
                                 </div>
                             </div>
 
-                            <!-- Tab 3: Uso Validador -->
+                            <!-- Tab 3: Uso Validador (Matriz) -->
                             <div id="tab-validador" class="tab-pane" role="tabpanel">
-                                <div class="report-chart-frame" id="chart3Container">
-                                    <canvas id="chartValidadorAgregado"></canvas>
-                                </div>
                                 <div class="table-responsive">
-                                    <table class="table table-vcenter card-table table-hover">
-                                        <thead><tr><th>Establecimiento</th><th class="text-end">Usa validador</th><th class="text-end">No usa validador</th><th class="text-end">Total meses</th></tr></thead>
-                                        <tbody id="tableValidadorResumen"></tbody>
+                                    <table class="table table-bordered table-vcenter card-table">
+                                        <thead><tr><th>Establecimiento</th><th class="text-center">Uso Validador</th></tr></thead>
+                                        <tbody id="tableValidadorMatriz"></tbody>
                                     </table>
                                 </div>
                             </div>
 
                             <!-- Tab 4: Errores por Serie -->
                             <div id="tab-serie" class="tab-pane" role="tabpanel">
-                                <div class="report-chart-frame" id="chart4Container">
+                                <div class="report-chart-frame" id="chart4Container" data-export-title="Errores por Serie REM" data-export-slug="errores_serie">
                                     <canvas id="chartErroresSerie"></canvas>
                                 </div>
                                 <div class="table-responsive">
@@ -230,7 +191,7 @@ $mesesList = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto',
 
                             <!-- Tab 5: Errores por Hoja -->
                             <div id="tab-hoja" class="tab-pane" role="tabpanel">
-                                <div class="report-chart-frame" id="chart5Container">
+                                <div class="report-chart-frame" id="chart5Container" data-export-title="Errores por Hoja REM" data-export-slug="errores_hoja">
                                     <canvas id="chartErroresHoja"></canvas>
                                 </div>
                                 <div class="table-responsive">
@@ -240,6 +201,7 @@ $mesesList = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto',
                                     </table>
                                 </div>
                             </div>
+
                         </div>
                     </div>
                 </div>
@@ -259,10 +221,35 @@ const TRIMESTRES = {
     '4': ['Octubre','Noviembre','Diciembre']
 };
 
+// Fallback: definir aplicarTopNOtros si no viene de charts.js
+if (typeof aplicarTopNOtros === 'undefined') {
+    window.aplicarTopNOtros = function(labels, values, topN) {
+        if (!labels || !values || labels.length <= topN) {
+            return { labels, values };
+        }
+        const pares = labels.map((l, i) => ({ label: l, value: values[i] || 0 }));
+        const top = pares.slice(0, topN);
+        const resto = pares.slice(topN);
+        const otrosValue = resto.reduce((s, p) => s + Number(p.value), 0);
+
+        const newLabels = top.map(p => p.label);
+        const newValues = top.map(p => p.value);
+        if (otrosValue > 0) {
+            newLabels.push(`Otros (${resto.length})`);
+            newValues.push(otrosValue);
+        }
+        return { labels: newLabels, values: newValues };
+    };
+}
+
+// Fallback: definir createStackedBarByCategory si no viene de charts.js
+if (typeof createStackedBarByCategory === 'undefined') {
+    console.warn('createStackedBarByCategory no está definida en charts.js');
+}
+
+// colorToken apunta a tokens de tokens.css: nunca hex cableado aqui.
 const TAB_CONFIG = {
-    'tab-errores-est': { canvas: 'chartErroresEst', container: 'chart1Container', table: 'tableErroresEst', orientation: 'horizontal', colorToken: '--tblr-danger', colorFallback: '#dc2626', label: 'Errores', key: 'errores_establecimiento' },
-    'tab-serie': { canvas: 'chartErroresSerie', container: 'chart4Container', table: 'tableErroresSerie', orientation: 'horizontal', colorToken: '--tblr-primary', colorFallback: '#0ea5e9', label: 'Errores', key: 'errores_serie' },
-    'tab-hoja': { canvas: 'chartErroresHoja', container: 'chart5Container', table: 'tableErroresHoja', orientation: 'vertical', colorToken: '--tblr-success', colorFallback: '#10b981', label: 'Errores', key: 'errores_hoja' }
+    'tab-errores-est': { canvas: 'chartErroresEst', container: 'chart1Container', table: 'tableErroresEst', orientation: 'horizontal', colorToken: '--rem-status-error', label: 'Errores', key: 'errores_establecimiento', topN: 12 }
 };
 
 const EXPORT_REPORT_TYPES = {
@@ -286,6 +273,11 @@ function onTabShown(tabId) {
         loadPlazoAgregado();
     } else if (tabId === 'tab-validador') {
         loadValidadorAgregado();
+    } else if (tabId === 'tab-serie' || tabId === 'tab-hoja') {
+        if (cachedData) {
+            renderSerieHojaChart(tabId, cachedData);
+            tabDataLoaded[tabId] = true;
+        }
     } else if (cachedData) {
         renderTabChart(tabId, cachedData);
         tabDataLoaded[tabId] = true;
@@ -362,6 +354,9 @@ async function loadErrorReports() {
             loadPlazoAgregado();
         } else if (activeTab === 'tab-validador') {
             loadValidadorAgregado();
+        } else if (activeTab === 'tab-serie' || activeTab === 'tab-hoja') {
+            renderSerieHojaChart(activeTab, cachedData);
+            tabDataLoaded[activeTab] = true;
         } else {
             renderTabChart(activeTab, cachedData);
             tabDataLoaded[activeTab] = true;
@@ -386,16 +381,167 @@ function renderTabChart(tabId, data) {
         delete errorCharts[config.canvas];
     }
 
-    const resultData = data[config.key] || [];
-    const labels = resultData.map(r => r.nombre_corto || r.nombre || r.codigo_serie || r.codigo_hoja);
-    const values = resultData.map(r => parseInt(r.total));
+    // Orden descendente en todos los rankings: antes dependia del ORDER BY
+    // de cada consulta y no era homogeneo entre pestanas.
+    let resultData = (data[config.key] || []).slice()
+        .sort((a, b) => (parseInt(b.total, 10) || 0) - (parseInt(a.total, 10) || 0));
 
-    const color = chartTokenColor(config.colorToken, config.colorFallback);
-    renderChart(config.canvas, config.container, config.table, config.orientation, labels, values, color, config.label);
+    let labels = resultData.map(r => r.nombre_corto || r.nombre || r.codigo_serie || r.codigo_hoja);
+    let values = resultData.map(r => parseInt(r.total, 10) || 0);
+
+    // Aplicar Top N si está configurado
+    if (config.topN && labels.length > config.topN) {
+        const topAgg = aplicarTopNOtros(labels, values, config.topN);
+        labels = topAgg.labels;
+        values = topAgg.values;
+    }
+
+    renderChart(config.canvas, config.container, config.table, config.orientation, labels, values, config.colorToken, config.label);
+}
+
+function renderSerieHojaChart(tabId, data) {
+    const isHoja = tabId === 'tab-hoja';
+    const canvasId = isHoja ? 'chartErroresHoja' : 'chartErroresSerie';
+    const containerId = isHoja ? 'chart5Container' : 'chart4Container';
+    const tableId = isHoja ? 'tableErroresHoja' : 'tableErroresSerie';
+    const dataKey = isHoja ? 'errores_hoja' : 'errores_serie';
+    const groupField = isHoja ? 'codigo_hoja' : 'codigo_serie';
+
+    if (errorCharts[canvasId]) {
+        errorCharts[canvasId].destroy();
+        delete errorCharts[canvasId];
+    }
+
+    const rawData = data[dataKey] || [];
+    if (!rawData.length) {
+        const container = document.getElementById(containerId);
+        renderEmptyChart(container, 'Sin datos para los filtros seleccionados');
+        document.getElementById(tableId).innerHTML = '<tr><td colspan="5" class="text-center text-secondary py-4">Sin datos para los filtros seleccionados</td></tr>';
+        return;
+    }
+
+    // Pivotar: agrupar por codigo_serie/codigo_hoja, luego contar por tipo_error
+    const grupos = {};
+    const allTipos = new Set();
+    rawData.forEach(row => {
+        const g = row[groupField] || 'Sin clasificar';
+        const t = String(row.tipo_error || 'Otro').trim();
+        allTipos.add(t);
+        if (!grupos[g]) grupos[g] = { total: 0 };
+        grupos[g][t] = (grupos[g][t] || 0) + Number(row.total || 0);
+        grupos[g].total += Number(row.total || 0);
+    });
+
+    // Orden fijo de tipos con fallback para tipos no previstos
+    const TIPOS_VISTOS = Array.from(allTipos).sort();
+    const tiposOrdenados = [];
+    ['ERROR', 'REVISAR', 'F/PLAZO', 'S/OBSERVACION'].forEach(t => {
+        if (TIPOS_VISTOS.includes(t)) tiposOrdenados.push(t);
+    });
+    TIPOS_VISTOS.forEach(t => {
+        if (!tiposOrdenados.includes(t)) tiposOrdenados.push(t);
+    });
+
+    // Convertir a array y ordenar por total descendente
+    let gruposArray = Object.entries(grupos)
+        .map(([nombre, conteos]) => ({ nombre, conteos, total: conteos.total }))
+        .sort((a, b) => b.total - a.total);
+
+    // Aplicar Top 12 + Otros
+    const topN = 12;
+    if (gruposArray.length > topN) {
+        const top = gruposArray.slice(0, topN);
+        const resto = gruposArray.slice(topN);
+        const otrosConteos = {};
+        tiposOrdenados.forEach(t => { otrosConteos[t] = 0; });
+        resto.forEach(g => {
+            tiposOrdenados.forEach(t => {
+                otrosConteos[t] += g.conteos[t] || 0;
+            });
+        });
+        gruposArray = [...top, { nombre: `Otros (${resto.length})`, conteos: otrosConteos, total: resto.reduce((s, g) => s + g.total, 0) }];
+    }
+
+    // Mapear tipos a colores categóricos fijos
+    const colorTokensPorTipo = {
+        'ERROR': '--chart-series-1',
+        'REVISAR': '--chart-series-2',
+        'F/PLAZO': '--chart-series-3',
+        'S/OBSERVACION': '--chart-series-4'
+    };
+    const colorTokens = tiposOrdenados.map(t => colorTokensPorTipo[t] || '--chart-series-1');
+
+    // Crear datos planos para createStackedBarByCategory
+    const flatData = [];
+    gruposArray.forEach(g => {
+        tiposOrdenados.forEach(t => {
+            const v = g.conteos[t] || 0;
+            if (v > 0) {
+                flatData.push({ grupo: g.nombre, categoria: t, total: v });
+            }
+        });
+    });
+
+    const container = document.getElementById(containerId);
+    setChartFrameSize(container, gruposArray.length, 'horizontal');
+
+    const chart = createStackedBarByCategory(canvasId, flatData, tiposOrdenados, colorTokens, { topN: 0, unidad: 'observaciones' });
+    if (chart) errorCharts[canvasId] = chart;
+
+    // Actualizar tabla con desglose por tipo
+    const tableBody = document.getElementById(tableId);
+    let headerHtml = `<tr><th>${isHoja ? 'Hoja REM' : 'Serie REM'}</th>`;
+    tiposOrdenados.forEach(t => {
+        headerHtml += `<th class="text-end">${escapeHtml(t)}</th>`;
+    });
+    headerHtml += '<th class="text-end">Total</th></tr>';
+
+    const thead = tableBody.parentElement.querySelector('thead');
+    if (thead) {
+        thead.innerHTML = headerHtml;
+    }
+
+    const rowsHtml = gruposArray.map(g => {
+        let row = `<tr><td>${escapeHtml(g.nombre)}</td>`;
+        tiposOrdenados.forEach(t => {
+            const v = g.conteos[t] || 0;
+            row += `<td class="text-end fw-medium">${v}</td>`;
+        });
+        row += `<td class="text-end fw-bold">${g.total}</td></tr>`;
+        return row;
+    }).join('');
+    tableBody.innerHTML = rowsHtml;
+}
+
+/** Contexto que se imprime en el PNG exportado (ano, periodo y filtros). */
+function buildExportContext(itemCount) {
+    const partes = [];
+    const year = document.getElementById('filterYear');
+    if (year && year.value) partes.push('Año ' + year.value);
+
+    const tri = document.getElementById('filterTrimestre');
+    if (tri && tri.value) partes.push('Trimestre ' + tri.value);
+
+    const mes = document.getElementById('filterMes');
+    if (mes && mes.value) partes.push(mes.value);
+
+    const comuna = document.getElementById('filterComuna');
+    if (comuna && comuna.value && comuna.selectedIndex > 0) {
+        partes.push(comuna.options[comuna.selectedIndex].text);
+    }
+
+    const est = document.getElementById('filterEstablecimiento');
+    if (est && est.value && est.selectedIndex > 0) {
+        partes.push(est.options[est.selectedIndex].text);
+    }
+
+    if (typeof itemCount === 'number') partes.push(itemCount + ' registros');
+    return partes.join(' · ');
 }
 
 function setChartFrameSize(container, itemCount, orientation) {
     if (!container) return;
+    container.dataset.exportContext = buildExportContext(itemCount);
     container.classList.remove('report-chart-frame--tall', 'report-chart-frame--long', 'report-chart-frame--vertical');
     if (orientation === 'vertical') container.classList.add('report-chart-frame--vertical');
     if (itemCount > 18) {
@@ -450,7 +596,7 @@ function escapeHtml(text) {
 }
 
 // ============================================
-// Reportes Mejorados: Plazo y Validador
+// Reportes Mejorados: Plazo y Validador (Matriz)
 // ============================================
 
 async function loadPlazoAgregado() {
@@ -462,46 +608,67 @@ async function loadPlazoAgregado() {
         const resp = await fetch(url);
         const json = await parseJsonResponse(resp);
         if (!json.success) throw new Error(json.message || 'No se pudo cargar el reporte de plazos');
-        renderPlazoChart(json.data);
+        renderPlazoMatriz(json.data, meses);
         tabDataLoaded['tab-plazos'] = true;
     } catch (e) {
         showError(e.message || 'Error cargando reporte de plazos');
     }
 }
 
-function renderPlazoChart(data) {
-    const est = data.establecimientos || [];
-    const labels = est.map(e => e.nombre_corto);
+function renderPlazoMatriz(data, mesesFiltro) {
+    const detalle = data.detalle_mensual || [];
+    const tbody = document.getElementById('tablePlazoMatriz');
 
-    // Destruir chart anterior
-    if (errorCharts['chartPlazoAgregado']) {
-        errorCharts['chartPlazoAgregado'].destroy();
-        delete errorCharts['chartPlazoAgregado'];
-    }
-
-    const container = document.getElementById('chart2Container');
-    if (!document.getElementById('chartPlazoAgregado')) {
-        container.innerHTML = '<canvas id="chartPlazoAgregado"></canvas>';
-    }
-    setChartFrameSize(container, labels.length, 'horizontal');
-
-    if (labels.length === 0) {
-        renderEmptyChart(container, 'Sin datos para el año seleccionado');
-        document.getElementById('tablePlazoResumen').innerHTML = '<tr><td colspan="4" class="text-center text-secondary py-4">Sin datos para el año seleccionado</td></tr>';
+    if (!detalle.length) {
+        tbody.innerHTML = '<tr><td colspan="13" class="text-center text-secondary py-4">Sin datos para los filtros seleccionados.</td></tr>';
         return;
     }
 
-    errorCharts['chartPlazoAgregado'] = createBarHorizontal('chartPlazoAgregado', labels, est.map(e => parseInt(e.meses_fuera)), chartTokenColor('--tblr-danger', '#dc2626'));
+    // Agrupar por establecimiento
+    const porEst = {};
+    detalle.forEach(row => {
+        const estKey = row.nombre_corto;
+        if (!porEst[estKey]) {
+            porEst[estKey] = { nombre: row.nombre_corto, id: row.id, meses: {} };
+        }
+        porEst[estKey].meses[row.mes] = row;
+    });
 
-    document.getElementById('tablePlazoResumen').innerHTML = est.map(e => `
-        <tr>
-            <td>${escapeHtml(e.nombre_corto)}</td>
-            <td class="text-end fw-medium text-success">${e.meses_dentro}</td>
-            <td class="text-end fw-medium text-danger">${e.meses_fuera}</td>
-            <td class="text-end text-secondary">${e.meses_con_datos}</td>
-        </tr>
-    `).join('');
+    // Definir meses a mostrar (todos o filtrados)
+    const mesesMostrar = mesesFiltro.length > 0 ? mesesFiltro : mesesList;
 
+    // Construir tabla
+    let html = '';
+    Object.values(porEst).forEach(est => {
+        // Fila de agrupación por establecimiento
+        html += `<tr class="tabla-group-row">
+                    <td colspan="13" class="fw-bold" style="background-color: var(--tblr-primary); color: white; padding: 8px;">
+                        ${escapeHtml(est.nombre)}
+                    </td>
+                </tr>`;
+
+        // Una fila por mes
+        mesesMostrar.forEach(mes => {
+            const row = est.meses[mes];
+            let icono = '<i class="ti ti-minus text-secondary" title="Sin datos"></i>';
+
+            if (row) {
+                // Si hay algún "fuera de plazo", mostrar ✗ rojo
+                if (row.fuera === 1) {
+                    icono = '<i class="ti ti-circle-x text-danger" style="font-size: 1.2em;" title="Fuera de plazo"></i>';
+                } else if (row.dentro === 1) {
+                    icono = '<i class="ti ti-circle-check text-success" style="font-size: 1.2em;" title="Dentro de plazo"></i>';
+                }
+            }
+
+            html += `<tr>
+                        <td style="padding-left: 2rem; color: var(--tblr-secondary);">${escapeHtml(mes)}</td>
+                        <td class="text-center">${icono}</td>
+                    </tr>`;
+        });
+    });
+
+    tbody.innerHTML = html;
 }
 
 async function loadValidadorAgregado() {
@@ -513,44 +680,67 @@ async function loadValidadorAgregado() {
         const resp = await fetch(url);
         const json = await parseJsonResponse(resp);
         if (!json.success) throw new Error(json.message || 'No se pudo cargar el reporte de validador');
-        renderValidadorChart(json.data);
+        renderValidadorMatriz(json.data, meses);
         tabDataLoaded['tab-validador'] = true;
     } catch (e) {
         showError(e.message || 'Error cargando reporte de validador');
     }
 }
 
-function renderValidadorChart(data) {
-    const est = data.establecimientos || [];
-    const labels = est.map(e => e.nombre_corto);
+function renderValidadorMatriz(data, mesesFiltro) {
+    const detalle = data.detalle_mensual || [];
+    const tbody = document.getElementById('tableValidadorMatriz');
 
-    if (errorCharts['chartValidadorAgregado']) {
-        errorCharts['chartValidadorAgregado'].destroy();
-        delete errorCharts['chartValidadorAgregado'];
-    }
-
-    const container = document.getElementById('chart3Container');
-    if (!document.getElementById('chartValidadorAgregado')) {
-        container.innerHTML = '<canvas id="chartValidadorAgregado"></canvas>';
-    }
-    setChartFrameSize(container, labels.length, 'horizontal');
-
-    if (labels.length === 0) {
-        renderEmptyChart(container, 'Sin datos para el año seleccionado');
-        document.getElementById('tableValidadorResumen').innerHTML = '<tr><td colspan="4" class="text-center text-secondary py-4">Sin datos para el año seleccionado</td></tr>';
+    if (!detalle.length) {
+        tbody.innerHTML = '<tr><td colspan="13" class="text-center text-secondary py-4">Sin datos para los filtros seleccionados.</td></tr>';
         return;
     }
 
-    errorCharts['chartValidadorAgregado'] = createBarHorizontal('chartValidadorAgregado', labels, est.map(e => parseInt(e.meses_no_usa)), chartTokenColor('--tblr-muted', '#94a3b8'));
+    // Agrupar por establecimiento
+    const porEst = {};
+    detalle.forEach(row => {
+        const estKey = row.nombre_corto;
+        if (!porEst[estKey]) {
+            porEst[estKey] = { nombre: row.nombre_corto, id: row.id, meses: {} };
+        }
+        porEst[estKey].meses[row.mes] = row;
+    });
 
-    document.getElementById('tableValidadorResumen').innerHTML = est.map(e => `
-        <tr>
-            <td>${escapeHtml(e.nombre_corto)}</td>
-            <td class="text-end fw-medium text-info">${e.meses_usa}</td>
-            <td class="text-end fw-medium text-secondary">${e.meses_no_usa}</td>
-            <td class="text-end text-secondary">${e.meses_con_datos}</td>
-        </tr>
-    `).join('');
+    // Definir meses a mostrar (todos o filtrados)
+    const mesesMostrar = mesesFiltro.length > 0 ? mesesFiltro : mesesList;
+
+    // Construir tabla
+    let html = '';
+    Object.values(porEst).forEach(est => {
+        // Fila de agrupación por establecimiento
+        html += `<tr class="tabla-group-row">
+                    <td colspan="13" class="fw-bold" style="background-color: var(--tblr-primary); color: white; padding: 8px;">
+                        ${escapeHtml(est.nombre)}
+                    </td>
+                </tr>`;
+
+        // Una fila por mes
+        mesesMostrar.forEach(mes => {
+            const row = est.meses[mes];
+            let icono = '<i class="ti ti-minus text-secondary" title="Sin datos"></i>';
+
+            if (row) {
+                // Si hay algún "no usa validador", mostrar ✗ rojo
+                if (row.no_usa === 1) {
+                    icono = '<i class="ti ti-circle-x text-danger" style="font-size: 1.2em;" title="No usa validador"></i>';
+                } else if (row.usa === 1) {
+                    icono = '<i class="ti ti-circle-check text-success" style="font-size: 1.2em;" title="Usa validador"></i>';
+                }
+            }
+
+            html += `<tr>
+                        <td style="padding-left: 2rem; color: var(--tblr-secondary);">${escapeHtml(mes)}</td>
+                        <td class="text-center">${icono}</td>
+                    </tr>`;
+        });
+    });
+
+    tbody.innerHTML = html;
 }
 
 // ============================================
@@ -571,9 +761,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btnClearFilters').addEventListener('click', clearFilters);
     document.getElementById('btnExportExcel').addEventListener('click', exportActiveReportExcel);
     document.getElementById('btnExportPdf').addEventListener('click', exportDetailedPdf);
-    document.getElementById('btnQueueExcel').addEventListener('click', () => enqueueReport('excel'));
-    document.getElementById('btnQueuePdf').addEventListener('click', () => enqueueReport('pdf'));
-    document.getElementById('btnRefreshQueue').addEventListener('click', loadReportQueue);
 
     // Restore tab from hash
     const hashTab = location.hash.replace('#', '');
@@ -584,7 +771,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initial load
     loadErrorReports();
-    loadReportQueue();
 });
 
 function clearFilters() {
@@ -628,92 +814,6 @@ function exportDetailedPdf() {
     window.open('api/export.php?' + params.toString(), '_blank');
 }
 
-function getQueuePayload(format) {
-    const activeTab = document.querySelector('.tab-pane.active')?.id || 'tab-errores-est';
-    const tipo = format === 'pdf' ? 'detallado' : (EXPORT_REPORT_TYPES[activeTab] || 'errores_establecimiento');
-    const params = {
-        year: document.getElementById('filterYear').value,
-        meses: getMesesFiltro(),
-        establecimiento_id: document.getElementById('filterEstablecimiento').value || undefined,
-        comuna_id: document.getElementById('filterComuna').value || undefined
-    };
-
-    return {
-        tipo_reporte: tipo,
-        formato: format === 'pdf' ? 'pdf' : 'xlsx',
-        parametros: params
-    };
-}
-
-async function enqueueReport(format) {
-    const button = format === 'pdf' ? document.getElementById('btnQueuePdf') : document.getElementById('btnQueueExcel');
-    if (button && button.disabled) return;
-
-    try {
-        showLoading();
-        if (button) button.disabled = true;
-
-        const response = await fetchAPI('report_queue.php?action=enqueue', {
-            method: 'POST',
-            body: JSON.stringify(getQueuePayload(format))
-        });
-
-        if (response && response.success) {
-            showSuccess('Reporte encolado correctamente. Ejecute el worker para procesarlo.');
-            loadReportQueue();
-        } else {
-            showError((response && response.message) || 'No se pudo encolar el reporte');
-        }
-    } catch (error) {
-        showError(error.message || 'Error al encolar reporte');
-    } finally {
-        hideLoading();
-        if (button) button.disabled = false;
-    }
-}
-
-async function loadReportQueue() {
-    const tbody = document.getElementById('reportQueueBody');
-    tbody.innerHTML = '<tr><td colspan="6" class="text-center text-secondary py-3">Cargando reportes...</td></tr>';
-
-    try {
-        const response = await fetchAPI('report_queue.php?action=list');
-        const reports = response.data || [];
-        if (reports.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-secondary py-3">No hay reportes en cola.</td></tr>';
-            return;
-        }
-
-        tbody.innerHTML = reports.map(report => {
-            const statusClass = {
-                PENDIENTE: 'badge bg-yellow text-yellow-fg',
-                PROCESANDO: 'badge bg-blue text-blue-fg',
-                LISTO: 'badge bg-green text-green-fg',
-                ERROR: 'badge bg-red text-red-fg'
-            }[report.estado] || 'badge';
-            const action = report.estado === 'LISTO'
-                ? `<a class="btn btn-sm btn-primary" href="api/report_queue.php?action=download&id=${report.id}"><i class="ti ti-download me-1"></i>Descargar</a>`
-                : `<span class="text-secondary small">${escapeHtml(report.mensaje_error || '-')}</span>`;
-            return `
-                <tr>
-                    <td>#${report.id}</td>
-                    <td>${escapeHtml(report.tipo_reporte)}</td>
-                    <td>${escapeHtml(report.formato)}</td>
-                    <td><span class="${statusClass}">${escapeHtml(report.estado)}</span></td>
-                    <td class="text-secondary">${formatDateTime(report.fecha_creacion)}</td>
-                    <td class="text-end">${action}</td>
-                </tr>
-            `;
-        }).join('');
-    } catch (error) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger py-3">No se pudo cargar la cola.</td></tr>';
-    }
-}
-
-function formatDateTime(dateString) {
-    if (!dateString) return '-';
-    return new Date(dateString).toLocaleString('es-CL', { dateStyle: 'short', timeStyle: 'short' });
-}
 
 async function parseJsonResponse(response) {
     const text = await response.text();
@@ -728,4 +828,6 @@ async function parseJsonResponse(response) {
     }
     return data;
 }
+
+
 </script>

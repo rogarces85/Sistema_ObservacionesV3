@@ -1042,18 +1042,24 @@ class Observation
     /**
      * Reporte: Plazo de entrega detalle mensual por establecimiento
      */
-    public function reportePlazoMensual(int $anio): array
+    public function reportePlazoMensual(int $anio, array $meses = []): array
     {
+        $params = [$anio];
         $sql = "SELECT e.id, e.nombre_corto, o.mes,
                        MAX(CASE WHEN o.plazo_entrega = 'dentro_plazo' THEN 1 ELSE 0 END) as dentro,
                        MAX(CASE WHEN o.plazo_entrega = 'fuera_plazo' THEN 1 ELSE 0 END) as fuera,
                        COUNT(*) as total_observaciones
                 FROM observaciones o
                 INNER JOIN establecimientos e ON o.establecimiento_id = e.id
-                WHERE o.anio = ? AND o.plazo_entrega IS NOT NULL AND o.plazo_entrega != ''
-                GROUP BY e.id, e.nombre_corto, o.mes
+                WHERE o.anio = ? AND o.plazo_entrega IS NOT NULL AND o.plazo_entrega != ''";
+        if (!empty($meses)) {
+            $placeholders = implode(',', array_fill(0, count($meses), '?'));
+            $sql .= " AND o.mes IN ($placeholders)";
+            $params = array_merge($params, $meses);
+        }
+        $sql .= " GROUP BY e.id, e.nombre_corto, o.mes
                 ORDER BY e.nombre_corto, FIELD(o.mes, 'Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre')";
-        return $this->db->query($sql, [$anio]);
+        return $this->db->query($sql, $params);
     }
 
     /**
@@ -1090,18 +1096,24 @@ class Observation
     /**
      * Reporte: Uso de validador detalle mensual por establecimiento
      */
-    public function reporteValidadorMensual(int $anio): array
+    public function reporteValidadorMensual(int $anio, array $meses = []): array
     {
+        $params = [$anio];
         $sql = "SELECT e.id, e.nombre_corto, o.mes,
                        MAX(CASE WHEN o.usa_validador = 'si' THEN 1 ELSE 0 END) as usa,
                        MAX(CASE WHEN o.usa_validador = 'no' THEN 1 ELSE 0 END) as no_usa,
                        COUNT(*) as total_observaciones
                 FROM observaciones o
                 INNER JOIN establecimientos e ON o.establecimiento_id = e.id
-                WHERE o.anio = ? AND o.usa_validador IS NOT NULL AND o.usa_validador != ''
-                GROUP BY e.id, e.nombre_corto, o.mes
+                WHERE o.anio = ? AND o.usa_validador IS NOT NULL AND o.usa_validador != ''";
+        if (!empty($meses)) {
+            $placeholders = implode(',', array_fill(0, count($meses), '?'));
+            $sql .= " AND o.mes IN ($placeholders)";
+            $params = array_merge($params, $meses);
+        }
+        $sql .= " GROUP BY e.id, e.nombre_corto, o.mes
                 ORDER BY e.nombre_corto, FIELD(o.mes, 'Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre')";
-        return $this->db->query($sql, [$anio]);
+        return $this->db->query($sql, $params);
     }
 
     /**
@@ -1171,5 +1183,137 @@ class Observation
 
         return $this->db->query($sql, $params);
     }
-}
 
+    /**
+     * Datos del Boletin Informativo de Errores REM.
+     *
+     * Solo tipo_error = 'ERROR'. Jerarquia de salida:
+     *   comuna -> categoria de establecimiento -> establecimiento -> mes
+     *
+     * Metodo propio (no se reusa reporteDetalladoPDF) porque ese ya lo
+     * consumen api/export.php y worker_reportes.php: cambiar su SELECT
+     * alteraria un contrato en produccion. Aqui ademas se necesita
+     * respuesta_establecimiento y el comentario del supervisor.
+     */
+    public function getBoletinErrores($filters = [], $userId = null, $userRole = null)
+    {
+        $sql = "SELECT
+                    c.id AS comuna_id,
+                    c.nombre AS comuna,
+                    e.id AS establecimiento_id,
+                    e.nombre AS establecimiento,
+                    e.nombre_corto,
+                    e.codigo_establecimiento,
+                    o.id AS observacion_id,
+                    o.mes,
+                    o.codigo_serie,
+                    o.codigo_hoja,
+                    o.detalle_observacion,
+                    o.clasificacion,
+                    o.estado_actual,
+                    o.plazo_entrega,
+                    o.usa_validador,
+                    o.fecha_registro,
+                    o.fecha_revision,
+                    ur.nombre_completo AS registrador,
+                    us.nombre_completo AS supervisor
+                FROM observaciones o
+                INNER JOIN establecimientos e ON o.establecimiento_id = e.id
+                INNER JOIN comunas c ON e.comuna_id = c.id
+                INNER JOIN usuarios ur ON o.usuario_registro_id = ur.id
+                LEFT JOIN usuarios us ON o.usuario_supervisor_id = us.id
+                WHERE o.tipo_error = 'ERROR'";
+        $params = [];
+
+        if (!empty($filters['anio'])) {
+            $sql .= " AND o.anio = ?";
+            $params[] = $filters['anio'];
+        }
+        if (!empty($filters['comuna_id'])) {
+            $sql .= " AND c.id = ?";
+            $params[] = $filters['comuna_id'];
+        }
+        if (!empty($filters['establecimiento_id'])) {
+            $sql .= " AND e.id = ?";
+            $params[] = $filters['establecimiento_id'];
+        }
+        if (!empty($filters['mes'])) {
+            $sql .= " AND o.mes = ?";
+            $params[] = $filters['mes'];
+        }
+        if (!empty($filters['meses']) && is_array($filters['meses'])) {
+            $placeholders = implode(',', array_fill(0, count($filters['meses']), '?'));
+            $sql .= " AND o.mes IN ($placeholders)";
+            $params = array_merge($params, array_values($filters['meses']));
+        }
+        if (!empty($filters['clasificacion'])) {
+            $sql .= " AND o.clasificacion = ?";
+            $params[] = $filters['clasificacion'];
+        }
+        if (!empty($filters['estado'])) {
+            $sql .= " AND o.estado_actual = ?";
+            $params[] = $filters['estado'];
+        }
+
+        // Guarda defensiva: el boletin es de supervisor, pero si alguna vez
+        // se invoca con rol registrador, se acota a sus propios registros.
+        if ($userRole === ROL_REGISTRADOR && $userId) {
+            $sql .= " AND o.usuario_registro_id = ?";
+            $params[] = $userId;
+        }
+
+        $sql .= " ORDER BY c.nombre,
+                    CASE
+                        WHEN e.nombre LIKE '%HOSPITAL%' THEN 1
+                        WHEN e.nombre LIKE '%CESFAM%'
+                          OR e.nombre LIKE '%CENTRO DE SALUD FAMILIAR%' THEN 2
+                        WHEN e.nombre LIKE '%CECOSF%'
+                          OR e.nombre LIKE '%CENTRO COMUNITARIO%' THEN 3
+                        WHEN e.nombre LIKE '%COSAM%'
+                          OR e.nombre LIKE '%CESAM%'
+                          OR e.nombre LIKE '%CDR%' THEN 4
+                        WHEN e.nombre LIKE '%POSTA%'
+                          OR e.nombre LIKE '%PSR%' THEN 5
+                        ELSE 6
+                    END,
+                    e.nombre,
+                    FIELD(o.mes,'Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'),
+                    o.codigo_serie, o.codigo_hoja, o.fecha_registro";
+
+        return $this->db->query($sql, $params);
+    }
+
+    /**
+     * Resumen ejecutivo del boletin, calculado sobre las filas ya obtenidas
+     * para no duplicar el WHERE en una segunda consulta.
+     */
+    public static function resumenBoletin(array $datos)
+    {
+        $establecimientos = [];
+        $comunas = [];
+        $corregidos = 0;
+        $sinRespuesta = 0;
+
+        foreach ($datos as $row) {
+            $establecimientos[$row['establecimiento_id']] = true;
+            $comunas[$row['comuna_id']] = true;
+            if (esCorregido($row['clasificacion'] ?? null, $row['estado_actual'] ?? null)) {
+                $corregidos++;
+            }
+            if (strtolower(trim((string) ($row['clasificacion'] ?? ''))) === CLASIF_SIN_RESPUESTA) {
+                $sinRespuesta++;
+            }
+        }
+
+        $total = count($datos);
+
+        return [
+            'total_errores' => $total,
+            'corregidos' => $corregidos,
+            'sin_respuesta' => $sinRespuesta,
+            'pct_corregidos' => $total > 0 ? round(($corregidos / $total) * 100, 1) : 0.0,
+            'establecimientos' => count($establecimientos),
+            'comunas' => count($comunas)
+        ];
+    }
+}

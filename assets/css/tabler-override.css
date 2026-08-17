@@ -170,7 +170,7 @@ a:hover {
 /* === Sidebar nav badges === */
 .nav-badge {
   margin-left: auto;
-  background: rgba(14, 165, 233, 0.25);
+  background: rgba(var(--tblr-primary-rgb), 0.25);
   color: #ffffff;
   border-radius: var(--tblr-border-radius-pill);
   padding: 0.05rem 0.5rem;
@@ -188,15 +188,15 @@ a:hover {
 .btn-primary {
   --tblr-btn-bg: var(--tblr-primary);
   --tblr-btn-border-color: var(--tblr-primary);
-  --tblr-btn-hover-bg: #0284c7;
-  --tblr-btn-hover-border-color: #0284c7;
-  --tblr-btn-active-bg: #0369a1;
-  --tblr-btn-active-border-color: #0369a1;
+  --tblr-btn-hover-bg: var(--rem-brand-hover);
+  --tblr-btn-hover-border-color: var(--rem-brand-hover);
+  --tblr-btn-active-bg: var(--rem-brand-active);
+  --tblr-btn-active-border-color: var(--rem-brand-active);
 }
 
 .btn-primary:hover,
 .btn-primary:focus-visible {
-  box-shadow: 0 6px 14px rgba(14, 165, 233, 0.28);
+  box-shadow: 0 6px 14px rgba(var(--tblr-primary-rgb), 0.28);
   transform: translateY(-1px);
 }
 
@@ -214,9 +214,9 @@ a:hover {
   --tblr-btn-color: var(--tblr-primary);
   --tblr-btn-bg: transparent;
   --tblr-btn-border-color: transparent;
-  --tblr-btn-hover-bg: rgba(14, 165, 233, 0.12);
+  --tblr-btn-hover-bg: rgba(var(--tblr-primary-rgb), 0.12);
   --tblr-btn-hover-border-color: transparent;
-  --tblr-btn-active-bg: rgba(14, 165, 233, 0.18);
+  --tblr-btn-active-bg: rgba(var(--tblr-primary-rgb), 0.18);
   --tblr-btn-active-border-color: transparent;
 }
 
@@ -233,7 +233,7 @@ a:hover {
 .form-control:focus,
 .form-select:focus {
   border-color: var(--tblr-primary);
-  box-shadow: 0 0 0 0.2rem rgba(14, 165, 233, 0.18);
+  box-shadow: 0 0 0 0.2rem rgba(var(--tblr-primary-rgb), 0.18);
 }
 
 .form-floating > label {
@@ -375,12 +375,12 @@ a:hover {
 
 .badge-status-justificado {
   color: var(--rem-status-justificado);
-  background: rgba(14, 165, 233, 0.12);
+  background: rgba(var(--tblr-primary-rgb), 0.12);
 }
 
 .badge-soft-primary {
   color: var(--tblr-primary);
-  background: rgba(14, 165, 233, 0.12);
+  background: rgba(var(--tblr-primary-rgb), 0.12);
 }
 
 /* === Status dots === */
@@ -477,7 +477,7 @@ a:hover {
   width: 5rem;
   height: 5rem;
   border-radius: var(--rem-radius-lg);
-  background: rgba(14, 165, 233, 0.10);
+  background: rgba(var(--tblr-primary-rgb), 0.10);
   color: var(--tblr-primary);
   display: inline-flex;
   align-items: center;
@@ -558,10 +558,11 @@ a:hover {
 .loading-overlay__spinner {
   width: 1.5rem;
   height: 1.5rem;
-  border: 3px solid rgba(14, 165, 233, 0.2);
+  border: 3px solid rgba(var(--tblr-primary-rgb), 0.2);
   border-top-color: var(--tblr-primary);
   border-radius: 9999px;
   animation: rem-spin 0.8s linear infinite;
+  will-change: transform;
 }
 
 @keyframes rem-spin {
@@ -581,7 +582,7 @@ a:hover {
 .alert {
   border-radius: var(--rem-radius);
   border: 0;
-  background: rgba(14, 165, 233, 0.10);
+  background: rgba(var(--tblr-primary-rgb), 0.10);
   color: var(--tblr-body-color);
 }
 
@@ -686,7 +687,7 @@ a:focus-visible {
   font-weight: var(--tblr-font-weight-bold);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  box-shadow: 0 2px 6px rgba(14, 165, 233, 0.25);
+  box-shadow: 0 2px 6px rgba(var(--tblr-primary-rgb), 0.25);
 }
 
 .ribbon.ribbon-warning {
@@ -1040,6 +1041,73 @@ a:focus-visible {
   border-bottom-color: var(--tblr-primary);
 }
 
+/* === Charts: contenedor y boton de exportar ===
+   Antes estos estilos se inyectaban en runtime desde charts.js
+   (injectExportStyles), lo que violaba la regla de mantener el CSS
+   en la hoja de estilos. */
+.chart-canvas-frame {
+  position: relative;
+}
+
+.chart-export-btn {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  z-index: 2;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--chart-tooltip-border);
+  border-radius: var(--rem-radius-sm);
+  background: var(--chart-export-bg);
+  color: var(--chart-tooltip-text);
+  opacity: 0.55;
+  cursor: pointer;
+  line-height: 1;
+  font-size: 0.95rem;
+  transition: opacity var(--rem-transition-fast), background var(--rem-transition-fast), border-color var(--rem-transition-fast);
+}
+
+.chart-export-btn:hover,
+.chart-export-btn:focus-visible {
+  opacity: 1;
+  background: var(--chart-export-bg-hover);
+  border-color: var(--tblr-primary);
+  box-shadow: var(--tblr-shadow-sm);
+}
+
+.chart-frame-sm {
+  position: relative;
+  height: 240px;
+}
+
+.chart-frame-md {
+  position: relative;
+  height: 280px;
+}
+
+.progress-xs {
+  height: 0.4rem;
+}
+
+/* Ancho dirigido por datos sin usar style="width:..." en el markup */
+.progress-bar[style*="--rem-progress"] {
+  width: var(--rem-progress, 0%);
+}
+
+/* Serie categorica estable: el color se asigna por NOMBRE del elemento,
+   no por su posicion en el ranking, para que no cambie entre consultas. */
+.rem-serie-1 { background-color: var(--chart-series-1); }
+.rem-serie-2 { background-color: var(--chart-series-2); }
+.rem-serie-3 { background-color: var(--chart-series-3); }
+.rem-serie-4 { background-color: var(--chart-series-4); }
+.rem-serie-5 { background-color: var(--chart-series-5); }
+.rem-serie-6 { background-color: var(--chart-series-6); }
+.rem-serie-7 { background-color: var(--chart-series-7); }
+.rem-serie-8 { background-color: var(--chart-series-8); }
+
 /* === Reports module === */
 .report-chart-frame {
   position: relative;
@@ -1162,7 +1230,7 @@ a:focus-visible {
 }
 
 [data-bs-theme="dark"] .ribbon {
-  box-shadow: 0 8px 18px rgba(14, 165, 233, 0.22);
+  box-shadow: 0 8px 18px rgba(var(--tblr-primary-rgb), 0.22);
 }
 
 [data-bs-theme="dark"] .ribbon.ribbon-warning {
@@ -1199,6 +1267,276 @@ a:focus-visible {
 .btn-fab.is-visible {
   display: inline-flex;
   animation: rem-fade-in 200ms ease-out;
+}
+
+/* === Dashboard hero section (hardened classes) === */
+.dashboard-hero {
+  --rem-card-bg: var(--rem-grad-hero);
+  color: #ffffff;
+}
+
+.dashboard-hero-avatar {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  width: 3.5rem;
+  height: 3.5rem;
+  font-size: 1.1rem;
+}
+
+.dashboard-hero-badge {
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+  font-weight: 500;
+}
+
+.dashboard-hero-description {
+  opacity: 0.9;
+  max-width: 36rem;
+}
+
+.dashboard-hero-cta-primary {
+  background: #ffffff;
+  color: var(--tblr-primary);
+  font-weight: 600;
+}
+
+.dashboard-hero-cta-secondary {
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.dashboard-hero-year-display {
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.dashboard-hero-status-badge {
+  background: rgba(255, 255, 255, 0.15);
+  padding: 0.35rem 0.85rem;
+  border-radius: 9999px;
+  font-size: 0.85rem;
+}
+
+.dashboard-hero-live-dot {
+  background: #86efac;
+}
+
+/* === Stat card icons (hardened) === */
+.stat-icon-default {
+  background: var(--tblr-primary);
+}
+
+.stat-icon-warning {
+  background: var(--tblr-warning);
+  color: #111827;
+}
+
+.stat-icon-success {
+  background: var(--tblr-success);
+}
+
+.stat-icon-danger {
+  background: var(--tblr-danger);
+}
+
+.stat-icon-secondary {
+  background: var(--tblr-secondary);
+}
+
+/* === Login view (hardened classes) === */
+.logo-header {
+  height: 48px;
+}
+
+.logo-form {
+  height: 56px;
+}
+
+.login-hero-description {
+  max-width: 28rem;
+  opacity: 0.9;
+}
+
+.login-hero-footer-text {
+  font-size: 0.8rem;
+  opacity: 0.75;
+}
+
+.login-avatar-placeholder {
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+}
+
+/* === Form descriptions (hardened) === */
+.form-description {
+  opacity: 0.75;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.7rem;
+}
+
+/* === Alert cards (hardened) === */
+.alert-warning-card {
+  background: rgba(245, 158, 11, 0.10);
+  border: 0;
+}
+
+.alert-warning-icon {
+  background: rgba(245, 158, 11, 0.18);
+  color: var(--tblr-warning);
+}
+
+/* === Detail containers (hardened) === */
+.detail-panel-scrollable {
+  max-height: 8rem;
+  overflow-y: auto;
+}
+
+.detail-preview-scrollable {
+  max-height: 12rem;
+  overflow-y: auto;
+}
+
+.detail-section {
+  min-height: 80px;
+}
+
+.detail-section-small {
+  min-height: 60px;
+}
+
+/* === Progress bars (hardened) === */
+.progress-xs {
+  height: 0.5rem;
+}
+
+/* === Gradient cards (hardened) === */
+.card-gradient-rose {
+  background: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%);
+}
+
+.card-gradient-sky {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+}
+
+.card-gradient-amber {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+}
+
+/* === Scrollable lists (hardened) === */
+.list-scrollable-lg {
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+.list-scrollable-md {
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.text-truncate-fixed {
+  max-width: 150px;
+}
+
+/* === Text wrapping and overflow (edge cases) === */
+.text-break-word {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+.text-truncate-1 {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.text-truncate-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.text-truncate-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* === Form validation states === */
+.form-control.is-invalid,
+.form-select.is-invalid {
+  border-color: var(--tblr-danger);
+  box-shadow: 0 0 0 0.2rem rgba(239, 68, 68, 0.25);
+}
+
+.invalid-feedback {
+  display: block;
+  color: var(--tblr-danger);
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
+
+/* === Loading state for buttons === */
+.btn[aria-busy="true"] {
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+/* === Empty state improvements === */
+.empty-state-message {
+  color: var(--tblr-muted);
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.empty-state-action {
+  margin-top: 1.5rem;
+}
+
+/* === Large dataset optimizations === */
+.table tbody tr:hover {
+  background-color: var(--rem-table-hover-bg);
+  transition: background-color var(--rem-transition-fast);
+}
+
+/* === Internationalization (Spanish) === */
+html {
+  /* Support for Spanish typography */
+  hyphens: auto;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Better handling of Spanish text with accents and ñ */
+body {
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+/* Tables with Spanish text */
+table {
+  word-break: break-word;
+}
+
+table td,
+table th {
+  hyphens: auto;
+}
+
+/* === Image lazy loading === */
+img {
+  loading: lazy;
+}
+
+/* Fallback for browsers that don't support native lazy loading */
+img:not([loading="eager"]) {
+  background-color: var(--tblr-bg-surface-2);
 }
 
 /* === Responsive helpers === */
@@ -1242,4 +1580,112 @@ a:focus-visible {
   .page-header .page-actions {
     width: 100%;
   }
+}
+
+/* === Boletin Informativo de Errores REM ===
+   table-layout: fixed + <colgroup> con anchos porcentuales: las columnas
+   miden EXACTAMENTE lo mismo con una observacion o con quinientas. */
+.rem-boletin-table {
+  table-layout: fixed;
+  width: 100%;
+  font-size: 0.8125rem;
+  border-color: var(--rem-boletin-border);
+}
+
+.rem-boletin-table col.rem-col-comuna  { width: 10%; }
+.rem-boletin-table col.rem-col-est     { width: 15%; }
+.rem-boletin-table col.rem-col-mes     { width: 8%; }
+.rem-boletin-table col.rem-col-rem     { width: 9%; }
+.rem-boletin-table col.rem-col-detalle { width: 46%; }
+.rem-boletin-table col.rem-col-estado  { width: 11%; }
+.rem-boletin-table col.rem-col-num     { width: 4%; }
+
+.rem-boletin-table thead th {
+  background: var(--rem-boletin-header-bg);
+  color: var(--rem-boletin-header-fg);
+  font-weight: var(--tblr-font-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-size: 0.6875rem;
+  line-height: 1.2;
+  vertical-align: middle;
+  text-align: center;
+  padding: 0.6rem 0.4rem;
+  border-color: var(--rem-boletin-header-bg);
+  border-bottom: 3px solid var(--rem-brand-accent);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.rem-boletin-table td {
+  vertical-align: top;
+  overflow-wrap: anywhere;
+  hyphens: auto;
+  padding: 0.5rem;
+  white-space: pre-line;
+  border-color: var(--rem-boletin-border);
+}
+
+.rem-boletin-table td.rem-cell-group {
+  vertical-align: middle;
+  text-align: center;
+  font-weight: var(--tblr-font-weight-semibold);
+  color: var(--tblr-secondary);
+  background: var(--rem-boletin-group-bg);
+  white-space: normal;
+}
+
+.rem-boletin-table td.rem-cell-rem {
+  text-align: center;
+  font-weight: var(--tblr-font-weight-semibold);
+  color: var(--tblr-primary);
+}
+
+.rem-boletin-table td.rem-cell-estado {
+  text-align: center;
+  vertical-align: middle;
+  font-weight: var(--tblr-font-weight-semibold);
+  white-space: normal;
+}
+
+.rem-estado-ok       { background: var(--rem-status-aprobado-bg);    color: var(--rem-status-aprobado-fg); }
+.rem-estado-pendiente{ background: var(--rem-status-pendiente-bg);   color: var(--rem-status-pendiente-fg); }
+.rem-estado-error    { background: var(--rem-status-error-bg);       color: var(--rem-status-error-fg); }
+.rem-estado-neutro   { background: var(--rem-status-rechazado-bg);   color: var(--rem-status-rechazado-fg); }
+
+/* KPI del resumen ejecutivo */
+.rem-boletin-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--rem-boletin-border);
+  border-left: 3px solid var(--tblr-primary);
+  border-radius: var(--rem-radius-sm);
+  background: var(--tblr-bg-surface);
+  height: 100%;
+}
+
+.rem-boletin-kpi-label {
+  font-size: 0.75rem;
+  color: var(--tblr-muted);
+}
+
+.rem-boletin-kpi-value {
+  font-size: 1.15rem;
+  font-weight: var(--tblr-font-weight-bold);
+  color: var(--tblr-secondary);
+  line-height: 1.2;
+}
+
+/* Impresion desde el navegador */
+@media print {
+  .rem-boletin-table { font-size: 8pt; }
+  .rem-boletin-table thead { display: table-header-group; }
+  .rem-boletin-table thead th { position: static; }
+  .rem-boletin-table tr { page-break-inside: avoid; }
+  .rem-boletin-wrap { overflow: visible; }
+  .rem-boletin-toolbar .btn-list,
+  .navbar, .sidebar, .footer, .chart-export-btn { display: none !important; }
 }

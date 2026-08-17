@@ -5,6 +5,7 @@
  */
 
 require_once __DIR__ . '/../config/config.php';
+require_once __DIR__ . '/../config/constants.php';
 
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
@@ -14,6 +15,16 @@ use PhpOffice\PhpSpreadsheet\Style\Border;
 
 class Exporter
 {
+    // Paleta de colores DEIS Osorno (sincronizada con tokens.css)
+    const COLOR_NAVY_ARGB = 'FF003366';      // Excel ARGB format
+    const COLOR_NAVY_HEX = '#003366';        // Hex format
+    const COLOR_CIAN_ARGB = 'FF00AEEF';
+    const COLOR_CIAN_HEX = '#00AEEF';
+    const COLOR_SUAVE_ARGB = 'FFEEF7FD';
+    const COLOR_SUAVE_HEX = '#EEF7FD';
+    const COLOR_BORDE_ARGB = 'FFB6D7EB';
+    const COLOR_BORDE_HEX = '#B6D7EB';
+
     /**
      * Exportar datos a Excel (.xlsx)
      */
@@ -351,6 +362,7 @@ class Exporter
             $mes = $item['mes'];
             $detalle = $item['detalle_observacion'];
             $clasificacion = $item['clasificacion'];
+            $clasificacionLabel = clasificacionLabel($clasificacion, $estado);
             $estado = $item['estado_actual'];
 
             $comunaSpan = $item['comuna_span'] ?? 1;
@@ -359,9 +371,9 @@ class Exporter
 
             // Color de fondo según estado
             $bgColor = '#FFFFFF';
-            if ($estado === 'aprobado' || $clasificacion === 'Corregido') {
+            if (esCorregido($clasificacion, $estado)) {
                 $bgColor = '#E8F5E9';
-            } elseif ($estado === 'pendiente' || strpos($clasificacion, 'Sin respuesta') !== false) {
+            } elseif ($estado === ESTADO_PENDIENTE || strtolower(trim((string) $clasificacion)) === CLASIF_SIN_RESPUESTA) {
                 $bgColor = '#FFF3E0';
             } elseif ($estado === 'rechazado') {
                 $bgColor = '#FFEBEE';
@@ -398,7 +410,7 @@ class Exporter
             $html .= '<td width="' . $colWidths[3] . '" style="padding: 2px 4px;">' . htmlspecialchars($detalle) . '</td>';
 
             // DETALLE ERROR (clasificación / estado de respuesta)
-            $html .= '<td width="' . $colWidths[4] . '" align="center" style="padding: 2px;">' . htmlspecialchars($clasificacion) . '</td>';
+            $html .= '<td width="' . $colWidths[4] . '" align="center" style="padding: 2px;">' . htmlspecialchars($clasificacionLabel) . '</td>';
 
             // ERRORES (cantidad = 1 por fila)
             $html .= '<td width="' . $colWidths[5] . '" align="center" style="font-weight: bold; padding: 2px;">1</td>';
@@ -660,7 +672,7 @@ class Exporter
             $establecimiento = $item['establecimiento'];
             $mes = $item['mes'];
             $detalleHtml = $item['detalle_html'];
-            $clasificacion = htmlspecialchars($item['clasificacion']);
+            $clasificacion = htmlspecialchars(clasificacionLabel($item['clasificacion'], $item['estado_actual'] ?? null));
             $detalleError = htmlspecialchars($item['detalle_error']);
             $estado = $item['estado_actual'];
 
@@ -745,5 +757,523 @@ class Exporter
 
         $pdf->Output($filename, 'D');
         exit;
+    }
+
+    // =====================================================================
+    // BOLETIN INFORMATIVO DE ERRORES REM
+    // Documento ejecutivo agrupado Comuna > Establecimiento > Mes.
+    // Los anchos de columna son CONSTANTES: la tabla se ve identica con
+    // una observacion o con quinientas (requisito del boletin impreso).
+    // =====================================================================
+
+    /** Definicion unica de columnas, compartida por Excel y PDF. */
+    public static function boletinColumnas()
+    {
+        return [
+            ['clave' => 'comuna',          'titulo' => 'COMUNA',                    'excel' => 14, 'pdf' => 22, 'pct' => '10.8%'],
+            ['clave' => 'establecimiento', 'titulo' => 'ESTABLECIMIENTO',           'excel' => 22, 'pdf' => 32, 'pct' => '15.4%'],
+            ['clave' => 'mes',             'titulo' => 'MES',                       'excel' => 10, 'pdf' => 16, 'pct' => '7.7%'],
+            ['clave' => 'rem',             'titulo' => 'REM',                       'excel' => 12, 'pdf' => 20, 'pct' => '9.2%'],
+            ['clave' => 'detalle',         'titulo' => 'DETALLE DE LA OBSERVACION', 'excel' => 60, 'pdf' => 60, 'pct' => '46.2%'],
+            ['clave' => 'estado',          'titulo' => 'ESTADO',                    'excel' => 18, 'pdf' => 22, 'pct' => '10.8%'],
+            ['clave' => 'num',             'titulo' => 'N',                         'excel' =>  7, 'pdf' => 10, 'pct' => '3.8%'],
+        ];
+    }
+
+    /** Clave de agrupacion a partir de varios campos. */
+    private function claveGrupo($row, $campos)
+    {
+        $partes = [];
+        foreach ($campos as $c) {
+            $partes[] = (string) ($row[$c] ?? '');
+        }
+        return implode('||', $partes);
+    }
+
+    /**
+     * Calcula los rowspan por nivel jerarquico.
+     * Devuelve, por fila, [nivel => n]: n > 0 abre un grupo de n filas,
+     * n === 0 significa que la celda queda absorbida por la combinacion.
+     */
+    private function agruparJerarquia(array $data, array $niveles)
+    {
+        $n = count($data);
+        $spans = [];
+        for ($i = 0; $i < $n; $i++) {
+            $spans[$i] = [];
+        }
+
+        foreach ($niveles as $nombre => $campos) {
+            $i = 0;
+            while ($i < $n) {
+                $clave = $this->claveGrupo($data[$i], $campos);
+                $j = $i + 1;
+                while ($j < $n && $this->claveGrupo($data[$j], $campos) === $clave) {
+                    $j++;
+                }
+                $spans[$i][$nombre] = $j - $i;
+                for ($k = $i + 1; $k < $j; $k++) {
+                    $spans[$k][$nombre] = 0;
+                }
+                $i = $j;
+            }
+        }
+
+        return $spans;
+    }
+
+    /** Niveles de agrupacion del boletin. */
+    private function boletinNiveles()
+    {
+        return [
+            'comuna'          => ['comuna'],
+            'establecimiento' => ['comuna', 'establecimiento'],
+            'mes'             => ['comuna', 'establecimiento', 'mes'],
+        ];
+    }
+
+    /** Normaliza una fila cruda a las celdas visibles del boletin. */
+    private function boletinFila($row)
+    {
+        $rem = trim(($row['codigo_serie'] ?? '') . ' / ' . ($row['codigo_hoja'] ?? ''), ' /');
+
+        return [
+            'comuna'          => $row['comuna'] ?? '',
+            'establecimiento' => $row['establecimiento'] ?? '',
+            'mes'             => $row['mes'] ?? '',
+            'rem'             => $rem,
+            'detalle'         => $row['detalle_observacion'] ?? '',
+            'estado'          => clasificacionLabel($row['clasificacion'] ?? null, $row['estado_actual'] ?? null),
+        ];
+    }
+
+    /** Colores de relleno del estado (ARGB para Excel). */
+    private function boletinColorEstado($row)
+    {
+        $clasif = strtolower(trim((string) ($row['clasificacion'] ?? '')));
+        $estado = $row['estado_actual'] ?? null;
+
+        if (esCorregido($clasif, $estado)) {
+            return ['bg' => 'FFDCFCE7', 'fg' => 'FF14532D'];
+        }
+        if ($clasif === CLASIF_SIN_RESPUESTA) {
+            return ['bg' => 'FFFEF3C7', 'fg' => 'FF78350F'];
+        }
+        if ($clasif === CLASIF_RESPUESTA_INCORRECTA || $clasif === CLASIF_ERROR) {
+            return ['bg' => 'FFFEE2E2', 'fg' => 'FF7F1D1D'];
+        }
+        return ['bg' => 'FFF1F5F9', 'fg' => 'FF1E293B'];
+    }
+
+    /**
+     * Boletin Informativo de Errores REM en Excel.
+     *
+     * A diferencia del resto de exportaciones del sistema, aqui NO se usa
+     * setAutoSize: los anchos son fijos para que el documento impreso sea
+     * identico sin importar cuantas observaciones traiga.
+     *
+     * @param array $data filas de Observation::getBoletinErrores()
+     * @param array $meta ['periodo' => string, 'resumen' => array]
+     */
+    public function exportBoletinExcel($data, $meta, $filename, $download = true)
+    {
+        require_once __DIR__ . '/../vendor/autoload.php';
+
+        $columnas = self::boletinColumnas();
+        $letras = range('A', 'G');
+        $ultima = 'G';
+
+        // Use class constants instead of local variables
+        $NAVY = self::COLOR_NAVY_ARGB;
+        $CIAN = self::COLOR_CIAN_ARGB;
+        $SUAVE = self::COLOR_SUAVE_ARGB;
+        $BORDE = self::COLOR_BORDE_ARGB;
+
+        $periodo = $meta['periodo'] ?? '';
+        $resumen = $meta['resumen'] ?? [];
+
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Boletin');
+
+        $spreadsheet->getProperties()
+            ->setCreator('Sistema de Observaciones REM')
+            ->setTitle('Boletin Informativo de Errores REM')
+            ->setSubject($periodo)
+            ->setCompany('Servicio de Salud Osorno');
+
+        // ---- Anchos FIJOS (nunca setAutoSize) ----
+        foreach ($columnas as $i => $col) {
+            $sheet->getColumnDimension($letras[$i])->setWidth($col['excel']);
+        }
+
+        // ---- Cabecera institucional ----
+        $sheet->getRowDimension(1)->setRowHeight(42);
+        $logo = __DIR__ . '/../assets/images/logo-boletin.png';
+        if (!file_exists($logo)) {
+            $logo = __DIR__ . '/../assets/images/logo.png';
+        }
+        // Drawing::setPath() necesita GD para leer las dimensiones: si no
+        // esta disponible se degrada sin logo en vez de romper la descarga.
+        if (file_exists($logo) && extension_loaded('gd')) {
+            $drawing = new \PhpOffice\PhpSpreadsheet\Worksheet\Drawing();
+            $drawing->setName('DEIS Osorno');
+            $drawing->setDescription('Servicio de Salud Osorno - DEIS');
+            $drawing->setPath($logo);
+            $drawing->setHeight(38);
+            $drawing->setCoordinates('A1');
+            $drawing->setOffsetX(6);
+            $drawing->setOffsetY(3);
+            $drawing->setWorksheet($sheet);
+        }
+
+        $sheet->mergeCells('B1:' . $ultima . '1');
+        $sheet->setCellValue('B1', 'SERVICIO DE SALUD OSORNO   |   DEGI - Departamento de Estadistica');
+        $sheet->getStyle('B1')->getFont()->setBold(true)->setSize(12)->getColor()->setARGB($NAVY);
+        $sheet->getStyle('B1')->getAlignment()
+            ->setVertical(Alignment::VERTICAL_CENTER)
+            ->setHorizontal(Alignment::HORIZONTAL_LEFT);
+
+        $sheet->mergeCells('A2:' . $ultima . '2');
+        $sheet->setCellValue('A2', 'BOLETIN INFORMATIVO DE ERRORES REM');
+        $sheet->getStyle('A2')->getFont()->setBold(true)->setSize(16)->getColor()->setARGB($NAVY);
+        $sheet->getStyle('A2')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $sheet->getRowDimension(2)->setRowHeight(24);
+
+        $sheet->mergeCells('A3:' . $ultima . '3');
+        $sheet->setCellValue('A3', $periodo . '   |   Emitido: ' . date('d/m/Y H:i'));
+        $sheet->getStyle('A3')->getFont()->setSize(10)->getColor()->setARGB('FF475569');
+        $sheet->getStyle('A3')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+        // ---- Resumen ejecutivo ----
+        $sheet->mergeCells('A4:' . $ultima . '4');
+        $sheet->setCellValue('A4', sprintf(
+            'Total de errores: %d     Corregidos: %d (%s%%)     Sin respuesta: %d     Establecimientos: %d     Comunas: %d',
+            $resumen['total_errores'] ?? 0,
+            $resumen['corregidos'] ?? 0,
+            $resumen['pct_corregidos'] ?? 0,
+            $resumen['sin_respuesta'] ?? 0,
+            $resumen['establecimientos'] ?? 0,
+            $resumen['comunas'] ?? 0
+        ));
+        $sheet->getStyle('A4')->getFont()->setBold(true)->setSize(10)->getColor()->setARGB($NAVY);
+        $sheet->getStyle('A4')->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB($SUAVE);
+        $sheet->getStyle('A4')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $sheet->getRowDimension(4)->setRowHeight(20);
+
+        // Banda de acento cian del logo
+        $sheet->mergeCells('A5:' . $ultima . '5');
+        $sheet->getStyle('A5')->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB($CIAN);
+        $sheet->getRowDimension(5)->setRowHeight(4);
+
+        // ---- Encabezados (fila 6) ----
+        $filaHead = 6;
+        foreach ($columnas as $i => $col) {
+            $sheet->setCellValue($letras[$i] . $filaHead, $col['titulo']);
+        }
+        $rangoHead = 'A' . $filaHead . ':' . $ultima . $filaHead;
+        $sheet->getStyle($rangoHead)->getFont()->setBold(true)->setSize(10)->getColor()->setARGB('FFFFFFFF');
+        $sheet->getStyle($rangoHead)->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB($NAVY);
+        $sheet->getStyle($rangoHead)->getAlignment()
+            ->setHorizontal(Alignment::HORIZONTAL_CENTER)
+            ->setVertical(Alignment::VERTICAL_CENTER)
+            ->setWrapText(true);
+        $sheet->getRowDimension($filaHead)->setRowHeight(32);
+
+        // ---- Datos ----
+        $filaInicio = $filaHead + 1;
+        $fila = $filaInicio;
+        $TEXTO = \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING;
+
+        if (empty($data)) {
+            $sheet->mergeCells('A' . $fila . ':' . $ultima . $fila);
+            $sheet->setCellValue('A' . $fila, 'No se encontraron errores en el periodo seleccionado.');
+            $sheet->getStyle('A' . $fila)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $sheet->getRowDimension($fila)->setRowHeight(24);
+            $fila++;
+        } else {
+            $spans = $this->agruparJerarquia($data, $this->boletinNiveles());
+
+            foreach ($data as $idx => $row) {
+                $celdas = $this->boletinFila($row);
+
+                $sheet->setCellValueExplicit('A' . $fila, $celdas['comuna'], $TEXTO);
+                $sheet->setCellValueExplicit('B' . $fila, $celdas['establecimiento'], $TEXTO);
+                $sheet->setCellValueExplicit('C' . $fila, $celdas['mes'], $TEXTO);
+                $sheet->setCellValueExplicit('D' . $fila, $celdas['rem'], $TEXTO);
+                $sheet->setCellValueExplicit('E' . $fila, $celdas['detalle'], $TEXTO);
+                $sheet->setCellValueExplicit('F' . $fila, $celdas['estado'], $TEXTO);
+
+                // Texto envuelto en la columna detalle; alto automatico
+                $sheet->getStyle('E' . $fila)->getAlignment()
+                    ->setWrapText(true)->setVertical(Alignment::VERTICAL_TOP);
+                $sheet->getRowDimension($fila)->setRowHeight(-1);
+
+                // Estado con color segun clasificacion
+                $color = $this->boletinColorEstado($row);
+                $sheet->getStyle('F' . $fila)->getFill()->setFillType(Fill::FILL_SOLID)
+                    ->getStartColor()->setARGB($color['bg']);
+                $sheet->getStyle('F' . $fila)->getFont()->setBold(true)->getColor()->setARGB($color['fg']);
+                $sheet->getStyle('F' . $fila)->getAlignment()
+                    ->setHorizontal(Alignment::HORIZONTAL_CENTER)
+                    ->setVertical(Alignment::VERTICAL_CENTER)
+                    ->setWrapText(true);
+
+                // Combinaciones verticales por grupo
+                $spanComuna = $spans[$idx]['comuna'] ?? 1;
+                if ($spanComuna > 1) {
+                    $sheet->mergeCells('A' . $fila . ':A' . ($fila + $spanComuna - 1));
+                }
+                $spanEst = $spans[$idx]['establecimiento'] ?? 1;
+                if ($spanEst > 1) {
+                    $sheet->mergeCells('B' . $fila . ':B' . ($fila + $spanEst - 1));
+                }
+                if ($spanEst > 0) {
+                    // N de errores del establecimiento
+                    $sheet->setCellValue('G' . $fila, $spanEst);
+                    if ($spanEst > 1) {
+                        $sheet->mergeCells('G' . $fila . ':G' . ($fila + $spanEst - 1));
+                    }
+                    $sheet->getStyle('G' . $fila)->getFont()->setBold(true);
+                }
+                $spanMes = $spans[$idx]['mes'] ?? 1;
+                if ($spanMes > 1) {
+                    $sheet->mergeCells('C' . $fila . ':C' . ($fila + $spanMes - 1));
+                }
+
+                // Celdas de agrupacion: centradas y con fondo suave
+                $sheet->getStyle('A' . $fila . ':D' . $fila)->getAlignment()
+                    ->setVertical(Alignment::VERTICAL_CENTER)
+                    ->setHorizontal(Alignment::HORIZONTAL_CENTER)
+                    ->setWrapText(true);
+                $sheet->getStyle('G' . $fila)->getAlignment()
+                    ->setVertical(Alignment::VERTICAL_CENTER)
+                    ->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                $sheet->getStyle('A' . $fila . ':C' . $fila)->getFill()
+                    ->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB($SUAVE);
+
+                $fila++;
+            }
+        }
+
+        $ultimaFila = max($fila - 1, $filaInicio);
+
+        // ---- Bordes y tipografia del cuerpo ----
+        $rangoTotal = 'A' . $filaHead . ':' . $ultima . $ultimaFila;
+        $sheet->getStyle($rangoTotal)->getBorders()->getAllBorders()
+            ->setBorderStyle(Border::BORDER_THIN)->getColor()->setARGB($BORDE);
+        $sheet->getStyle('A' . $filaInicio . ':' . $ultima . $ultimaFila)->getFont()->setSize(9);
+
+        // ---- Vista e impresion ----
+        $sheet->freezePane('A' . $filaInicio);
+
+        $ps = $sheet->getPageSetup();
+        $ps->setOrientation(\PhpOffice\PhpSpreadsheet\Worksheet\PageSetup::ORIENTATION_LANDSCAPE);
+        $ps->setPaperSize(\PhpOffice\PhpSpreadsheet\Worksheet\PageSetup::PAPERSIZE_A4);
+        $ps->setFitToWidth(1);
+        $ps->setFitToHeight(0);
+        // Encabezado repetido en cada pagina impresa
+        $ps->setRowsToRepeatAtTopByStartAndEnd($filaHead, $filaHead);
+
+        $sheet->setPrintGridlines(false);
+        $sheet->getPageMargins()->setTop(0.5)->setBottom(0.5)->setLeft(0.3)->setRight(0.3);
+        $sheet->getHeaderFooter()->setOddFooter(
+            '&LBoletin Informativo de Errores REM&CPagina &P de &N&R' . date('d/m/Y')
+        );
+
+        $writer = new Xlsx($spreadsheet);
+        if (!$download) {
+            $writer->save($filename);
+            return true;
+        }
+
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+        $writer->save('php://output');
+        exit;
+    }
+
+    /**
+     * Boletin Informativo de Errores REM en PDF (A4 horizontal).
+     *
+     * Se emite un writeHTML por COMUNA: TCPDF descuadra los rowspan que
+     * cruzan un salto de pagina, y ademas el documento queda seccionado
+     * por comuna, que es como se presenta.
+     *
+     * @param array $data filas de Observation::getBoletinErrores()
+     * @param array $meta ['periodo' => string, 'resumen' => array]
+     */
+    public function exportBoletinPDF($data, $meta, $filename, $dest = 'D')
+    {
+        require_once __DIR__ . '/../vendor/autoload.php';
+
+        $columnas = self::boletinColumnas();
+        $periodo = $meta['periodo'] ?? '';
+        $resumen = $meta['resumen'] ?? [];
+
+        // Use class constants for consistency
+        $NAVY = self::COLOR_NAVY_HEX;
+        $CIAN = self::COLOR_CIAN_HEX;
+        $SUAVE = self::COLOR_SUAVE_HEX;
+        $BORDE = self::COLOR_BORDE_HEX;
+
+        $pdf = new \TCPDF('L', 'mm', 'A4', true, 'UTF-8');
+        $pdf->SetCreator('Sistema de Observaciones REM');
+        $pdf->SetAuthor('Servicio de Salud Osorno');
+        $pdf->SetTitle('Boletin Informativo de Errores REM - ' . $periodo);
+
+        $pdf->SetMargins(10, 38, 10);
+        $pdf->SetHeaderMargin(0);
+        $pdf->SetFooterMargin(12);
+        $pdf->SetAutoPageBreak(true, 18);
+        $pdf->setPrintHeader(false);
+        $pdf->setPrintFooter(true);
+        $pdf->setFooterFont(['helvetica', '', 8]);
+
+        $pdf->AddPage();
+
+        // ---- Encabezado institucional ----
+        $logo = __DIR__ . '/../assets/images/logo-boletin.png';
+        if (!file_exists($logo)) {
+            $logo = __DIR__ . '/../assets/images/logo.png';
+        }
+        if (file_exists($logo)) {
+            $pdf->Image($logo, 12, 8, 26, 0, 'PNG', '', '', false, 300, '', false, false, 0);
+        }
+
+        $pdf->SetY(10);
+        $pdf->SetFont('helvetica', 'B', 13);
+        $pdf->Cell(0, 6, 'SERVICIO SALUD OSORNO', 0, 1, 'C');
+        $pdf->SetFont('helvetica', '', 9);
+        $pdf->Cell(0, 4, 'DEGI - Departamento de Estadistica', 0, 1, 'C');
+
+        // Linea de acento cian del logo
+        $pdf->SetDrawColor(0, 174, 239);
+        $pdf->SetLineWidth(0.6);
+        $pdf->Line(60, $pdf->GetY() + 2, $pdf->getPageWidth() - 60, $pdf->GetY() + 2);
+        $pdf->Ln(5);
+
+        $pdf->SetFont('helvetica', 'B', 15);
+        $pdf->SetTextColor(0, 51, 102);
+        $pdf->Cell(0, 7, 'BOLETIN INFORMATIVO DE ERRORES REM', 0, 1, 'C');
+        $pdf->SetTextColor(0, 0, 0);
+        $pdf->SetFont('helvetica', '', 10);
+        $pdf->Cell(0, 5, $periodo, 0, 1, 'C');
+        $pdf->SetFont('helvetica', '', 8);
+        $pdf->Cell(0, 4, 'Emitido: ' . date('d/m/Y H:i'), 0, 1, 'C');
+        $pdf->Ln(2);
+
+        if (empty($data)) {
+            $pdf->SetFont('helvetica', '', 10);
+            $pdf->Cell(0, 10, 'No se encontraron errores en el periodo seleccionado.', 0, 1, 'C');
+            return $pdf->Output($filename, $dest);
+        }
+
+        // ---- Resumen ejecutivo ----
+        $resumenHtml = '<table border="0" cellpadding="4" style="width:100%;">'
+            . '<tr style="background-color:' . $SUAVE . ';">'
+            . '<td align="center" style="color:' . $NAVY . ';"><b>Total de errores:</b> ' . (int) ($resumen['total_errores'] ?? 0)
+            . ' &nbsp;&nbsp; <b>Corregidos:</b> ' . (int) ($resumen['corregidos'] ?? 0)
+            . ' (' . ($resumen['pct_corregidos'] ?? 0) . '%)'
+            . ' &nbsp;&nbsp; <b>Sin respuesta:</b> ' . (int) ($resumen['sin_respuesta'] ?? 0)
+            . ' &nbsp;&nbsp; <b>Establecimientos:</b> ' . (int) ($resumen['establecimientos'] ?? 0)
+            . ' &nbsp;&nbsp; <b>Comunas:</b> ' . (int) ($resumen['comunas'] ?? 0)
+            . '</td></tr></table>';
+        $pdf->writeHTML($resumenHtml, true, false, false, false, '');
+        $pdf->Ln(2);
+
+        // ---- Tabla por comuna ----
+        $porComuna = [];
+        foreach ($data as $row) {
+            $porComuna[$row['comuna'] ?? 'SIN COMUNA'][] = $row;
+        }
+
+        $encabezado = '<thead><tr style="background-color:' . $NAVY . '; color:#FFFFFF;">';
+        foreach ($columnas as $col) {
+            $encabezado .= '<th width="' . $col['pct'] . '" align="center" style="font-weight:bold;">'
+                . htmlspecialchars($col['titulo'], ENT_QUOTES, 'UTF-8') . '</th>';
+        }
+        $encabezado .= '</tr></thead>';
+
+        $primera = true;
+        foreach ($porComuna as $comuna => $filas) {
+            if (!$primera) {
+                $pdf->AddPage();
+            }
+            $primera = false;
+
+            $pdf->SetFont('helvetica', 'B', 10);
+            $pdf->SetTextColor(0, 51, 102);
+            $pdf->Cell(0, 6, 'COMUNA: ' . $comuna, 0, 1, 'L');
+            $pdf->SetTextColor(0, 0, 0);
+            $pdf->Ln(1);
+
+            $spans = $this->agruparJerarquia($filas, $this->boletinNiveles());
+
+            $html = '<table border="0.3" cellpadding="3" style="width:100%; border-color:' . $BORDE . ';">'
+                . $encabezado . '<tbody>';
+
+            foreach ($filas as $idx => $row) {
+                $celdas = $this->boletinFila($row);
+                $color = $this->boletinColorEstado($row);
+                $bgEstado = '#' . substr($color['bg'], 2);
+                $fgEstado = '#' . substr($color['fg'], 2);
+
+                $html .= '<tr>';
+
+                $spanComuna = $spans[$idx]['comuna'] ?? 1;
+                if ($spanComuna > 0) {
+                    $html .= '<td width="' . $columnas[0]['pct'] . '" rowspan="' . $spanComuna . '" align="center"'
+                        . ' style="background-color:' . $SUAVE . '; font-weight:bold;">'
+                        . htmlspecialchars($celdas['comuna'], ENT_QUOTES, 'UTF-8') . '</td>';
+                }
+
+                $spanEst = $spans[$idx]['establecimiento'] ?? 1;
+                if ($spanEst > 0) {
+                    $html .= '<td width="' . $columnas[1]['pct'] . '" rowspan="' . $spanEst . '" align="center"'
+                        . ' style="background-color:' . $SUAVE . ';">'
+                        . htmlspecialchars($celdas['establecimiento'], ENT_QUOTES, 'UTF-8') . '</td>';
+                }
+
+                $spanMes = $spans[$idx]['mes'] ?? 1;
+                if ($spanMes > 0) {
+                    $html .= '<td width="' . $columnas[2]['pct'] . '" rowspan="' . $spanMes . '" align="center"'
+                        . ' style="background-color:' . $SUAVE . ';">'
+                        . htmlspecialchars($celdas['mes'], ENT_QUOTES, 'UTF-8') . '</td>';
+                }
+
+                $html .= '<td width="' . $columnas[3]['pct'] . '" align="center" style="color:' . $NAVY . '; font-weight:bold;">'
+                    . htmlspecialchars($celdas['rem'], ENT_QUOTES, 'UTF-8') . '</td>';
+                $html .= '<td width="' . $columnas[4]['pct'] . '">'
+                    . nl2br(htmlspecialchars($celdas['detalle'], ENT_QUOTES, 'UTF-8')) . '</td>';
+                $html .= '<td width="' . $columnas[5]['pct'] . '" align="center"'
+                    . ' style="background-color:' . $bgEstado . '; color:' . $fgEstado . '; font-weight:bold;">'
+                    . htmlspecialchars($celdas['estado'], ENT_QUOTES, 'UTF-8') . '</td>';
+
+                if ($spanEst > 0) {
+                    $html .= '<td width="' . $columnas[6]['pct'] . '" rowspan="' . $spanEst . '" align="center"'
+                        . ' style="font-weight:bold;">' . $spanEst . '</td>';
+                }
+
+                $html .= '</tr>';
+            }
+
+            $html .= '</tbody></table>';
+
+            $pdf->SetFont('helvetica', '', 7);
+            $pdf->writeHTML($html, true, false, false, false, '');
+        }
+
+        // ---- Firma ----
+        $pdf->Ln(8);
+        $pdf->SetFont('helvetica', '', 9);
+        $pdf->Cell(0, 5, '_______________________________', 0, 1, 'R');
+        $pdf->SetFont('helvetica', 'B', 9);
+        $pdf->Cell(0, 5, 'Departamento de Estadistica DEGI', 0, 1, 'R');
+        $pdf->SetFont('helvetica', '', 8);
+        $pdf->Cell(0, 4, 'Servicio de Salud Osorno', 0, 1, 'R');
+
+        return $pdf->Output($filename, $dest);
     }
 }
