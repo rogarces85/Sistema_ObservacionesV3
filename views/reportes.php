@@ -156,22 +156,22 @@ $mesesList = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto',
                                 </div>
                             </div>
 
-                            <!-- Tab 2: Plazos Entrega -->
+                            <!-- Tab 2: Plazos Entrega (Matriz) -->
                             <div id="tab-plazos" class="tab-pane" role="tabpanel">
                                 <div class="table-responsive">
-                                    <table class="table table-vcenter card-table table-hover">
-                                        <thead><tr><th>Establecimiento</th><th class="text-end">Dentro plazo</th><th class="text-end">Fuera plazo</th><th class="text-end">Total meses</th></tr></thead>
-                                        <tbody id="tablePlazoResumen"></tbody>
+                                    <table class="table table-bordered table-vcenter card-table">
+                                        <thead><tr><th>Establecimiento</th><th class="text-center">Plazo de Entrega</th></tr></thead>
+                                        <tbody id="tablePlazoMatriz"></tbody>
                                     </table>
                                 </div>
                             </div>
 
-                            <!-- Tab 3: Uso Validador -->
+                            <!-- Tab 3: Uso Validador (Matriz) -->
                             <div id="tab-validador" class="tab-pane" role="tabpanel">
                                 <div class="table-responsive">
-                                    <table class="table table-vcenter card-table table-hover">
-                                        <thead><tr><th>Establecimiento</th><th class="text-end">Usa validador</th><th class="text-end">No usa validador</th><th class="text-end">Total meses</th></tr></thead>
-                                        <tbody id="tableValidadorResumen"></tbody>
+                                    <table class="table table-bordered table-vcenter card-table">
+                                        <thead><tr><th>Establecimiento</th><th class="text-center">Uso Validador</th></tr></thead>
+                                        <tbody id="tableValidadorMatriz"></tbody>
                                     </table>
                                 </div>
                             </div>
@@ -618,22 +618,56 @@ async function loadPlazoAgregado() {
 }
 
 function renderPlazoChart(data) {
-    const est = data.establecimientos || [];
-    const labels = est.map(e => e.nombre_corto);
+    const detalle = data.detalle_mensual || [];
+    const tbody = document.getElementById('tablePlazoMatriz');
 
-    if (labels.length === 0) {
-        document.getElementById('tablePlazoResumen').innerHTML = '<tr><td colspan="4" class="text-center text-secondary py-4">Sin datos para el año seleccionado</td></tr>';
+    if (!detalle.length) {
+        tbody.innerHTML = '<tr><td colspan="2" class="text-center text-secondary py-4">Sin datos para el año seleccionado.</td></tr>';
         return;
     }
 
-    document.getElementById('tablePlazoResumen').innerHTML = est.map(e => `
-        <tr>
-            <td>${escapeHtml(e.nombre_corto)}</td>
-            <td class="text-end fw-medium text-success">${e.meses_dentro}</td>
-            <td class="text-end fw-medium text-danger">${e.meses_fuera}</td>
-            <td class="text-end text-secondary">${e.meses_con_datos}</td>
-        </tr>
-    `).join('');
+    // Agrupar por establecimiento
+    const porEst = {};
+    detalle.forEach(row => {
+        const estKey = row.nombre_corto;
+        if (!porEst[estKey]) {
+            porEst[estKey] = { nombre: row.nombre_corto, id: row.id, meses: {} };
+        }
+        porEst[estKey].meses[row.mes] = row;
+    });
+
+    const mesesMostrar = mesesList;
+
+    // Construir tabla
+    let html = '';
+    Object.values(porEst).forEach(est => {
+        // Fila de agrupación por establecimiento
+        html += `<tr style="background-color: #d3d3d3; font-weight: bold;">
+                    <td colspan="2">${escapeHtml(est.nombre)}</td>
+                </tr>`;
+
+        // Una fila por mes
+        mesesMostrar.forEach(mes => {
+            const row = est.meses[mes];
+            let icono = '<i class="ti ti-minus text-secondary"></i>';
+
+            if (row) {
+                // Si hay algún "fuera de plazo", mostrar ✗ rojo
+                if (row.fuera === 1) {
+                    icono = '<i class="ti ti-circle-x text-danger" style="font-size: 1.2em;"></i>';
+                } else if (row.dentro === 1) {
+                    icono = '<i class="ti ti-circle-check text-success" style="font-size: 1.2em;"></i>';
+                }
+            }
+
+            html += `<tr>
+                        <td style="padding-left: 2rem;">${escapeHtml(mes)}</td>
+                        <td class="text-center">${icono}</td>
+                    </tr>`;
+        });
+    });
+
+    tbody.innerHTML = html;
 }
 
 async function loadValidadorAgregado() {
@@ -653,22 +687,56 @@ async function loadValidadorAgregado() {
 }
 
 function renderValidadorChart(data) {
-    const est = data.establecimientos || [];
-    const labels = est.map(e => e.nombre_corto);
+    const detalle = data.detalle_mensual || [];
+    const tbody = document.getElementById('tableValidadorMatriz');
 
-    if (labels.length === 0) {
-        document.getElementById('tableValidadorResumen').innerHTML = '<tr><td colspan="4" class="text-center text-secondary py-4">Sin datos para el año seleccionado</td></tr>';
+    if (!detalle.length) {
+        tbody.innerHTML = '<tr><td colspan="2" class="text-center text-secondary py-4">Sin datos para el año seleccionado.</td></tr>';
         return;
     }
 
-    document.getElementById('tableValidadorResumen').innerHTML = est.map(e => `
-        <tr>
-            <td>${escapeHtml(e.nombre_corto)}</td>
-            <td class="text-end fw-medium text-info">${e.meses_usa}</td>
-            <td class="text-end fw-medium text-secondary">${e.meses_no_usa}</td>
-            <td class="text-end text-secondary">${e.meses_con_datos}</td>
-        </tr>
-    `).join('');
+    // Agrupar por establecimiento
+    const porEst = {};
+    detalle.forEach(row => {
+        const estKey = row.nombre_corto;
+        if (!porEst[estKey]) {
+            porEst[estKey] = { nombre: row.nombre_corto, id: row.id, meses: {} };
+        }
+        porEst[estKey].meses[row.mes] = row;
+    });
+
+    const mesesMostrar = mesesList;
+
+    // Construir tabla
+    let html = '';
+    Object.values(porEst).forEach(est => {
+        // Fila de agrupación por establecimiento
+        html += `<tr style="background-color: #d3d3d3; font-weight: bold;">
+                    <td colspan="2">${escapeHtml(est.nombre)}</td>
+                </tr>`;
+
+        // Una fila por mes
+        mesesMostrar.forEach(mes => {
+            const row = est.meses[mes];
+            let icono = '<i class="ti ti-minus text-secondary"></i>';
+
+            if (row) {
+                // Si hay algún "no usa validador", mostrar ✗ rojo
+                if (row.no_usa === 1) {
+                    icono = '<i class="ti ti-circle-x text-danger" style="font-size: 1.2em;"></i>';
+                } else if (row.usa === 1) {
+                    icono = '<i class="ti ti-circle-check text-success" style="font-size: 1.2em;"></i>';
+                }
+            }
+
+            html += `<tr>
+                        <td style="padding-left: 2rem;">${escapeHtml(mes)}</td>
+                        <td class="text-center">${icono}</td>
+                    </tr>`;
+        });
+    });
+
+    tbody.innerHTML = html;
 }
 
 // ============================================
