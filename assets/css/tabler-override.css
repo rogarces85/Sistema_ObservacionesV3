@@ -1127,6 +1127,10 @@ a:focus-visible {
   height: 680px;
 }
 
+.report-chart-frame--xlong {
+  height: 900px;
+}
+
 .report-chart-frame canvas {
   width: 100% !important;
   height: 100% !important;
@@ -1653,6 +1657,57 @@ img:not([loading="eager"]) {
 .rem-estado-pendiente{ background: var(--rem-status-pendiente-bg);   color: var(--rem-status-pendiente-fg); }
 .rem-estado-error    { background: var(--rem-status-error-bg);       color: var(--rem-status-error-fg); }
 .rem-estado-neutro   { background: var(--rem-status-rechazado-bg);   color: var(--rem-status-rechazado-fg); }
+
+/* === Tabla matriz tipo heatmap (Plazo/Validador) === */
+.rem-matrix-table {
+  table-layout: fixed;
+}
+
+.rem-matrix-table thead th {
+  background: var(--tblr-secondary-light, color-mix(in srgb, var(--tblr-secondary) 10%, var(--tblr-bg-surface)));
+  text-align: center;
+  font-size: 0.875rem;
+  font-weight: var(--tblr-font-weight-semibold);
+  padding: 0.5rem 0.25rem;
+  white-space: nowrap;
+}
+
+.rem-matrix-table tbody tr:hover {
+  background: color-mix(in srgb, var(--tblr-primary) 5%, var(--tblr-bg-surface));
+}
+
+.rem-matrix-cell {
+  text-align: center;
+  padding: 0.6rem 0.4rem;
+  border: 1px solid var(--tblr-border-color);
+  font-size: 1.25rem;
+  cursor: help;
+  transition: background 0.2s ease-in-out;
+}
+
+.rem-matrix-cell--ok {
+  background: color-mix(in srgb, var(--rem-status-aprobado-bg) 20%, var(--tblr-bg-surface));
+  color: var(--rem-status-aprobado-fg);
+}
+
+.rem-matrix-cell--error {
+  background: color-mix(in srgb, var(--rem-status-error-bg) 20%, var(--tblr-bg-surface));
+  color: var(--rem-status-error-fg);
+}
+
+.rem-matrix-cell--neutro {
+  background: color-mix(in srgb, var(--tblr-secondary) 8%, var(--tblr-bg-surface));
+  color: var(--tblr-secondary);
+}
+
+.rem-matrix-table tbody td:first-child {
+  font-weight: var(--tblr-font-weight-semibold);
+  white-space: nowrap;
+  width: 20%;
+  max-width: 20%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
 /* KPI del resumen ejecutivo */
 .rem-boletin-kpi {

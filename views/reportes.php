@@ -159,8 +159,8 @@ $mesesList = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto',
                             <!-- Tab 2: Plazos Entrega (Matriz) -->
                             <div id="tab-plazos" class="tab-pane" role="tabpanel">
                                 <div class="table-responsive">
-                                    <table class="table table-bordered table-vcenter card-table">
-                                        <thead><tr><th>Establecimiento</th><th class="text-center">Plazo de Entrega</th></tr></thead>
+                                    <table class="table table-bordered table-vcenter card-table rem-matrix-table">
+                                        <thead id="theadPlazoMatriz"></thead>
                                         <tbody id="tablePlazoMatriz"></tbody>
                                     </table>
                                 </div>
@@ -169,8 +169,8 @@ $mesesList = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto',
                             <!-- Tab 3: Uso Validador (Matriz) -->
                             <div id="tab-validador" class="tab-pane" role="tabpanel">
                                 <div class="table-responsive">
-                                    <table class="table table-bordered table-vcenter card-table">
-                                        <thead><tr><th>Establecimiento</th><th class="text-center">Uso Validador</th></tr></thead>
+                                    <table class="table table-bordered table-vcenter card-table rem-matrix-table">
+                                        <thead id="theadValidadorMatriz"></thead>
                                         <tbody id="tableValidadorMatriz"></tbody>
                                     </table>
                                 </div>
@@ -249,7 +249,7 @@ if (typeof createStackedBarByCategory === 'undefined') {
 
 // colorToken apunta a tokens de tokens.css: nunca hex cableado aqui.
 const TAB_CONFIG = {
-    'tab-errores-est': { canvas: 'chartErroresEst', container: 'chart1Container', table: 'tableErroresEst', orientation: 'horizontal', colorToken: '--rem-status-error', label: 'Errores', key: 'errores_establecimiento', topN: 12 }
+    'tab-errores-est': { canvas: 'chartErroresEst', container: 'chart1Container', table: 'tableErroresEst', orientation: 'horizontal', colorToken: '--rem-status-error', label: 'Errores', key: 'errores_establecimiento' }
 };
 
 const EXPORT_REPORT_TYPES = {
@@ -542,9 +542,11 @@ function buildExportContext(itemCount) {
 function setChartFrameSize(container, itemCount, orientation) {
     if (!container) return;
     container.dataset.exportContext = buildExportContext(itemCount);
-    container.classList.remove('report-chart-frame--tall', 'report-chart-frame--long', 'report-chart-frame--vertical');
+    container.classList.remove('report-chart-frame--tall', 'report-chart-frame--long', 'report-chart-frame--xlong', 'report-chart-frame--vertical');
     if (orientation === 'vertical') container.classList.add('report-chart-frame--vertical');
-    if (itemCount > 18) {
+    if (itemCount > 40) {
+        container.classList.add('report-chart-frame--xlong');
+    } else if (itemCount > 18) {
         container.classList.add('report-chart-frame--long');
     } else if (itemCount > 10) {
         container.classList.add('report-chart-frame--tall');
@@ -595,6 +597,16 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
+function initTooltips(container) {
+    if (!container) return;
+    const tooltipElements = container.querySelectorAll('[data-bs-toggle="tooltip"]');
+    tooltipElements.forEach(el => {
+        const existingTooltip = bootstrap.Tooltip.getInstance(el);
+        if (existingTooltip) existingTooltip.dispose();
+        new bootstrap.Tooltip(el);
+    });
+}
+
 // ============================================
 // Reportes Mejorados: Plazo y Validador (Matriz)
 // ============================================
@@ -618,9 +630,13 @@ async function loadPlazoAgregado() {
 function renderPlazoMatriz(data, mesesFiltro) {
     const detalle = data.detalle_mensual || [];
     const tbody = document.getElementById('tablePlazoMatriz');
+    const thead = tbody.closest('table').querySelector('thead');
+    const mesesMostrar = mesesFiltro.length > 0 ? mesesFiltro : mesesList;
 
     if (!detalle.length) {
-        tbody.innerHTML = '<tr><td colspan="13" class="text-center text-secondary py-4">Sin datos para los filtros seleccionados.</td></tr>';
+        const colspan = mesesMostrar.length + 1;
+        thead.innerHTML = `<tr><th>Establecimiento</th>${mesesMostrar.map(m => `<th>${escapeHtml(m.substring(0,3))}</th>`).join('')}</tr>`;
+        tbody.innerHTML = `<tr><td colspan="${colspan}" class="text-center text-secondary py-4">Sin datos para los filtros seleccionados.</td></tr>`;
         return;
     }
 
@@ -634,41 +650,48 @@ function renderPlazoMatriz(data, mesesFiltro) {
         porEst[estKey].meses[row.mes] = row;
     });
 
-    // Definir meses a mostrar (todos o filtrados)
-    const mesesMostrar = mesesFiltro.length > 0 ? mesesFiltro : mesesList;
+    // Construir thead dinámico con meses
+    thead.innerHTML = `<tr><th>Establecimiento</th>${mesesMostrar.map(m => `<th>${escapeHtml(m.substring(0,3))}</th>`).join('')}</tr>`;
+    thead.querySelector('table')?.classList.add('rem-matrix-table');
 
-    // Construir tabla
+    // Construir tbody: una fila por establecimiento
     let html = '';
     Object.values(porEst).forEach(est => {
-        // Fila de agrupación por establecimiento
-        html += `<tr class="tabla-group-row">
-                    <td colspan="13" class="fw-bold" style="background-color: var(--tblr-primary); color: white; padding: 8px;">
-                        ${escapeHtml(est.nombre)}
-                    </td>
-                </tr>`;
+        html += '<tr>';
+        html += `<td class="fw-semibold" title="${escapeHtml(est.nombre)}">${escapeHtml(est.nombre)}</td>`;
 
-        // Una fila por mes
         mesesMostrar.forEach(mes => {
             const row = est.meses[mes];
-            let icono = '<i class="ti ti-minus text-secondary" title="Sin datos"></i>';
+            let celda = '';
+            let tooltipText = '';
+            let claseEstado = 'rem-matrix-cell--neutro';
+            let icono = '<i class="ti ti-minus"></i>';
 
-            if (row) {
-                // Si hay algún "fuera de plazo", mostrar ✗ rojo
-                if (row.fuera === 1) {
-                    icono = '<i class="ti ti-circle-x text-danger" style="font-size: 1.2em;" title="Fuera de plazo"></i>';
-                } else if (row.dentro === 1) {
-                    icono = '<i class="ti ti-circle-check text-success" style="font-size: 1.2em;" title="Dentro de plazo"></i>';
-                }
+            if (!row) {
+                tooltipText = `${escapeHtml(mes)} 2026 — Sin observaciones registradas`;
+            } else if (row.fuera === 1) {
+                claseEstado = 'rem-matrix-cell--error';
+                icono = '<i class="ti ti-circle-x"></i>';
+                tooltipText = `${escapeHtml(mes)} 2026 — Fuera de plazo (${row.fuera} de ${row.total_observaciones} observaciones registradas fuera de plazo)`;
+            } else if (row.dentro === 1) {
+                claseEstado = 'rem-matrix-cell--ok';
+                icono = '<i class="ti ti-circle-check"></i>';
+                tooltipText = `${escapeHtml(mes)} 2026 — Dentro de plazo (${row.dentro} de ${row.total_observaciones} observaciones dentro de plazo)`;
             }
 
-            html += `<tr>
-                        <td style="padding-left: 2rem; color: var(--tblr-secondary);">${escapeHtml(mes)}</td>
-                        <td class="text-center">${icono}</td>
-                    </tr>`;
+            celda += `<td class="rem-matrix-cell ${claseEstado}" data-bs-toggle="tooltip" data-bs-placement="top" title="${escapeHtml(tooltipText)}">`;
+            celda += icono;
+            celda += '</td>';
+
+            html += celda;
         });
+
+        html += '</tr>';
     });
 
     tbody.innerHTML = html;
+    tbody.closest('table').classList.add('rem-matrix-table');
+    initTooltips(tbody.closest('table'));
 }
 
 async function loadValidadorAgregado() {
@@ -690,9 +713,13 @@ async function loadValidadorAgregado() {
 function renderValidadorMatriz(data, mesesFiltro) {
     const detalle = data.detalle_mensual || [];
     const tbody = document.getElementById('tableValidadorMatriz');
+    const thead = tbody.closest('table').querySelector('thead');
+    const mesesMostrar = mesesFiltro.length > 0 ? mesesFiltro : mesesList;
 
     if (!detalle.length) {
-        tbody.innerHTML = '<tr><td colspan="13" class="text-center text-secondary py-4">Sin datos para los filtros seleccionados.</td></tr>';
+        const colspan = mesesMostrar.length + 1;
+        thead.innerHTML = `<tr><th>Establecimiento</th>${mesesMostrar.map(m => `<th>${escapeHtml(m.substring(0,3))}</th>`).join('')}</tr>`;
+        tbody.innerHTML = `<tr><td colspan="${colspan}" class="text-center text-secondary py-4">Sin datos para los filtros seleccionados.</td></tr>`;
         return;
     }
 
@@ -706,41 +733,48 @@ function renderValidadorMatriz(data, mesesFiltro) {
         porEst[estKey].meses[row.mes] = row;
     });
 
-    // Definir meses a mostrar (todos o filtrados)
-    const mesesMostrar = mesesFiltro.length > 0 ? mesesFiltro : mesesList;
+    // Construir thead dinámico con meses
+    thead.innerHTML = `<tr><th>Establecimiento</th>${mesesMostrar.map(m => `<th>${escapeHtml(m.substring(0,3))}</th>`).join('')}</tr>`;
+    thead.querySelector('table')?.classList.add('rem-matrix-table');
 
-    // Construir tabla
+    // Construir tbody: una fila por establecimiento
     let html = '';
     Object.values(porEst).forEach(est => {
-        // Fila de agrupación por establecimiento
-        html += `<tr class="tabla-group-row">
-                    <td colspan="13" class="fw-bold" style="background-color: var(--tblr-primary); color: white; padding: 8px;">
-                        ${escapeHtml(est.nombre)}
-                    </td>
-                </tr>`;
+        html += '<tr>';
+        html += `<td class="fw-semibold" title="${escapeHtml(est.nombre)}">${escapeHtml(est.nombre)}</td>`;
 
-        // Una fila por mes
         mesesMostrar.forEach(mes => {
             const row = est.meses[mes];
-            let icono = '<i class="ti ti-minus text-secondary" title="Sin datos"></i>';
+            let celda = '';
+            let tooltipText = '';
+            let claseEstado = 'rem-matrix-cell--neutro';
+            let icono = '<i class="ti ti-minus"></i>';
 
-            if (row) {
-                // Si hay algún "no usa validador", mostrar ✗ rojo
-                if (row.no_usa === 1) {
-                    icono = '<i class="ti ti-circle-x text-danger" style="font-size: 1.2em;" title="No usa validador"></i>';
-                } else if (row.usa === 1) {
-                    icono = '<i class="ti ti-circle-check text-success" style="font-size: 1.2em;" title="Usa validador"></i>';
-                }
+            if (!row) {
+                tooltipText = `${escapeHtml(mes)} 2026 — Sin observaciones registradas`;
+            } else if (row.no_usa === 1) {
+                claseEstado = 'rem-matrix-cell--error';
+                icono = '<i class="ti ti-circle-x"></i>';
+                tooltipText = `${escapeHtml(mes)} 2026 — No usa validador (${row.no_usa} de ${row.total_observaciones} observaciones sin validador)`;
+            } else if (row.usa === 1) {
+                claseEstado = 'rem-matrix-cell--ok';
+                icono = '<i class="ti ti-circle-check"></i>';
+                tooltipText = `${escapeHtml(mes)} 2026 — Usa validador (${row.usa} de ${row.total_observaciones} observaciones con validador)`;
             }
 
-            html += `<tr>
-                        <td style="padding-left: 2rem; color: var(--tblr-secondary);">${escapeHtml(mes)}</td>
-                        <td class="text-center">${icono}</td>
-                    </tr>`;
+            celda += `<td class="rem-matrix-cell ${claseEstado}" data-bs-toggle="tooltip" data-bs-placement="top" title="${escapeHtml(tooltipText)}">`;
+            celda += icono;
+            celda += '</td>';
+
+            html += celda;
         });
+
+        html += '</tr>';
     });
 
     tbody.innerHTML = html;
+    tbody.closest('table').classList.add('rem-matrix-table');
+    initTooltips(tbody.closest('table'));
 }
 
 // ============================================
