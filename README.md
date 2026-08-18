@@ -18,7 +18,7 @@ Fuentes revisadas durante la ingenieria inversa:
 |---|---|
 | `index.php` | Punto de entrada, router por pagina y permisos basicos por rol. |
 | `config/` | Conexion MySQL, constantes de negocio, migraciones SQL y configuracion de sesion. |
-| `models/` | Reglas de negocio, consultas SQL, reportes, asignaciones, papelera, usuarios y versionado. |
+| `models/` | Reglas de negocio, consultas SQL, reportes, asignaciones, papelera y usuarios. |
 | `api/` | Contratos HTTP reales, acciones por endpoint, validaciones y permisos. |
 | `views/` | Flujos de usuario, formularios, consumo de APIs y experiencia frontend. |
 | `assets/` | JS compartido, notificaciones, graficos y estilos. |
@@ -116,8 +116,7 @@ Sistema_ObservacionesV3/
 │   ├── assignments.php          # Asignaciones anuales/temporales
 │   ├── users.php                # Gestion de usuarios
 │   ├── deleted.php              # Papelera de observaciones eliminadas
-│   ├── informe_errores.php      # Informe REM de errores trimestral/anual
-│   └── versioning.php           # Snapshots y rollback del sistema
+│   └── informe_errores.php      # Informe REM de errores trimestral/anual
 ├── assets/
 │   ├── css/                     # Estilos globales, tokens y overrides Tabler
 │   │   ├── styles.css           # Legacy (en deprecacion, no extender)
@@ -150,8 +149,7 @@ Sistema_ObservacionesV3/
 │   ├── EstablecimientoAsignacion.php # Asignaciones anuales/temporales
 │   ├── DeletedObservation.php   # Papelera y restauracion
 │   ├── Exporter.php             # Excel/PDF
-│   ├── ReportQueue.php          # Cola de reportes asincronos
-│   └── Version.php              # Versionado interno
+│   └── ReportQueue.php          # Cola de reportes asincronos
 ├── views/
 │   ├── login.php                # Inicio de sesion
 │   ├── dashboard.php            # Panel principal
@@ -164,7 +162,6 @@ Sistema_ObservacionesV3/
 │   ├── eliminadas.php           # Papelera
 │   └── establecimientos.php     # Gestion de establecimientos
 ├── specs/                       # Especificaciones por modulo y migraciones por sprint
-├── openspec/                    # Cambios OpenSpec activos/archivados
 ├── .specify/                    # Configuracion Spec Kit
 ├── uploads/                     # Archivos importados/reportes generados, ignorado por Git
 ├── index.php                    # Router principal
@@ -347,9 +344,11 @@ Pasos criticos:
 
 1. El dashboard consume estadisticas por año y respeta visibilidad por rol.
 2. Los reportes consultan `api/reports.php` para datos agregados.
-3. `api/export.php` genera Excel/PDF de forma sincronica.
-4. `api/informe_errores.php` genera informe trimestral/anual solo para supervisores.
-5. El sistema contiene una cola asincrona (`ReportQueue`, `worker_reportes.php`), pero su integracion esta incompleta.
+3. `views/reportes.php` tiene cinco pestanas: Total Errores (barras horizontales con el nombre completo del establecimiento y el valor en cada barra), Plazos Entrega y Uso Validador (matriz de doble entrada: una fila por establecimiento y una columna por mes, con resumen "cumple" por fila y totales por mes), Errores por Serie y Errores por Hoja. Los cinco filtros de la cabecera (año, trimestre, mes, comuna, establecimiento) aplican a todas las pestanas.
+4. Las matrices muestran **solo los meses del filtro**; sin filtro, los meses que tengan datos en el año. Estan pensadas como informe: llevan encabezado institucional, boton Imprimir (`@media print` deja solo la tabla, en A4 horizontal) y exportacion a Excel y PDF con el mismo contenido que se ve en pantalla.
+5. `api/export.php` genera Excel/PDF de forma sincronica.
+6. `api/informe_errores.php` genera informe trimestral/anual solo para supervisores.
+7. El sistema contiene una cola asincrona (`ReportQueue`, `worker_reportes.php`), pero su integracion esta incompleta.
 
 ## 🔌 APIs y Endpoints
 
@@ -426,6 +425,10 @@ Campos principales para crear:
 |---|---|---|---|---|
 | `api/reports.php?report=all` | GET | `report` | Autenticado | Devuelve datasets agregados. |
 | `api/reports.php?report=error-reports` | GET | `report` | Autenticado | Reportes unificados de errores/plazos/validador. |
+| `api/reports.php?report=plazo-agregado` | GET | `report` | Autenticado | Matriz mensual de plazo de entrega por establecimiento. Filtros: `year`, `meses[]`, `comuna_ids[]`, `establecimiento_id`; el rol registrador solo ve sus propias observaciones. |
+| `api/reports.php?report=validador-agregado` | GET | `report` | Autenticado | Matriz mensual de uso de validador por establecimiento. Mismos filtros y alcance por rol que `plazo-agregado`. |
+| `api/export.php?report_type=plazo_matriz` | GET | `report_type` | Autenticado | Matriz de plazo de entrega (establecimiento x mes) en `format=excel` o `pdf`. Mismos filtros que la pantalla. |
+| `api/export.php?report_type=validador_matriz` | GET | `report_type` | Autenticado | Matriz de uso de validador, igual que la anterior. |
 | `api/export.php?format=excel` | GET | `format` | Autenticado | Exporta Excel. |
 | `api/export.php?format=pdf` | GET | `format` | Autenticado | Exporta PDF. |
 | `api/export.php?report_type=detallado` | GET | `report_type` | Autenticado | PDF jerarquico. |
@@ -443,7 +446,6 @@ Campos principales para crear:
 | `api/assignments.php` | GET/POST | Supervisor | Gestion de asignaciones y referentes. |
 | `api/deleted.php?action=list` | GET | Supervisor | Lista papelera. |
 | `api/deleted.php` | POST | Supervisor | Restaurar o eliminar permanentemente. |
-| `api/versioning.php` | GET/POST | Supervisor | Snapshots y rollback. |
 
 Codigos HTTP observados:
 
@@ -488,7 +490,6 @@ erDiagram
 | `observaciones_eliminadas` | Papelera de observaciones. | Copia denormalizada de observacion, motivo y fecha de eliminacion. | No conserva FK fuerte hacia observacion original. |
 | `reportes_pendientes` | Cola de reportes asincronos. | `usuario_id`, `tipo_reporte`, `formato`, `parametros`, `estado`, `archivo_url`. | Referencia usuario. |
 | `historial_usuarios` | Auditoria de cambios en usuarios. | `usuario_id`, `accion`, `detalle`, `usuario_responsable_id`. | Referencia usuario afectado y responsable. |
-| `versiones_sistema` | Snapshots del codigo. | `usuario_id`, descripcion, hash/ruta segun modelo. | Referencia usuario. |
 | `referentes_establecimientos` | Contactos por establecimiento. | `establecimiento_id`, `cargo`, `nombre`, `telefono`, `email`, `activo`. | Referencia establecimiento. |
 
 ## 📏 Reglas De Negocio
@@ -604,7 +605,7 @@ Estas asunciones deben tratarse como decisiones pendientes para futuros specs de
 | La eliminacion es hibrida. | `api/observations.php` hace hard delete; `api/supervision.php?action=delete` usa papelera. | Riesgo de perdida irreversible si se usa endpoint incorrecto. |
 | La importacion no valida asignacion mensual como el registro manual. | `api/import.php` crea observaciones sin llamar `tieneAsignacionParaMes()`. | Riesgo de cargar datos para establecimientos no asignados. |
 | El worker asincrono no esta listo para produccion. | `worker_reportes.php` usa `$this->db` fuera de clase. | Fallo runtime al procesar reportes pendientes. |
-| La documentacion historica indica exportacion asincrona, pero el endpoint principal es sincronico. | `A.md` y `specs/INDICE.md` vs `api/export.php`. | Divergencia entre comportamiento esperado y real. |
+| La documentacion historica indica exportacion asincrona, pero el endpoint principal es sincronico. | Documentacion previa vs `api/export.php`. | Divergencia entre comportamiento esperado y real. |
 | `admin123` sigue siendo password por defecto/restablecimiento. | `config/init_db.sql`, `api/users.php`. | Riesgo de credenciales debiles si se usa fuera de demo. |
 | Las APIs duplican formato de respuesta y validaciones. | Multiples `jsonResponse()` locales en `api/*.php`. | Dificulta consistencia y mantenimiento. |
 | El control de acceso esta distribuido. | `index.php`, APIs y modelos aplican reglas en distintos lugares. | Riesgo de omisiones o comportamiento distinto por ruta. |
@@ -634,10 +635,10 @@ mysql -h localhost -u root -p < config/init_db.sql
 mysql -h localhost -u root -p observaciones_rem < config/create_asignaciones_table.sql
 mysql -h localhost -u root -p observaciones_rem < config/migrations/add_tipo_asignacion.sql
 mysql -h localhost -u root -p observaciones_rem < config/sprint3_migration.sql
-mysql -h localhost -u root -p observaciones_rem < specs/sprint1_migration.sql
-mysql -h localhost -u root -p observaciones_rem < specs/sprint2_migration.sql
-mysql -h localhost -u root -p observaciones_rem < specs/sprint4_migration.sql
-mysql -h localhost -u root -p observaciones_rem < specs/sprint5_migration.sql
+mysql -h localhost -u root -p observaciones_rem < config/migrations/sprint1_migration.sql
+mysql -h localhost -u root -p observaciones_rem < config/migrations/sprint2_migration.sql
+mysql -h localhost -u root -p observaciones_rem < config/migrations/sprint4_migration.sql
+mysql -h localhost -u root -p observaciones_rem < config/migrations/sprint5_migration.sql
 mysql -h localhost -u root -p observaciones_rem < config/migration_2026_05_08_reportes.sql
 mysql -h localhost -u root -p observaciones_rem < config/migration_2026_05_08_limpieza_comunas.sql
 ```
@@ -887,7 +888,7 @@ git diff
 | Eliminacion | Hard delete en `api/observations.php`, soft delete en supervision. | Unificar eliminacion en papelera y reservar hard delete solo a accion explicita auditada. | Evita perdida accidental de datos. | Media; revisar vistas que usan DELETE directo. |
 | Importacion | No se observa validacion mensual de asignacion. | Reutilizar `tieneAsignacionParaMes()` para cada fila importada. | Mantiene consistencia con registro manual. | Baja; riesgo de rechazar archivos antes aceptados. |
 | Worker de reportes | `worker_reportes.php` contiene error runtime potencial por `$this->db`. | Obtener rol via modelo/Database y envolver seleccion en transaccion. | Habilita reportes asincronos reales. | Media; requiere pruebas con cola. |
-| Migraciones | SQL disperso en `config/` y `specs/`. | Crear sistema simple de migraciones aplicadas con orden versionado. | Despliegues reproducibles y auditables. | Media/Alta; requiere normalizar historial. |
+| Migraciones | SQL disperso en `config/` (consolidado en `config/migrations/`). | Crear sistema de migraciones con versionado automático. | Despliegues reproducibles y auditables. | Media; mejora incremental viable. |
 | Autorizacion | Reglas distribuidas entre `index.php`, APIs y modelos. | Helper central `Auth::requireRole()` / middleware comun. | Reduce duplicacion y errores de permisos. | Media; cambios transversales. |
 | API | Endpoints procedurales con `jsonResponse()` duplicado. | Bootstrap comun para JSON, errores, CSRF y auth. | Mejora mantenibilidad. | Media; migracion incremental posible. |
 | Modelo de meses | Meses como texto y asignaciones como numeros CSV/ALL. | Normalizar meses como `TINYINT` o tabla periodo. | Mejora integridad, filtros e indices. | Alta; requiere migracion de datos y UI. |
@@ -900,19 +901,11 @@ git diff
 
 | Recurso | Descripcion |
 |---|---|
-| `specs/INDICE.md` | Indice maestro de especificaciones por modulo. |
-| `specs/mod-auth.md` | Autenticacion, logout y cambio de año. |
-| `specs/obs-modulo.md` | Modulo de observaciones. |
-| `specs/mod-supervision.md` | Supervision y revision. |
-| `specs/mod-asignaciones.md` | Asignaciones anuales y temporales. |
-| `specs/mod-importacion.md` | Importacion masiva. |
-| `specs/mod-exportacion.md` | Exportacion y reportes. |
-| `specs/mod-establecimientos.md` | Establecimientos. |
-| `specs/mod-eliminadas.md` | Papelera. |
-| `specs/mod-usuarios.md` | Gestion de usuarios. |
-| `A.md` | Documentacion historica previa. |
+| `specs/001-tabler-dashboard-review/` | Feature: auditoria visual de mejoras Tabler 1.4. |
+| `specs/002-fix-button-actions/` | Feature: correccion de acciones y comportamiento de botones (completado). |
+| `.specify/` | Infraestructura Spec Kit: templates, scripts de feature, constitution.md (reglas vinculantes). |
 | `MANUAL_REGISTRO_OBSERVACIONES.html` | Manual de usuario disponible en el repositorio. |
 | `config/init_db.sql` | Esquema inicial. |
-| `config/*.sql`, `specs/*_migration.sql` | Migraciones y cambios de esquema. |
+| `config/*.sql`, `config/migrations/*.sql` | Migraciones y cambios de esquema. |
 
 Este README consolida la vision descubierta del sistema y debe mantenerse actualizado cada vez que una especificacion, implementacion o migracion cambie el comportamiento real del producto.

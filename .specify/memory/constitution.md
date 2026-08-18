@@ -30,11 +30,11 @@ Follow-up TODOs:
 ### I. README and Specs Are the Source of Truth
 
 Every feature, fix, migration, or operational change MUST preserve traceability to
-the discovered system truth in `README.md` and to the relevant Spec Kit/OpenSpec
-artifact under `specs/`, `openspec/`, or `.specify/`. If implementation behavior
-differs from documentation, the documentation and the governing spec MUST be
-updated in the same change. Hidden business rules MUST be documented as explicit
-requirements or assumptions before they are expanded.
+the discovered system truth in `README.md` and to the relevant Spec Kit artifact
+under `specs/` or `.specify/`. If implementation behavior differs from documentation,
+the documentation and the governing spec MUST be updated in the same change. Hidden
+business rules MUST be documented as explicit requirements or assumptions before
+they are expanded.
 
 Rationale: this is an existing REM system with legacy behavior, documented
 assumptions, and operational risk. Future work must not reintroduce undocumented

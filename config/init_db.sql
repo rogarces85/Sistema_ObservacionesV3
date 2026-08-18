@@ -51,10 +51,12 @@ CREATE TABLE IF NOT EXISTS observaciones (
     codigo_hoja VARCHAR(50) NOT NULL,
     tipo_error VARCHAR(100) NOT NULL,
     detalle_observacion TEXT NOT NULL,
+    respuesta_establecimiento TEXT NULL,
     plazo_entrega ENUM('dentro_plazo', 'fuera_plazo') NOT NULL,
     usa_validador ENUM('si', 'no') NOT NULL,
     estado_actual ENUM('pendiente', 'aprobado', 'rechazado', 'error', 'justificado') NOT NULL DEFAULT 'pendiente',
     clasificacion VARCHAR(200) NULL,
+    detalle_error TEXT NULL,
     usuario_registro_id INT NOT NULL,
     usuario_supervisor_id INT NULL,
     fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -68,7 +70,8 @@ CREATE TABLE IF NOT EXISTS observaciones (
     INDEX idx_estado_actual (estado_actual),
     INDEX idx_establecimiento_id (establecimiento_id),
     INDEX idx_usuario_registro_id (usuario_registro_id),
-    INDEX idx_fecha_registro (fecha_registro)
+    INDEX idx_fecha_registro (fecha_registro),
+    INDEX idx_boletin (anio, tipo_error, establecimiento_id, mes)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Tabla de historial de estados

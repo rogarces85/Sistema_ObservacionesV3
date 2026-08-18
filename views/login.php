@@ -27,9 +27,9 @@ $initialTheme = in_array($initialTheme, ['light', 'dark'], true) ? $initialTheme
             <div>
                 <div class="d-flex align-items-center gap-3 mb-4">
                     <?php if (file_exists(__DIR__ . '/assets/images/logo.png')): ?>
-                        <img src="assets/images/logo.png" alt="DEIS Osorno" style="height: 48px;">
+                        <img src="assets/images/logo.png" alt="DEIS Osorno" class="logo-header" loading="lazy">
                     <?php else: ?>
-                        <span class="avatar avatar-lg" style="background: rgba(255,255,255,0.18); color:#ffffff;">
+                        <span class="avatar avatar-lg login-avatar-placeholder">
                             <i class="ti ti-heart-rate-monitor"></i>
                         </span>
                     <?php endif; ?>
@@ -39,7 +39,7 @@ $initialTheme = in_array($initialTheme, ['light', 'dark'], true) ? $initialTheme
                     </div>
                 </div>
                 <h1>Gestión integral de Observaciones REM</h1>
-                <p class="mb-4" style="max-width: 28rem; opacity: 0.9;">
+                <p class="mb-4 login-hero-description">
                     Plataforma para registrar, supervisar y reportar las observaciones del
                     Resumen Estadístico Mensual de establecimientos de salud.
                 </p>
@@ -61,7 +61,7 @@ $initialTheme = in_array($initialTheme, ['light', 'dark'], true) ? $initialTheme
             <div class="login-hero-illustration" aria-hidden="true">
                 <i class="ti ti-heart-rate-monitor"></i>
             </div>
-            <div style="font-size: 0.8rem; opacity: 0.75;">
+            <div class="login-hero-footer-text">
                 <i class="ti ti-info-circle me-1"></i>
                 Aplicación PHP + MySQL con autenticación por sesión y CSRF.
             </div>
@@ -71,7 +71,7 @@ $initialTheme = in_array($initialTheme, ['light', 'dark'], true) ? $initialTheme
             <div class="login-card" id="loginCard">
                 <div class="mb-4 text-center d-md-none">
                     <?php if (file_exists(__DIR__ . '/assets/images/logo.png')): ?>
-                        <img src="assets/images/logo.png" alt="DEIS Osorno" style="height: 56px;">
+                        <img src="assets/images/logo.png" alt="DEIS Osorno" class="logo-form" loading="lazy">
                     <?php endif; ?>
                 </div>
                 <h2 class="h3 fw-bold mb-1">Iniciar sesión</h2>
@@ -80,14 +80,18 @@ $initialTheme = in_array($initialTheme, ['light', 'dark'], true) ? $initialTheme
                 <form id="loginForm" onsubmit="handleLogin(event)" autocomplete="off" novalidate>
                     <div class="form-floating mb-3">
                         <input type="text" name="username" id="username" class="form-control"
-                            placeholder="usuario" required autocomplete="username" autofocus>
+                            placeholder="usuario" required autocomplete="username" autofocus
+                            maxlength="50" aria-label="Nombre de usuario" aria-describedby="usernameHelp">
                         <label for="username"><i class="ti ti-user me-1"></i>Usuario</label>
+                        <small id="usernameHelp" class="text-muted d-block mt-1">Máximo 50 caracteres</small>
                     </div>
 
                     <div class="form-floating mb-3">
                         <input type="password" name="password" id="password" class="form-control"
-                            placeholder="contraseña" required minlength="6" autocomplete="current-password">
+                            placeholder="contraseña" required minlength="6" autocomplete="current-password"
+                            maxlength="100" aria-label="Contraseña" aria-describedby="passwordHelp">
                         <label for="password"><i class="ti ti-lock me-1"></i>Contraseña</label>
+                        <small id="passwordHelp" class="text-muted d-block mt-1">Mínimo 6 caracteres</small>
                     </div>
 
                     <div class="form-floating mb-4">

@@ -1,0 +1,41 @@
+# Proteccion basica del sitio. Complementa (no reemplaza) al VirtualHost
+# de deploy/apache-rem.conf. Si el servidor usa AllowOverride None, este
+# archivo se ignora sin provocar errores.
+
+# Sin listado de directorios
+Options -Indexes
+
+# Documentacion, esquemas SQL y herramientas de desarrollo: no se sirven.
+<FilesMatch "\.(md|sql|sh|yml|yaml|lock|json|example|ini|log|bak)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# Archivos ocultos (.git, .env, .gitignore...)
+<FilesMatch "^\.">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# Carpetas que no forman parte de la aplicacion en ejecucion
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^(\.git|\.specify|\.claude|\.opencode|tools|specs|docs|deploy|logs|node_modules)(/|$) - [F,L]
+</IfModule>
+
+# El favicon y el manual si deben servirse
+<Files "favicon.ico">
+    <IfModule mod_authz_core.c>
+        Require all granted
+    </IfModule>
+</Files>

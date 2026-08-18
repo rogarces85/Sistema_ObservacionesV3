@@ -45,7 +45,7 @@ $activity = array_slice($activity, 0, 8);
                             <div class="mb-3">
                                 <label class="form-label">Rol</label>
                                 <div>
-                                    <span class="badge <?php echo $userInfo['rol'] === ROL_SUPERVISOR ? 'bg-blue text-blue-fg' : 'bg-azure text-azure-fg'; ?>">
+                                    <span class="badge <?php echo $userInfo['rol'] === ROL_SUPERVISOR ? 'bg-primary text-primary-fg' : 'bg-azure text-azure-fg'; ?>">
                                         <?php echo ucfirst($userInfo['rol']); ?>
                                     </span>
                                 </div>
@@ -109,7 +109,7 @@ $activity = array_slice($activity, 0, 8);
                                             <tbody>
                                                 <?php foreach ($activity as $item): ?>
                                                     <tr>
-                                                        <td><span class="badge bg-blue text-blue-fg"><?php echo htmlspecialchars($item['accion']); ?></span></td>
+                                                        <td><span class="badge bg-primary text-primary-fg"><?php echo htmlspecialchars($item['accion']); ?></span></td>
                                                         <td class="text-secondary"><?php echo htmlspecialchars($item['detalles'] ?? ''); ?></td>
                                                         <td class="text-end text-secondary"><?php echo date('d/m/Y H:i', strtotime($item['fecha_registro'])); ?></td>
                                                     </tr>

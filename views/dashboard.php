@@ -61,23 +61,23 @@ $statsJson = json_encode($stats, JSON_UNESCAPED_UNICODE);
 ?>
 
 <div class="d-flex flex-column gap-3 mt-2 rem-fade-in">
-    <header class="card card-stat rem-fade-in" style="--rem-card-bg: var(--rem-grad-hero); color: #ffffff;">
+    <header class="card card-stat rem-fade-in dashboard-hero">
         <div class="card-body p-4 p-lg-5">
             <div class="row align-items-center g-4">
                 <div class="col-md-8">
                     <div class="d-flex align-items-center gap-3 mb-3">
-                        <div class="avatar avatar-lg" style="background: rgba(255,255,255,0.2); color: #ffffff; width: 3.5rem; height: 3.5rem; font-size: 1.1rem;">
+                        <div class="avatar avatar-lg dashboard-hero-avatar">
                             <?php echo htmlspecialchars($userInitials); ?>
                         </div>
                         <div>
                             <small class="d-block" style="opacity: 0.75; text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.7rem;">Bienvenido de vuelta</small>
                             <h2 class="mb-0 fw-bold" style="font-size: 1.6rem;"><?php echo htmlspecialchars($userName); ?></h2>
-                            <span class="badge" style="background: rgba(255,255,255,0.18); color: #ffffff; font-weight: 500;">
+                            <span class="badge dashboard-hero-badge">
                                 <i class="ti ti-shield me-1"></i><?php echo htmlspecialchars(ucfirst($userRole)); ?>
                             </span>
                         </div>
                     </div>
-                    <p class="mb-4" style="opacity: 0.9; max-width: 36rem;">
+                    <p class="mb-4 dashboard-hero-description">
                         Resumen del Sistema de Observaciones REM para el año
                         <strong><?php echo htmlspecialchars($currentYear); ?></strong>.
                         Tienes <?php echo $pendientes; ?> observaciones pendientes y
@@ -85,20 +85,20 @@ $statsJson = json_encode($stats, JSON_UNESCAPED_UNICODE);
                     </p>
                     <div class="d-flex flex-wrap gap-2">
                         <?php if ($userRole === ROL_REGISTRADOR): ?>
-                            <a href="?page=observaciones&action=new&year=<?php echo $currentYear; ?>" class="btn" style="background: #ffffff; color: var(--tblr-primary); font-weight: 600;">
+                            <a href="?page=observaciones&action=new&year=<?php echo $currentYear; ?>" class="btn dashboard-hero-cta-primary">
                                 <i class="ti ti-edit me-1"></i>Nueva Observación
                             </a>
-                            <a href="?page=observaciones&year=<?php echo $currentYear; ?>" class="btn" style="background: rgba(255,255,255,0.18); color: #ffffff; border: 1px solid rgba(255,255,255,0.3);">
+                            <a href="?page=observaciones&year=<?php echo $currentYear; ?>" class="btn dashboard-hero-cta-secondary">
                                 <i class="ti ti-list me-1"></i>Mis Observaciones
                             </a>
                         <?php else: ?>
-                            <a href="?page=supervision&year=<?php echo $currentYear; ?>" class="btn" style="background: #ffffff; color: var(--tblr-primary); font-weight: 600;">
+                            <a href="?page=supervision&year=<?php echo $currentYear; ?>" class="btn dashboard-hero-cta-primary">
                                 <i class="ti ti-eye me-1"></i>Supervisar
                             </a>
-                            <a href="?page=reportes&year=<?php echo $currentYear; ?>" class="btn" style="background: rgba(255,255,255,0.18); color: #ffffff; border: 1px solid rgba(255,255,255,0.3);">
+                            <a href="?page=reportes&year=<?php echo $currentYear; ?>" class="btn dashboard-hero-cta-secondary">
                                 <i class="ti ti-chart-bar me-1"></i>Reportes
                             </a>
-                            <button type="button" data-bs-toggle="modal" data-bs-target="#modalInforme" class="btn" style="background: rgba(255,255,255,0.18); color: #ffffff; border: 1px solid rgba(255,255,255,0.3);">
+                            <button type="button" data-bs-toggle="modal" data-bs-target="#modalInforme" class="btn dashboard-hero-cta-secondary">
                                 <i class="ti ti-report-analytics me-1"></i>Informe
                             </button>
                         <?php endif; ?>
@@ -109,9 +109,9 @@ $statsJson = json_encode($stats, JSON_UNESCAPED_UNICODE);
                         <span class="d-flex align-items-center gap-2" style="opacity: 0.85;">
                             <i class="ti ti-calendar-event"></i>Año de trabajo
                         </span>
-                        <span class="display-5 fw-bold" style="line-height: 1; letter-spacing: -0.02em;"><?php echo htmlspecialchars($currentYear); ?></span>
-                        <span class="d-inline-flex align-items-center gap-2" style="background: rgba(255,255,255,0.15); padding: 0.35rem 0.85rem; border-radius: 9999px; font-size: 0.85rem;">
-                            <span class="status status-green" style="background:#86efac;"></span>
+                        <span class="display-5 fw-bold dashboard-hero-year-display"><?php echo htmlspecialchars($currentYear); ?></span>
+                        <span class="d-inline-flex align-items-center gap-2 dashboard-hero-status-badge">
+                            <span class="status status-green dashboard-hero-live-dot"></span>
                             Datos en vivo
                         </span>
                     </div>
@@ -157,7 +157,7 @@ $statsJson = json_encode($stats, JSON_UNESCAPED_UNICODE);
                 <div class="card card-stat rem-fade-in" style="--rem-card-bg: var(--rem-grad-card-blue);">
                     <div class="card-body">
                         <div class="d-flex align-items-center justify-content-between gap-2">
-                            <span class="stat-icon" style="background: var(--tblr-primary);">
+                            <span class="stat-icon stat-icon-default">
                                 <i class="ti ti-stack-2"></i>
                             </span>
                             <span class="badge-status badge-status-pendiente">
@@ -174,7 +174,7 @@ $statsJson = json_encode($stats, JSON_UNESCAPED_UNICODE);
                 <div class="card card-stat rem-fade-in" style="--rem-card-bg: var(--rem-grad-card-amber);">
                     <div class="card-body">
                         <div class="d-flex align-items-center justify-content-between gap-2">
-                            <span class="stat-icon" style="background: var(--tblr-warning); color: #111827;">
+                            <span class="stat-icon stat-icon-warning">
                                 <i class="ti ti-clock"></i>
                             </span>
                             <span class="badge-status badge-status-pendiente">
@@ -191,7 +191,7 @@ $statsJson = json_encode($stats, JSON_UNESCAPED_UNICODE);
                 <div class="card card-stat rem-fade-in" style="--rem-card-bg: var(--rem-grad-card-emerald);">
                     <div class="card-body">
                         <div class="d-flex align-items-center justify-content-between gap-2">
-                            <span class="stat-icon" style="background: var(--tblr-success);">
+                            <span class="stat-icon stat-icon-success">
                                 <i class="ti ti-circle-check"></i>
                             </span>
                             <span class="badge-status badge-status-aprobado">
@@ -208,7 +208,7 @@ $statsJson = json_encode($stats, JSON_UNESCAPED_UNICODE);
                 <div class="card card-stat rem-fade-in" style="--rem-card-bg: var(--rem-grad-card-rose);">
                     <div class="card-body">
                         <div class="d-flex align-items-center justify-content-between gap-2">
-                            <span class="stat-icon" style="background: var(--tblr-danger);">
+                            <span class="stat-icon stat-icon-danger">
                                 <i class="ti ti-alert-triangle"></i>
                             </span>
                             <span class="badge-status badge-status-error">
@@ -235,7 +235,9 @@ $statsJson = json_encode($stats, JSON_UNESCAPED_UNICODE);
                 </div>
                 <div class="card-body">
                     <?php if ($totalRegistradas > 0): ?>
-                        <div style="height: 240px;"><canvas id="chartEstado"></canvas></div>
+                        <div class="chart-frame-sm" data-export-title="Distribución por Estado"
+                             data-export-context="Año <?php echo htmlspecialchars($currentYear); ?> · Total: <?php echo $totalRegistradas; ?> observaciones"
+                             data-export-slug="distribucion_estado"><canvas id="chartEstado"></canvas></div>
                     <?php else: ?>
                         <div class="empty-state">
                             <div class="empty-icon"><i class="ti ti-chart-donut"></i></div>
@@ -259,7 +261,7 @@ $statsJson = json_encode($stats, JSON_UNESCAPED_UNICODE);
                             <?php foreach ($topErrores as $idx => $err): ?>
                                 <?php
                                 $pct = $totalRegistradas > 0 ? round(((int) $err['total'] / $totalRegistradas) * 100) : 0;
-                                $color = ['bg-primary', 'bg-danger', 'bg-warning', 'bg-info', 'bg-secondary'][$idx % 5];
+                                $serieClass = 'rem-serie-' . ((crc32($err['tipo_error']) % 8) + 1);
                                 ?>
                                 <li>
                                     <div class="d-flex align-items-center justify-content-between gap-2 mb-1">
@@ -267,10 +269,12 @@ $statsJson = json_encode($stats, JSON_UNESCAPED_UNICODE);
                                             <i class="ti ti-tag me-1 text-primary"></i>
                                             <?php echo htmlspecialchars($err['tipo_error']); ?>
                                         </span>
-                                        <span class="badge <?php echo $color; ?>"><?php echo (int) $err['total']; ?> · <?php echo $pct; ?>%</span>
+                                        <span class="badge badge-soft-primary"><?php echo (int) $err['total']; ?> · <?php echo $pct; ?>%</span>
                                     </div>
-                                    <div class="progress" style="height: 0.4rem;">
-                                        <div class="progress-bar <?php echo $color; ?>" role="progressbar" style="width: <?php echo $pct; ?>%;"></div>
+                                    <div class="progress progress-xs">
+                                        <div class="progress-bar <?php echo $serieClass; ?>" role="progressbar"
+                                             style="--rem-progress: <?php echo $pct; ?>%"
+                                             aria-valuenow="<?php echo $pct; ?>" aria-valuemin="0" aria-valuemax="100"></div>
                                     </div>
                                 </li>
                             <?php endforeach; ?>
@@ -296,7 +300,7 @@ $statsJson = json_encode($stats, JSON_UNESCAPED_UNICODE);
                     <div class="d-flex flex-column gap-2">
                         <?php if ($userRole === ROL_REGISTRADOR): ?>
                             <a href="?page=observaciones&action=new&year=<?php echo $currentYear; ?>" class="card card-link p-3 d-flex align-items-center gap-3">
-                                <span class="stat-icon" style="background: var(--tblr-primary);"><i class="ti ti-edit"></i></span>
+                                <span class="stat-icon stat-icon-default"><i class="ti ti-edit"></i></span>
                                 <div class="flex-grow-1">
                                     <div class="fw-semibold">Nueva Observación</div>
                                     <small class="text-secondary">Registrar una nueva observación</small>
@@ -305,7 +309,7 @@ $statsJson = json_encode($stats, JSON_UNESCAPED_UNICODE);
                             </a>
                         <?php endif; ?>
                         <a href="api/import_template.php" class="card card-link p-3 d-flex align-items-center gap-3">
-                            <span class="stat-icon" style="background: var(--tblr-success);"><i class="ti ti-download"></i></span>
+                            <span class="stat-icon stat-icon-success"><i class="ti ti-download"></i></span>
                             <div class="flex-grow-1">
                                 <div class="fw-semibold">Descargar Plantilla</div>
                                 <small class="text-secondary">CSV para importación masiva</small>
@@ -313,7 +317,7 @@ $statsJson = json_encode($stats, JSON_UNESCAPED_UNICODE);
                             <i class="ti ti-chevron-right text-success"></i>
                         </a>
                         <a href="?page=reportes&year=<?php echo $currentYear; ?>" class="card card-link p-3 d-flex align-items-center gap-3">
-                            <span class="stat-icon" style="background: var(--tblr-secondary);"><i class="ti ti-chart-bar"></i></span>
+                            <span class="stat-icon stat-icon-secondary"><i class="ti ti-chart-bar"></i></span>
                             <div class="flex-grow-1">
                                 <div class="fw-semibold">Generar Reportes</div>
                                 <small class="text-secondary">Análisis y gráficos de errores</small>
@@ -322,7 +326,7 @@ $statsJson = json_encode($stats, JSON_UNESCAPED_UNICODE);
                         </a>
                         <?php if ($userRole === ROL_SUPERVISOR): ?>
                             <a href="?page=supervision&year=<?php echo $currentYear; ?>" class="card card-link p-3 d-flex align-items-center gap-3">
-                                <span class="stat-icon" style="background: var(--tblr-warning); color:#111827;"><i class="ti ti-eye"></i></span>
+                                <span class="stat-icon stat-icon-warning"><i class="ti ti-eye"></i></span>
                                 <div class="flex-grow-1">
                                     <div class="fw-semibold">Supervisar</div>
                                     <small class="text-secondary"><?php echo $pendientes; ?> pendientes de revisión</small>
@@ -351,7 +355,9 @@ $statsJson = json_encode($stats, JSON_UNESCAPED_UNICODE);
         </div>
         <div class="card-body">
             <?php if (!empty($mesesData)): ?>
-                <div style="height: 280px;"><canvas id="chartTendencia"></canvas></div>
+                <div class="chart-frame-md" data-export-title="Tendencia mensual de observaciones"
+                     data-export-context="Año <?php echo htmlspecialchars($currentYear); ?>"
+                     data-export-slug="tendencia_mensual"><canvas id="chartTendencia"></canvas></div>
             <?php else: ?>
                 <div class="empty-state">
                     <div class="empty-icon"><i class="ti ti-calendar-stats"></i></div>
@@ -588,8 +594,8 @@ function descargarInformePDF() {
     if (button) button.disabled = true;
     const params = getInformeParams();
     params.set('format', 'pdf');
-    window.open('api/informe_errores.php?' + params.toString(), '_blank');
-    setTimeout(() => { if (button) button.disabled = false; }, 1500);
+    // descargarArchivo avisa si falla y devuelve el botón a su estado normal.
+    descargarArchivo('api/informe_errores.php?' + params.toString(), { boton: button });
 }
 
 function renderInformeTabla() {

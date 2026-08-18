@@ -6,7 +6,9 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
 
 require_once __DIR__ . '/breadcrumbs.php';
 
-$currentPage = $_GET['page'] ?? 'dashboard';
+// $page viene saneado desde index.php (lista blanca + guards de rol);
+// solo se cae a $_GET si esta vista se incluye fuera de ese flujo.
+$currentPage = $page ?? ($_GET['page'] ?? 'dashboard');
 $currentYear = $_SESSION['year'] ?? date('Y');
 $userName = $_SESSION['nombre_completo'] ?? 'Usuario';
 $userRole = $_SESSION['rol'] ?? '';
@@ -21,10 +23,10 @@ $pageTitles = [
     'observaciones' => 'Observaciones',
     'supervision' => 'Supervisión',
     'reportes' => 'Reportes',
+    'boletin' => 'Boletín Informativo',
     'usuarios' => 'Gestión de Usuarios',
     'asignaciones' => 'Asignación de Establecimientos',
     'establecimientos' => 'Establecimientos',
-    'versionado' => 'Versionado',
     'eliminadas' => 'Observaciones Eliminadas',
     'perfil' => 'Mi Perfil',
 ];

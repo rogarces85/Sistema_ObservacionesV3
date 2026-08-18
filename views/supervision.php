@@ -266,10 +266,9 @@ $comunas = $locationModel->getComunas();
                         <label class="form-label">Clasificación</label>
                         <select id="approveClasificacion" class="form-select">
                             <option value="">Sin clasificar</option>
-                            <option value="corregido">Corregido</option>
-                            <option value="error">Error</option>
-                            <option value="sin_respuesta">Sin respuesta del Establecimiento</option>
-                            <option value="respuesta_incorrecta">Respuesta incorrecta de Establecimiento</option>
+                            <?php foreach ($CLASIFICACIONES as $clasifValor => $clasifEtiqueta): ?>
+                                <option value="<?php echo htmlspecialchars($clasifValor); ?>"><?php echo htmlspecialchars($clasifEtiqueta); ?></option>
+                            <?php endforeach; ?>
                         </select>
                     </div>
                     <div class="mb-3">
@@ -819,7 +818,7 @@ $comunas = $locationModel->getComunas();
             '<?php echo ESTADO_APROBADO; ?>': '<span class="badge bg-green text-green-fg">Aprobado</span>',
             '<?php echo ESTADO_RECHAZADO; ?>': '<span class="badge bg-red text-red-fg">Rechazado</span>',
             '<?php echo ESTADO_ERROR; ?>': '<span class="badge bg-red text-red-fg">Error</span>',
-            '<?php echo ESTADO_JUSTIFICADO; ?>': '<span class="badge bg-blue text-blue-fg">Justificado</span>'
+            '<?php echo ESTADO_JUSTIFICADO; ?>': '<span class="badge bg-primary text-primary-fg">Justificado</span>'
         };
         return badges[estado] || `<span class="badge">${estado}</span>`;
     }

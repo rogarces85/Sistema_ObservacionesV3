@@ -167,6 +167,40 @@ function formatDateTime(dateString) {
     });
 }
 
+// === i18n Helpers (Spanish localization) ===
+
+// Formatear número con separadores en español (1.234.567 en lugar de 1,234,567)
+function formatNumber(number, decimals = 0) {
+    return new Intl.NumberFormat('es-CL', {
+        minimumFractionDigits: decimals,
+        maximumFractionDigits: decimals
+    }).format(number);
+}
+
+// Formatear moneda en CLP
+function formatCurrency(amount) {
+    return new Intl.NumberFormat('es-CL', {
+        style: 'currency',
+        currency: 'CLP',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+    }).format(amount);
+}
+
+// Formatear porcentaje en español
+function formatPercent(value) {
+    return new Intl.NumberFormat('es-CL', {
+        style: 'percent',
+        minimumFractionDigits: 1,
+        maximumFractionDigits: 1
+    }).format(value / 100);
+}
+
+// Pluralizar correctamente en español
+function pluralize(count, singular, plural) {
+    return count === 1 ? singular : plural;
+}
+
 // Cambiar año
 async function changeYear(year) {
     try {
@@ -190,6 +224,148 @@ async function changeYear(year) {
 function getCurrentPage() {
     const params = new URLSearchParams(window.location.search);
     return params.get('page') || 'dashboard';
+}
+
+// === Edge case protection helpers ===
+
+// Prevención de double-submit
+const submittingForms = new Set();
+
+function preventDoubleSubmit(formId) {
+    return submittingForms.has(formId);
+}
+
+function markFormSubmitting(formId) {
+    submittingForms.add(formId);
+}
+
+function unmarkFormSubmitting(formId) {
+    submittingForms.delete(formId);
+}
+
+// Helper para deshabilitar botones durante el envío
+function disableSubmitButton(button) {
+    if (!button) return;
+    button.disabled = true;
+    button.setAttribute('aria-busy', 'true');
+    const originalText = button.textContent;
+    button.dataset.originalText = originalText;
+    button.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Enviando...';
+}
+
+function enableSubmitButton(button) {
+    if (!button) return;
+    button.disabled = false;
+    button.removeAttribute('aria-busy');
+    button.textContent = button.dataset.originalText || 'Guardar';
+}
+
+// Validar longitud de texto (para edge cases de textos muy largos)
+function validateTextLength(text, maxLength = 5000, fieldName = 'Campo') {
+    if (!text) return true;
+    if (text.length > maxLength) {
+        showError(`${fieldName} excede ${maxLength} caracteres (${text.length} encontrados)`);
+        return false;
+    }
+    return true;
+}
+
+// Sanitizar HTML (prevenir XSS)
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Manejo robusto de errores de API con retry
+async function fetchAPIWithRetry(endpoint, options = {}, retries = 1) {
+    let lastError;
+    for (let attempt = 0; attempt <= retries; attempt++) {
+        try {
+            return await fetchAPI(endpoint, options);
+        } catch (error) {
+            lastError = error;
+            if (attempt < retries) {
+                await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+            }
+        }
+    }
+    throw lastError;
+}
+
+// Validar que al menos un checkbox esté seleccionado
+function validateCheckboxSelection(checkboxSelector) {
+    const checked = document.querySelectorAll(checkboxSelector + ':checked');
+    if (checked.length === 0) {
+        showError('Debe seleccionar al menos una opción');
+        return false;
+    }
+    return true;
+}
+
+// Timeout para operaciones largas (evitar que se quede esperando infinitamente)
+function withTimeout(promise, timeoutMs = 30000) {
+    return Promise.race([
+        promise,
+        new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Operación expirada (timeout)')), timeoutMs)
+        )
+    ]);
+}
+
+// === Performance optimizations ===
+
+// Debounce - esperar a que el usuario deje de escribir antes de ejecutar
+function debounce(func, wait = 300) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+// Throttle - ejecutar máximo una vez cada X ms
+function throttle(func, limit = 300) {
+    let inThrottle;
+    return function executedFunction(...args) {
+        if (!inThrottle) {
+            func.apply(this, args);
+            inThrottle = true;
+            setTimeout(() => inThrottle = false, limit);
+        }
+    };
+}
+
+// Request animation frame polyfill para animaciones suaves
+function onAnimationFrame(callback) {
+    return requestAnimationFrame(callback);
+}
+
+// Intersection Observer para lazy loading optimizado
+function observeElements(selector, callback, options = {}) {
+    const defaultOptions = {
+        root: null,
+        rootMargin: '50px',
+        threshold: 0.1,
+        ...options
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                callback(entry.target);
+                observer.unobserve(entry.target);
+            }
+        });
+    }, defaultOptions);
+
+    document.querySelectorAll(selector).forEach(el => observer.observe(el));
+    return observer;
 }
 
 // Logout
@@ -335,4 +511,110 @@ function escapeHtmlGlobal(text) {
     const div = document.createElement('div');
     div.textContent = text || '';
     return div.innerHTML;
+}
+
+// ============================================
+// Descarga de exportaciones (Excel / PDF)
+// ============================================
+
+/**
+ * Abre o descarga un archivo generado por el servidor avisando al usuario si algo falla.
+ *
+ * Antes se usaba window.open() a ciegas: si el servidor respondia un error o el
+ * bloqueador de ventanas emergentes intervenia, el usuario solo veia una pestana
+ * en blanco. Aqui se pide el archivo por fetch, se comprueba lo que llego y solo
+ * despues se abre.
+ *
+ * @param {string} url        endpoint de exportacion con sus parametros
+ * @param {object} [opciones] { boton: HTMLElement, nombre: string, textoCargando: string }
+ */
+async function descargarArchivo(url, opciones = {}) {
+    const boton = opciones.boton || null;
+    const etiquetaOriginal = boton ? boton.innerHTML : null;
+
+    // Navegadores sin fetch/Blob: se cae al comportamiento clasico.
+    if (typeof fetch !== 'function' || typeof Blob === 'undefined' || !window.URL || !URL.createObjectURL) {
+        const ventana = window.open(url, '_blank');
+        if (!ventana) {
+            showError('Su navegador bloqueó la ventana emergente. Permita las ventanas emergentes para este sitio e intente de nuevo.');
+        }
+        return;
+    }
+
+    try {
+        if (boton) {
+            boton.disabled = true;
+            boton.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>' +
+                (opciones.textoCargando || 'Generando…');
+        }
+
+        const respuesta = await fetch(url, { credentials: 'same-origin' });
+        const tipo = (respuesta.headers.get('Content-Type') || '').toLowerCase();
+
+        // El servidor responde HTML/JSON cuando no hay datos o algo fallo.
+        if (!respuesta.ok || tipo.includes('text/html') || tipo.includes('application/json')) {
+            const texto = await respuesta.text();
+            let mensaje = '';
+
+            if (tipo.includes('application/json')) {
+                try { mensaje = (JSON.parse(texto) || {}).message || ''; } catch (e) { mensaje = ''; }
+            } else {
+                // La pagina de aviso trae el motivo en el primer <p>.
+                const doc = new DOMParser().parseFromString(texto, 'text/html');
+                mensaje = (doc.querySelector('.aviso p') || {}).textContent || '';
+                const titulo = (doc.querySelector('.aviso h1') || {}).textContent || '';
+                if (titulo && mensaje) mensaje = titulo + ': ' + mensaje;
+            }
+
+            if (respuesta.status === 401) {
+                mensaje = mensaje || 'Su sesión expiró. Vuelva a iniciar sesión.';
+            }
+            showError(mensaje || ('No se pudo generar el archivo (error ' + respuesta.status + ').'));
+            return;
+        }
+
+        const blob = await respuesta.blob();
+        const nombre = opciones.nombre || nombreDesdeCabecera(respuesta) || 'reporte';
+        const esPdf = tipo.includes('application/pdf');
+        const objeto = URL.createObjectURL(blob);
+
+        if (esPdf) {
+            // El PDF se abre en el visor del navegador: no requiere un lector instalado.
+            const ventana = window.open(objeto, '_blank');
+            if (!ventana) {
+                // Con el emergente bloqueado, al menos se ofrece la descarga.
+                dispararDescarga(objeto, nombre);
+                showInfo('El PDF se descargó porque el navegador bloqueó la ventana emergente.');
+            }
+        } else {
+            dispararDescarga(objeto, nombre);
+        }
+
+        // Se libera algo despues para no cortar la apertura del visor.
+        setTimeout(() => URL.revokeObjectURL(objeto), 60000);
+
+    } catch (error) {
+        showError(error.message || 'No se pudo generar el archivo. Revise su conexión e intente nuevamente.');
+    } finally {
+        if (boton) {
+            boton.disabled = false;
+            if (etiquetaOriginal !== null) boton.innerHTML = etiquetaOriginal;
+        }
+    }
+}
+
+/** Nombre sugerido por el servidor en Content-Disposition. */
+function nombreDesdeCabecera(respuesta) {
+    const cd = respuesta.headers.get('Content-Disposition') || '';
+    const match = cd.match(/filename="?([^";]+)"?/i);
+    return match ? match[1] : '';
+}
+
+function dispararDescarga(objectUrl, nombre) {
+    const enlace = document.createElement('a');
+    enlace.href = objectUrl;
+    enlace.download = nombre;
+    document.body.appendChild(enlace);
+    enlace.click();
+    document.body.removeChild(enlace);
 }

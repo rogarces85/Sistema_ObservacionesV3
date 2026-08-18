@@ -16,7 +16,7 @@
 | Establecimientos | Vista protegida para supervisores; listar; estadisticas activos/inactivos; filtro por comuna; mostrar inactivos; crear; editar; activar/desactivar via `api/locations.php`. | No hay eliminacion permanente; no hay gestion de comunas; no hay gestion de referentes/contactos desde esta pagina. | Parcial |
 | Header / Navegacion | Selector de anio; cambio de tema light/dark; busqueda global basica de paginas; menu de usuario; logout; notificaciones reales persistidas con badge y marcar como leidas. | Requiere tabla `notificaciones` aplicada en BD. | Implementado |
 | Exportacion | Excel/PDF sincronico por `api/export.php`; informe errores JSON/PDF por `api/informe_errores.php`; cola asincrona con worker y descarga controlada. | Requiere ejecutar `php worker_reportes.php` como tarea programada. | Implementado |
-| Versionado tecnico | Existe `api/versioning.php`, `models/Version.php` y pagina visible `versionado` para snapshots/rollback. | Requiere tabla `versiones_sistema` aplicada en BD y uso con respaldo previo. | Implementado |
+| Versionado tecnico | **Retirado en agosto 2026.** Copiaba el codigo fuente a `uploads/versiones/`, accesible por navegador e incluyendo `config/config.php` con credenciales; ademas su rollback no restauraba ningun archivo pese a informar exito. | El rollback de codigo se hace con `git checkout` (ver OPERATIONS.md). | Eliminado |
 
 ## Mockups Por Pagina
 

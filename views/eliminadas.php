@@ -307,7 +307,7 @@ $comunas = $locationModel->getComunas();
 
         container.innerHTML = `
             <div class="col-md-4">
-                <div class="card card-sm" style="background: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%);">
+                <div class="card card-sm card-gradient-rose">
                     <div class="card-body d-flex align-items-center gap-3">
                         <div class="p-2 rounded bg-danger text-white fs-2">🗑</div>
                         <div>
@@ -318,7 +318,7 @@ $comunas = $locationModel->getComunas();
                 </div>
             </div>
             <div class="col-md-4">
-                <div class="card card-sm" style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);">
+                <div class="card card-sm card-gradient-sky">
                     <div class="card-body d-flex align-items-center gap-3">
                         <div class="p-2 rounded bg-primary text-white fs-2">📊</div>
                         <div>
@@ -329,7 +329,7 @@ $comunas = $locationModel->getComunas();
                 </div>
             </div>
             <div class="col-md-4">
-                <div class="card card-sm" style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);">
+                <div class="card card-sm card-gradient-amber">
                     <div class="card-body d-flex align-items-center gap-3">
                         <div class="p-2 rounded bg-warning text-white fs-2">👤</div>
                         <div>
@@ -360,7 +360,7 @@ $comunas = $locationModel->getComunas();
                 <td>${escapeHtml(obs.tipo_error)}</td>
                 <td>${getEstadoBadge(obs.estado_actual)}</td>
                 <td class="text-secondary">${escapeHtml(obs.nombre_registro)}</td>
-                <td class="text-secondary text-truncate" style="max-width: 150px;" title="${escapeHtml(obs.motivo_eliminacion)}">
+                <td class="text-secondary text-truncate text-truncate-fixed" title="${escapeHtml(obs.motivo_eliminacion)}">
                     ${escapeHtml(obs.motivo_eliminacion) || '-'}
                 </td>
                 <td class="text-end">
@@ -596,7 +596,7 @@ $comunas = $locationModel->getComunas();
             'aprobado': '<span class="badge bg-green text-green-fg">Aprobado</span>',
             'rechazado': '<span class="badge bg-red text-red-fg">Rechazado</span>',
             'error': '<span class="badge bg-red text-red-fg">Error</span>',
-            'justificado': '<span class="badge bg-blue text-blue-fg">Justificado</span>'
+            'justificado': '<span class="badge bg-primary text-primary-fg">Justificado</span>'
         };
         return badges[estado] || `<span class="badge">${estado}</span>`;
     }

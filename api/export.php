@@ -1,7 +1,11 @@
 <?php
 /**
  * API de Exportación
- * Endpoint para generar reportes en diferentes formatos
+ * Endpoint para generar reportes en diferentes formatos.
+ *
+ * Todo el cuerpo va dentro de un try/catch: si la generación falla (libreria
+ * ausente, memoria, datos inesperados) el usuario debe ver una pagina con el
+ * motivo, no una pestana en blanco.
  */
 
 require_once '../config/config.php';
@@ -9,10 +13,56 @@ require_once '../config/constants.php';
 require_once '../models/Observation.php';
 require_once '../models/Exporter.php';
 
-if (!isset($_SESSION['user_id'])) {
-    http_response_code(401);
-    die('No autenticado');
+/**
+ * Pagina de aviso para el usuario final. Se usa tanto para errores como para
+ * "no hay datos", porque la descarga se abre en una pestana aparte.
+ */
+function exportAviso(string $titulo, string $mensaje, string $detalle = '', int $codigo = 400): void
+{
+    while (ob_get_level() > 0) {
+        ob_end_clean();
+    }
+    http_response_code($codigo);
+    header('Content-Type: text/html; charset=utf-8');
+
+    $esError = $codigo >= 500 || $codigo === 400;
+    $icono = $esError ? '&#9888;' : '&#8505;';
+
+    echo '<!DOCTYPE html><html lang="es"><head><meta charset="utf-8">'
+        . '<meta name="viewport" content="width=device-width, initial-scale=1">'
+        . '<title>' . htmlspecialchars($titulo) . '</title>'
+        . '<link rel="stylesheet" href="../assets/css/tokens.css">'
+        . '<style>'
+        . 'body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:#f6f8fb;'
+        . 'color:#1e293b;margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:1.5rem}'
+        . '.aviso{background:#fff;border:1px solid #e2e8f0;border-radius:12px;max-width:34rem;width:100%;'
+        . 'padding:2rem;box-shadow:0 10px 30px rgba(15,23,42,.08);text-align:center}'
+        . '.aviso .icono{font-size:2.5rem;line-height:1;color:#0B71B9}'
+        . '.aviso h1{font-size:1.15rem;margin:.75rem 0 .5rem;color:#003366}'
+        . '.aviso p{margin:0 0 1rem;line-height:1.5}'
+        . '.aviso .detalle{font-size:.8125rem;color:#64748b;background:#f1f5f9;border-radius:8px;'
+        . 'padding:.75rem;text-align:left;word-break:break-word;margin-bottom:1rem}'
+        . '.aviso a{display:inline-block;background:#0B71B9;color:#fff;text-decoration:none;'
+        . 'padding:.55rem 1.25rem;border-radius:8px;font-weight:600}'
+        . '</style></head><body><div class="aviso">'
+        . '<div class="icono">' . $icono . '</div>'
+        . '<h1>' . htmlspecialchars($titulo) . '</h1>'
+        . '<p>' . htmlspecialchars($mensaje) . '</p>';
+
+    if ($detalle !== '') {
+        echo '<div class="detalle">' . htmlspecialchars($detalle) . '</div>';
+    }
+
+    echo '<a href="javascript:window.close()">Cerrar</a>'
+        . '</div></body></html>';
+    exit;
 }
+
+if (!isset($_SESSION['user_id'])) {
+    exportAviso('Sesión expirada', 'Debe iniciar sesión nuevamente para exportar reportes.', '', 401);
+}
+
+try {
 
 $userId = $_SESSION['user_id'];
 $userRole = $_SESSION['rol'];
@@ -36,6 +86,52 @@ $obsModel = new Observation();
 $exporter = new Exporter();
 $timestamp = date('Y-m-d_His');
 
+// Matriz mensual de cumplimiento: la misma tabla que muestran las pestañas
+// "Plazos Entrega" y "Uso Validador" del módulo Reportes.
+if ($reportType === 'plazo_matriz' || $reportType === 'validador_matriz') {
+    $esPlazo = $reportType === 'plazo_matriz';
+    $comunaIds = $comuna_id ? [(int)$comuna_id] : [];
+
+    $detalle = $esPlazo
+        ? $obsModel->reportePlazoMensual((int)$year, $mesesFiltro, $userId, $userRole, $comunaIds, $establecimiento_id)
+        : $obsModel->reporteValidadorMensual((int)$year, $mesesFiltro, $userId, $userRole, $comunaIds, $establecimiento_id);
+
+    if (empty($detalle)) {
+        exportAviso('Sin datos para exportar', 'No se encontraron registros con los filtros seleccionados. Ajuste el período, la comuna o el establecimiento y vuelva a intentarlo.', '', 404);
+    }
+
+    $matriz = $exporter->armarMatrizMensual(
+        $detalle,
+        $mesesFiltro,
+        $esPlazo ? 'dentro' : 'usa',
+        $esPlazo ? 'fuera' : 'no_usa'
+    );
+
+    // El periodo se arma con los meses efectivamente incluidos en la matriz.
+    $meses = $matriz['meses'];
+    $periodo = count($meses) === 1
+        ? $meses[0] . ' ' . $year
+        : (count($meses) > 1 ? $meses[0] . ' a ' . end($meses) . ' ' . $year : (string)$year);
+
+    $meta = [
+        'titulo' => $esPlazo
+            ? 'Plazo de entrega por establecimiento y mes'
+            : 'Uso de validador local por establecimiento y mes',
+        'periodo' => $periodo,
+        'etiquetaOk' => $esPlazo ? 'Dentro de plazo' : 'Usa validador',
+        'etiquetaFalla' => $esPlazo ? 'Fuera de plazo' : 'No usa validador',
+    ];
+
+    $baseName = $esPlazo ? 'Plazo_Entrega_Matriz' : 'Uso_Validador_Matriz';
+
+    if ($format === 'pdf') {
+        $exporter->exportMatrizMensualPDF($matriz, $meta, "{$baseName}_{$year}_{$timestamp}.pdf");
+    } else {
+        $exporter->exportMatrizMensualExcel($matriz, $meta, "{$baseName}_{$year}_{$timestamp}.xlsx");
+    }
+    exit;
+}
+
 // Reporte detallado jerárquico (PDF)
 if ($reportType === 'detallado') {
     $filters = ['anio' => $year];
@@ -48,8 +144,7 @@ if ($reportType === 'detallado') {
     $data = $obsModel->reporteDetalladoPDF($filters, $userId, $userRole);
 
     if (empty($data)) {
-        http_response_code(404);
-        die('No se encontraron datos para el reporte detallado');
+        exportAviso('Sin datos para exportar', 'No se encontraron registros con los filtros seleccionados. Ajuste el período, la comuna o el establecimiento y vuelva a intentarlo.', '', 404);
     }
 
     $filterDesc = $year;
@@ -101,8 +196,7 @@ if (in_array($reportType, $specificReports)) {
     }
 
     if (empty($data)) {
-        http_response_code(404);
-        die('No se encontraron datos para este reporte');
+        exportAviso('Sin datos para exportar', 'No se encontraron registros con los filtros seleccionados. Ajuste el período, la comuna o el establecimiento y vuelva a intentarlo.', '', 404);
     }
 
     $reportNames = [
@@ -125,8 +219,7 @@ if (in_array($reportType, $specificReports)) {
         $filename = "{$baseName}_{$year}_{$timestamp}.xlsx";
         $exporter->exportErroresExcel($data, $filename, $reportType);
     } else {
-        http_response_code(400);
-        die('Formato no válido para este tipo de reporte. Use: excel');
+        exportAviso('Formato no disponible', 'Este reporte solo puede exportarse en Excel.', 'format=' . $format, 400);
     }
     exit;
 }
@@ -141,8 +234,7 @@ if ($establecimiento_id) $filters['establecimiento_id'] = $establecimiento_id;
 $observations = $obsModel->getWithFilters($filters);
 
 if (empty($observations)) {
-    http_response_code(404);
-    die('No se encontraron observaciones para exportar');
+    exportAviso('Sin datos para exportar', 'No se encontraron registros con los filtros seleccionados. Ajuste el período, la comuna o el establecimiento y vuelva a intentarlo.', '', 404);
 }
 
 $data = $exporter->prepareObservationsData($observations);
@@ -166,6 +258,18 @@ switch ($format) {
         break;
 
     default:
-        http_response_code(400);
-        die('Formato no válido. Use: excel o pdf');
+        exportAviso('Formato no disponible', 'Los formatos admitidos son Excel y PDF.', 'format=' . $format, 400);
+}
+
+} catch (Throwable $e) {
+    // Sin esto, un fallo de TCPDF/PhpSpreadsheet deja la pestaña en blanco.
+    error_log('Error en exportacion (' . ($reportType ?? '?') . '/' . ($format ?? '?') . '): '
+        . $e->getMessage() . ' en ' . $e->getFile() . ':' . $e->getLine());
+
+    exportAviso(
+        'No se pudo generar el archivo',
+        'Ocurrió un problema al generar la exportación. Si el problema persiste, informe al administrador del sistema.',
+        $e->getMessage(),
+        500
+    );
 }

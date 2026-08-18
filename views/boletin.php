@@ -364,10 +364,10 @@ function renderBoletin(data) {
     }).join('');
 }
 
-function exportBoletin(formato) {
+function exportBoletin(formato, evento) {
     const params = getBoletinParams();
     params.set('format', formato);
-    window.open('api/boletin.php?' + params.toString(), '_blank');
+    descargarArchivo('api/boletin.php?' + params.toString(), { boton: evento?.currentTarget });
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -376,8 +376,8 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('boletinComuna').addEventListener('change', loadEstablecimientos);
 
     document.getElementById('btnBoletinGenerar').addEventListener('click', loadBoletin);
-    document.getElementById('btnBoletinExcel').addEventListener('click', () => exportBoletin('excel'));
-    document.getElementById('btnBoletinPdf').addEventListener('click', () => exportBoletin('pdf'));
+    document.getElementById('btnBoletinExcel').addEventListener('click', (e) => exportBoletin('excel', e));
+    document.getElementById('btnBoletinPdf').addEventListener('click', (e) => exportBoletin('pdf', e));
     document.getElementById('btnBoletinImprimir').addEventListener('click', () => window.print());
 
     loadBoletin();

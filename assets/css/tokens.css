@@ -2,16 +2,52 @@
  * Sistema de Observaciones REM - Design Tokens
  * Capa de tokens extendidos sobre Tabler 1.4. Mantiene solo variables CSS
  * (sin Sass ni build pipeline) y es compatible con la decision de no-Sass.
+ *
+ * PALETA INSTITUCIONAL: DEIS Osorno (logo oficial).
+ * Los 4 colores del logo son la fuente de verdad, pero NO todos son usables
+ * como texto. Regla de uso, verificada con contraste WCAG 2.1 AA:
+ *
+ *   #003366 navy    -> 12.6:1 sobre blanco. Texto, titulares, encabezados.
+ *   #0B71B9 azul    ->  5.13:1 sobre blanco. Texto, enlaces, botones.
+ *   #00AEEF cian    ->  2.53:1 sobre blanco. SOLO RELLENO (nunca texto en claro).
+ *   #76C7ED celeste ->  1.88:1 sobre blanco. SOLO RELLENO / bandas decorativas.
+ *
+ * Sobre relleno cian o celeste el texto va en navy (--rem-brand-accent-fg),
+ * nunca en blanco. Para texto "cian" en tema claro se usa #0077A3 (5.04:1).
+ * En tema oscuro navy y azul dejan de servir como texto: el bloque
+ * [data-bs-theme="dark"] remapea primary a #4FB3E8 y enlaces a #76C7ED.
  */
 
 :root {
+  /* === Marca DEIS Osorno (rampa derivada del logo) === */
+  --deis-navy-900: #002347;
+  --deis-navy-800: #003366; /* LOGO - Deep Navy */
+  --deis-blue-700: #095C96;
+  --deis-blue-600: #0B71B9; /* LOGO - Medium Blue */
+  --deis-cyan-700: #0077A3;
+  --deis-cyan-500: #00AEEF; /* LOGO - Cian */
+  --deis-cyan-300: #76C7ED; /* LOGO - Light Blue */
+  --deis-cyan-100: #D7EEFA;
+  --deis-cyan-050: #EEF7FD;
+
   /* === Tabler brand === */
-  --tblr-primary: #0ea5e9;
-  --tblr-primary-rgb: 14, 165, 233;
+  --tblr-primary: #0B71B9;
+  --tblr-primary-rgb: 11, 113, 185;
   --tblr-primary-fg: #ffffff;
-  --tblr-secondary: #1e3a5f;
-  --tblr-secondary-rgb: 30, 58, 95;
+  --tblr-secondary: #003366;
+  --tblr-secondary-rgb: 0, 51, 102;
   --tblr-secondary-fg: #ffffff;
+  --tblr-link-color: #0B71B9;
+  --tblr-link-hover-color: #095C96;
+
+  /* === Variantes de marca === */
+  --rem-brand-hover: #095C96;
+  --rem-brand-active: #073F6B;
+  --rem-brand-subtle-bg: #E3F1FB;
+  --rem-brand-subtle-fg: #003366;
+  --rem-brand-accent: #00AEEF;    /* solo relleno */
+  --rem-brand-accent-fg: #003366; /* texto que va encima del accent */
+  --rem-brand-band: #76C7ED;      /* bandas y acentos decorativos */
 
   /* === Status palette === */
   --tblr-success: #16a34a;
@@ -23,8 +59,8 @@
   --tblr-danger: #ef4444;
   --tblr-danger-rgb: 239, 68, 68;
   --tblr-danger-fg: #ffffff;
-  --tblr-info: #0ea5e9;
-  --tblr-info-rgb: 14, 165, 233;
+  --tblr-info: #0077A3;
+  --tblr-info-rgb: 0, 119, 163;
   --tblr-info-fg: #ffffff;
   --tblr-muted: #64748b;
   --tblr-muted-rgb: 100, 116, 139;
@@ -37,8 +73,8 @@
   --tblr-heading-color: #0f172a;
   --tblr-border-color: #e2e8f0;
   --tblr-border-color-translucent: rgba(15, 23, 42, 0.08);
-  --rem-table-stripe-bg: rgba(14, 165, 233, 0.035);
-  --rem-table-hover-bg: rgba(14, 165, 233, 0.055);
+  --rem-table-stripe-bg: rgba(11, 113, 185, 0.035);
+  --rem-table-hover-bg: rgba(11, 113, 185, 0.06);
   --tblr-input-bg: #ffffff;
 
   /* === Cards === */
@@ -57,7 +93,7 @@
   --tblr-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
   --tblr-shadow: 0 2px 6px rgba(15, 23, 42, 0.06);
   --tblr-shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.10);
-  --tblr-fab-shadow: 0 16px 30px rgba(14, 165, 233, 0.26);
+  --tblr-fab-shadow: 0 16px 30px rgba(11, 113, 185, 0.26);
 
   /* === Typography === */
   --tblr-font-family-base: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
@@ -82,17 +118,32 @@
   --rem-radius-lg: 0.75rem;
   --rem-shadow-card: 0 2px 6px rgba(15, 23, 42, 0.04);
   --rem-shadow-card-hover: 0 10px 24px rgba(15, 23, 42, 0.08);
-  --rem-status-pendiente: #f59e0b;
-  --rem-status-aprobado: #16a34a;
-  --rem-status-error: #ef4444;
-  --rem-status-justificado: #0ea5e9;
   --rem-transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
   --rem-transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
-  --rem-grad-hero: linear-gradient(135deg, #0ea5e9 0%, #1e3a5f 100%);
-  --rem-grad-card-blue: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  --rem-grad-hero: linear-gradient(135deg, #0B71B9 0%, #003366 100%);
+  --rem-grad-card-blue: linear-gradient(135deg, #EEF7FD 0%, #D7EEFA 100%);
   --rem-grad-card-amber: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
   --rem-grad-card-emerald: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
   --rem-grad-card-rose: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%);
+
+  /* === Estados del dominio (5) ===
+     Variante base = color de TEXTO (AA sobre blanco).
+     Variante -bg / -fg = relleno de badge y su texto. */
+  --rem-status-pendiente: #B45309;
+  --rem-status-aprobado: #15803D;
+  --rem-status-rechazado: #475569;
+  --rem-status-error: #B91C1C;
+  --rem-status-justificado: #0077A3;
+  --rem-status-pendiente-bg: #FEF3C7;
+  --rem-status-pendiente-fg: #78350F;
+  --rem-status-aprobado-bg: #DCFCE7;
+  --rem-status-aprobado-fg: #14532D;
+  --rem-status-rechazado-bg: #E2E8F0;
+  --rem-status-rechazado-fg: #1E293B;
+  --rem-status-error-bg: #FEE2E2;
+  --rem-status-error-fg: #7F1D1D;
+  --rem-status-justificado-bg: #D7EEFA;
+  --rem-status-justificado-fg: #003366;
 
   /* === Charts === */
   --chart-grid: rgba(226, 232, 240, 0.72);
@@ -102,17 +153,49 @@
   --chart-tooltip-text: #1e293b;
   --chart-tooltip-muted: #475569;
   --chart-tooltip-border: #e2e8f0;
-  --chart-point: #0ea5e9;
+  --chart-point: #0B71B9;
   --chart-point-border: #ffffff;
   --chart-export-bg: rgba(255, 255, 255, 0.88);
   --chart-export-bg-hover: #ffffff;
 
+  /* Serie categorica: arranca con la marca y se abre a hues de apoyo,
+     porque DEIS es monocroma azul y con 3+ series los azules se confunden. */
+  --chart-series-1: #0B71B9;
+  --chart-series-2: #00AEEF;
+  --chart-series-3: #003366;
+  --chart-series-4: #76C7ED;
+  --chart-series-5: #B45309;
+  --chart-series-6: #15803D;
+  --chart-series-7: #6D28D9;
+  --chart-series-8: #B91C1C;
+  --chart-series-count: 8;
+  --chart-datalabel-on-dark: #ffffff;
+  --chart-datalabel-on-light: #002347;
+
+  /* Imagen PNG exportada del grafico */
+  --chart-export-canvas-bg: #ffffff;
+  --chart-export-title: #003366;
+  --chart-export-meta: #475569;
+
+  /* === Boletin Informativo === */
+  --rem-boletin-header-bg: #003366; /* blanco encima = 12.6:1 */
+  --rem-boletin-header-fg: #ffffff;
+  --rem-boletin-group-bg: #EEF7FD;
+  --rem-boletin-border: #B6D7EB;
+
+  /* === Matriz de cumplimiento (Plazo / Validador) ===
+     Relleno suave con texto oscuro: legible en pantalla y al imprimir. */
+  --rem-matriz-ok-bg: #DCF5E7;
+  --rem-matriz-ok-fg: #10693F;    /* sobre ok-bg = 5.4:1 */
+  --rem-matriz-falla-bg: #FDE2E2;
+  --rem-matriz-falla-fg: #B02020; /* sobre falla-bg = 5.1:1 */
+
   /* === Sidebar === */
   --tblr-sidebar-width: 260px;
   --tblr-sidebar-mini-width: 72px;
-  --tblr-sidebar-bg: #0f172a;
-  --tblr-sidebar-color: #cbd5e1;
-  --tblr-sidebar-active-bg: rgba(14, 165, 233, 0.18);
+  --tblr-sidebar-bg: #002347;
+  --tblr-sidebar-color: #C7DDEE;
+  --tblr-sidebar-active-bg: rgba(0, 174, 239, 0.20);
   --tblr-sidebar-active-color: #ffffff;
   --tblr-sidebar-hover-bg: rgba(255, 255, 255, 0.06);
 
@@ -123,8 +206,29 @@
   color-scheme: light;
 }
 
-/* === Dark mode (toggled by theme.js) === */
+/* === Dark mode (toggled by theme.js) ===
+   Navy y azul medio no alcanzan contraste como texto sobre fondo oscuro,
+   asi que la marca se aclara: primary -> #4FB3E8, enlaces -> #76C7ED. */
 [data-bs-theme="dark"] {
+  --tblr-primary: #4FB3E8;
+  --tblr-primary-rgb: 79, 179, 232;
+  --tblr-primary-fg: #002347;
+  --tblr-secondary: #76C7ED;
+  --tblr-secondary-rgb: 118, 199, 237;
+  --tblr-secondary-fg: #002347;
+  --tblr-info: #00AEEF;
+  --tblr-info-rgb: 0, 174, 239;
+  --tblr-link-color: #76C7ED;
+  --tblr-link-hover-color: #A7DBF4;
+
+  --rem-brand-hover: #76C7ED;
+  --rem-brand-active: #A7DBF4;
+  --rem-brand-subtle-bg: rgba(0, 174, 239, 0.14);
+  --rem-brand-subtle-fg: #C7E8F8;
+  --rem-brand-accent: #00AEEF;
+  --rem-brand-accent-fg: #002347;
+  --rem-brand-band: #4FB3E8;
+
   --tblr-body-bg: #0b1220;
   --tblr-body-color: #e2e8f0;
   --tblr-heading-color: #f8fafc;
@@ -134,8 +238,8 @@
   --tblr-bg-surface-2: #111c33;
   --tblr-border-color: #1e293b;
   --tblr-border-color-translucent: rgba(148, 163, 184, 0.14);
-  --rem-table-stripe-bg: rgba(14, 165, 233, 0.06);
-  --rem-table-hover-bg: rgba(14, 165, 233, 0.10);
+  --rem-table-stripe-bg: rgba(0, 174, 239, 0.07);
+  --rem-table-hover-bg: rgba(0, 174, 239, 0.12);
   --tblr-input-bg: #111c33;
   --tblr-card-bg: #0f172a;
   --tblr-card-border-color: #1e293b;
@@ -145,15 +249,37 @@
   --tblr-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.28);
   --tblr-shadow: 0 8px 24px rgba(0, 0, 0, 0.30);
   --tblr-shadow-lg: 0 18px 48px rgba(0, 0, 0, 0.42);
-  --tblr-fab-shadow: 0 18px 44px rgba(14, 165, 233, 0.24);
+  --tblr-fab-shadow: 0 18px 44px rgba(0, 174, 239, 0.24);
   --tblr-header-shadow: 0 1px 0 rgba(148, 163, 184, 0.10);
+
+  --tblr-sidebar-bg: #001A35;
+  --tblr-sidebar-color: #C7DDEE;
+  --tblr-sidebar-active-bg: rgba(0, 174, 239, 0.24);
 
   --rem-shadow-card: 0 8px 24px rgba(0, 0, 0, 0.28);
   --rem-shadow-card-hover: 0 18px 44px rgba(0, 0, 0, 0.38);
-  --rem-grad-card-blue: linear-gradient(135deg, rgba(14, 165, 233, 0.22) 0%, rgba(14, 165, 233, 0.08) 100%);
+  --rem-grad-hero: linear-gradient(135deg, #095C96 0%, #002347 100%);
+  --rem-grad-card-blue: linear-gradient(135deg, rgba(0, 174, 239, 0.22) 0%, rgba(0, 174, 239, 0.08) 100%);
   --rem-grad-card-amber: linear-gradient(135deg, rgba(245, 158, 11, 0.22) 0%, rgba(245, 158, 11, 0.08) 100%);
   --rem-grad-card-emerald: linear-gradient(135deg, rgba(22, 163, 74, 0.22) 0%, rgba(22, 163, 74, 0.08) 100%);
   --rem-grad-card-rose: linear-gradient(135deg, rgba(239, 68, 68, 0.22) 0%, rgba(239, 68, 68, 0.08) 100%);
+
+  /* Estados aclarados: todos >= 4.5:1 sobre #0b1220 */
+  --rem-status-pendiente: #FBBF24;
+  --rem-status-aprobado: #4ADE80;
+  --rem-status-rechazado: #CBD5E1;
+  --rem-status-error: #F87171;
+  --rem-status-justificado: #76C7ED;
+  --rem-status-pendiente-bg: rgba(251, 191, 36, 0.16);
+  --rem-status-pendiente-fg: #FBBF24;
+  --rem-status-aprobado-bg: rgba(74, 222, 128, 0.16);
+  --rem-status-aprobado-fg: #4ADE80;
+  --rem-status-rechazado-bg: rgba(203, 213, 225, 0.16);
+  --rem-status-rechazado-fg: #CBD5E1;
+  --rem-status-error-bg: rgba(248, 113, 113, 0.16);
+  --rem-status-error-fg: #F87171;
+  --rem-status-justificado-bg: rgba(118, 199, 237, 0.16);
+  --rem-status-justificado-fg: #76C7ED;
 
   --chart-grid: rgba(148, 163, 184, 0.22);
   --chart-tick: #94a3b8;
@@ -162,9 +288,34 @@
   --chart-tooltip-text: #f8fafc;
   --chart-tooltip-muted: #cbd5e1;
   --chart-tooltip-border: #334155;
-  --chart-point: #38bdf8;
+  --chart-point: #4FB3E8;
   --chart-point-border: #0f172a;
   --chart-export-bg: rgba(15, 23, 42, 0.88);
   --chart-export-bg-hover: #111c33;
+
+  /* Serie 2 se separa de la 1 para que no queden azules vecinos */
+  --chart-series-1: #4FB3E8;
+  --chart-series-2: #A7DBF4;
+  --chart-series-3: #00AEEF;
+  --chart-series-4: #76C7ED;
+  --chart-series-5: #FBBF24;
+  --chart-series-6: #4ADE80;
+  --chart-series-7: #A78BFA;
+  --chart-series-8: #F87171;
+
+  --chart-export-canvas-bg: #0F172A;
+  --chart-export-title: #E2F4FD;
+  --chart-export-meta: #94A3B8;
+
+  --rem-boletin-header-bg: #0B71B9; /* blanco encima = 5.1:1 */
+  --rem-boletin-header-fg: #ffffff;
+  --rem-boletin-group-bg: rgba(0, 174, 239, 0.10);
+  --rem-boletin-border: #334155;
+
+  --rem-matriz-ok-bg: rgba(34, 197, 94, 0.18);
+  --rem-matriz-ok-fg: #6EE7A8;
+  --rem-matriz-falla-bg: rgba(239, 68, 68, 0.20);
+  --rem-matriz-falla-fg: #FCA5A5;
+
   color-scheme: dark;
 }
