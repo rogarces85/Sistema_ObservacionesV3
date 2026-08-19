@@ -1,0 +1,27 @@
+# Carpeta de archivos subidos: nada de lo que hay aqui debe ejecutarse.
+# Un archivo subido con extension .php seria codigo ejecutandose en el servidor.
+
+# Desactivar el motor PHP en toda la carpeta
+<IfModule mod_php.c>
+    php_flag engine off
+</IfModule>
+<IfModule mod_php7.c>
+    php_flag engine off
+</IfModule>
+<IfModule mod_php8.c>
+    php_flag engine off
+</IfModule>
+
+# Y ademas denegar el acceso directo a cualquier script
+<FilesMatch "\.(php|phtml|php3|php4|php5|php7|php8|phps|pht|cgi|pl|py|sh|inc)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# Sin listado de directorios
+Options -Indexes

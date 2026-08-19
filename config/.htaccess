@@ -1,0 +1,13 @@
+# Esta carpeta solo se usa desde PHP (require_once). Nunca por URL.
+# Contiene credenciales de base de datos y scripts SQL del esquema.
+
+# Apache 2.4
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+
+# Apache 2.2
+<IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+</IfModule>

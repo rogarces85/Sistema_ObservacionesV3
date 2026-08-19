@@ -164,13 +164,14 @@ try {
                 jsonResponse(false, null, 'Observación no encontrada', 404);
             }
 
-            // Registradores solo pueden editar sus propias observaciones pendientes
+            // Registradores solo pueden editar sus propias observaciones
             if ($userRole === ROL_REGISTRADOR) {
                 if ($obs['usuario_registro_id'] != $userId) {
                     jsonResponse(false, null, 'No tiene permisos para editar esta observación', 403);
                 }
+                // Si la observación no está pendiente, resetearla para que reingrese al flujo de revisión
                 if ($obs['estado_actual'] !== ESTADO_PENDIENTE) {
-                    jsonResponse(false, null, 'Solo puede editar observaciones pendientes', 403);
+                    $input['estado_actual'] = ESTADO_PENDIENTE;
                 }
             }
 

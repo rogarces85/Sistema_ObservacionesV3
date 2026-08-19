@@ -10,6 +10,7 @@ function breadcrumbItemsFor($currentPage) {
         ['id' => 'observaciones', 'label' => 'Observaciones',      'icon' => 'file-text', 'parent' => 'dashboard'],
         ['id' => 'supervision',   'label' => 'Supervisión',        'icon' => 'eye',        'parent' => 'dashboard'],
         ['id' => 'reportes',      'label' => 'Reportes',           'icon' => 'chart-bar',  'parent' => 'dashboard'],
+        ['id' => 'boletin',       'label' => 'Boletín Informativo','icon' => 'report',     'parent' => 'dashboard'],
         ['id' => 'usuarios',      'label' => 'Usuarios',           'icon' => 'users',      'parent' => 'dashboard'],
         ['id' => 'asignaciones',  'label' => 'Asignaciones',       'icon' => 'package',    'parent' => 'dashboard'],
         ['id' => 'establecimientos','label' => 'Establecimientos',  'icon' => 'building',   'parent' => 'dashboard'],

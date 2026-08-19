@@ -1,0 +1,2595 @@
+openapi: 3.1.0
+
+info:
+  title: API Sistema de Observaciones REM
+  version: "2.1.0"
+  summary: Contrato de la API JSON del Sistema de Observaciones REM del Servicio de Salud Osorno.
+  description: |
+    Contrato extraído del código en producción (rama `feature/reportes-informe-exportaciones`,
+    HEAD `a3711be`). Documenta **lo que la API hace hoy**, no lo que debería hacer.
+
+    ## Cómo leer este contrato
+
+    El sistema es un monolito PHP sin router: **cada archivo `api/*.php` es un endpoint**, y la
+    operación concreta se elige con un parámetro de despacho. Ese parámetro **no es uniforme**:
+
+    | Endpoint | Parámetro | Dónde viaja |
+    |---|---|---|
+    | `reports.php` | `report` | query |
+    | `export.php` | `report_type` | query |
+    | `locations.php` | `type` (alias `action`) | query |
+    | `assignments.php`, `deleted.php`, `users.php` | `action` | query en GET, **cuerpo JSON** en POST/PUT |
+    | resto | `action` | query |
+    | `boletin.php`, `informe_errores.php`, `import.php`, `import_template.php` | — | propósito único |
+
+    ## Sobre de respuesta
+
+    La mayoría de los endpoints responde `{success, data, message}`. **`supervision.php` es la
+    excepción**: emite JSON sin ese sobre, con cuatro formas distintas según la acción. Está
+    modelado tal cual en `SupervisionRespuesta*`.
+
+    ## Exclusiones
+
+    No se documentan los símbolos y acciones marcados como código muerto en
+    `docs/spec/AUDITORIA-CODIGO-MUERTO.md`: `auth.php?action=check`,
+    `locations.php` con `comunas` / `get_establecimientos` / `establecimientos_all`,
+    `reports.php?report=filtros` y `supervision.php?action=update_status`.
+    Sí se documenta `supervision.php?action=reject`, porque no es código muerto sino un
+    rechazo deliberado con 403.
+
+    ## Documentos relacionados
+
+    - `docs/spec/VERDAD-ACTUAL.md` — modelo de datos, reglas de negocio y matriz de autorización.
+    - `docs/spec/AUDITORIA-CODIGO-MUERTO.md` — qué quedó fuera y por qué.
+  contact:
+    name: Servicio de Salud Osorno
+  license:
+    name: Uso interno institucional
+
+servers:
+  - url: http://localhost/respaldo_observaciones
+    description: Desarrollo local con XAMPP
+  - url: https://{host}
+    description: Producción
+    variables:
+      host:
+        default: rem.saludosorno.cl
+        description: Host del servidor de producción
+
+tags:
+  - name: Autenticación
+    description: Inicio y cierre de sesión, y año de trabajo activo.
+  - name: Observaciones
+    description: Ciclo de vida de las observaciones REM. Es el recurso central del sistema.
+  - name: Supervisión
+    description: Revisión de observaciones pendientes. Solo supervisores.
+  - name: Asignaciones
+    description: Vínculo entre registradores y establecimientos por año y mes. Solo supervisores.
+  - name: Papelera
+    description: Observaciones eliminadas de forma suave, restaurables. Solo supervisores.
+  - name: Usuarios
+    description: Gestión de cuentas y contraseñas.
+  - name: Establecimientos
+    description: Comunas y establecimientos de salud.
+  - name: Notificaciones
+    description: Avisos internos por usuario.
+  - name: Reportes
+    description: Agregaciones para los gráficos y tablas del módulo de reportes.
+  - name: Exportación
+    description: Generación de archivos Excel y PDF. No devuelven JSON.
+  - name: Importación
+    description: Carga masiva de observaciones desde Excel. Solo registradores.
+  - name: Cola de reportes
+    description: |
+      Subsistema de generación asíncrona. **Funcional pero desconectado de la interfaz**: ningún
+      punto de la UI encola reportes. Documentado para que la decisión de conectarlo o retirarlo
+      sea informada. Ver hallazgo E de la auditoría.
+
+security:
+  - sesionPHP: []
+
+paths:
+
+  # ==========================================================================
+  # AUTENTICACIÓN
+  # ==========================================================================
+  /api/auth.php:
+    post:
+      tags: [Autenticación]
+      summary: Iniciar sesión, cerrar sesión o cambiar el año de trabajo
+      operationId: auth
+      description: |
+        Tres operaciones seleccionadas por `?action=`.
+
+        **`login`** es el único endpoint público del sistema. Al autenticar, guarda en la sesión
+        PHP `user_id`, `username`, `nombre_completo`, `rol`, `year` y `logged_in`.
+
+        **Nota de seguridad, verificada en el código:** ninguna de estas tres operaciones llama a
+        `CSRF::validateRequest()`, pese a que `logout` y `change_year` son POST que modifican el
+        estado de la sesión. Además, el sistema no invoca `session_regenerate_id()` en ningún
+        punto, por lo que el identificador de sesión no rota al autenticar.
+      security: []
+      parameters:
+        - name: action
+          in: query
+          required: true
+          description: Operación a ejecutar.
+          schema:
+            type: string
+            enum: [login, logout, change_year]
+          example: login
+      requestBody:
+        required: false
+        description: Requerido para `login` y `change_year`; se ignora en `logout`.
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: '#/components/schemas/LoginPeticion'
+                - $ref: '#/components/schemas/CambiarAnioPeticion'
+            examples:
+              login:
+                summary: Inicio de sesión de un supervisor
+                value:
+                  username: supervisor1
+                  password: "Sup3rvisor2026"
+                  year: 2026
+              cambiarAnio:
+                summary: Cambio del año de trabajo
+                value:
+                  year: 2025
+      responses:
+        '200':
+          description: Operación exitosa.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SobreExitoso'
+                  - type: object
+                    properties:
+                      data:
+                        oneOf:
+                          - $ref: '#/components/schemas/SesionIniciada'
+                          - $ref: '#/components/schemas/AnioTrabajo'
+                          - type: "null"
+              examples:
+                login:
+                  summary: Login correcto
+                  value:
+                    success: true
+                    data:
+                      user:
+                        id: 1
+                        username: supervisor1
+                        nombre_completo: "Cecilia (Supervisor)"
+                        rol: supervisor
+                        activo: 1
+                        fecha_creacion: "2026-01-15 09:12:44"
+                      year: 2026
+                    message: Login exitoso
+                logout:
+                  summary: Cierre de sesión
+                  value:
+                    success: true
+                    data: null
+                    message: Sesión cerrada exitosamente
+        '400':
+          description: |
+            Falta usuario o contraseña, el año está fuera del rango permitido (2020 al año
+            siguiente al actual), o la acción no es válida.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SobreError' }
+              example:
+                success: false
+                data: null
+                message: Año inválido
+        '401':
+          description: Credenciales inválidas, o no hay sesión activa al cambiar de año.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SobreError' }
+              example:
+                success: false
+                data: null
+                message: Credenciales inválidas
+        '405': { $ref: '#/components/responses/MetodoNoPermitido' }
+        '500': { $ref: '#/components/responses/ErrorServidor' }
+
+  # ==========================================================================
+  # OBSERVACIONES
+  # ==========================================================================
+  /api/observations.php:
+    get:
+      tags: [Observaciones]
+      summary: Listar observaciones, obtener una, estadísticas o historial
+      operationId: observacionesConsultar
+      description: |
+        Cuatro modos según los parámetros:
+
+        | Parámetros | Devuelve |
+        |---|---|
+        | ninguno | todas las observaciones del año |
+        | `id` | una observación |
+        | `action=stats` | estadísticas agregadas del año |
+        | `action=historial&id` | historial de cambios de estado |
+
+        **Alcance por rol:** un registrador solo obtiene sus propias observaciones — la consulta
+        añade `AND o.usuario_registro_id = ?`. Un supervisor las ve todas. Al pedir una
+        observación ajena por `id`, un registrador recibe 403, no 404.
+      parameters:
+        - name: action
+          in: query
+          required: false
+          description: Omitir para listar o para obtener una por `id`.
+          schema:
+            type: string
+            enum: [stats, historial]
+        - name: id
+          in: query
+          required: false
+          description: Id de la observación. Obligatorio con `action=historial`.
+          schema: { type: integer, minimum: 1 }
+          example: 1482
+        - $ref: '#/components/parameters/Anio'
+      responses:
+        '200':
+          description: Consulta exitosa. La forma de `data` depende del modo.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SobreExitoso'
+                  - type: object
+                    properties:
+                      data:
+                        oneOf:
+                          - type: array
+                            items: { $ref: '#/components/schemas/Observacion' }
+                          - $ref: '#/components/schemas/Observacion'
+                          - $ref: '#/components/schemas/EstadisticasObservaciones'
+                          - type: array
+                            items: { $ref: '#/components/schemas/HistorialEstado' }
+              examples:
+                listado:
+                  summary: Listado del año
+                  value:
+                    success: true
+                    data:
+                      - id: 1482
+                        anio: 2026
+                        mes: Marzo
+                        establecimiento_id: 102
+                        codigo_serie: SERIE A
+                        codigo_hoja: A05
+                        tipo_error: ERROR
+                        detalle_observacion: "El total de la columna 12 no cuadra con el desglose por grupo etario."
+                        respuesta_establecimiento: null
+                        plazo_entrega: dentro_plazo
+                        usa_validador: si
+                        estado_actual: pendiente
+                        clasificacion: null
+                        detalle_error: null
+                        usuario_registro_id: 3
+                        usuario_supervisor_id: null
+                        fecha_registro: "2026-04-08 11:23:07"
+                        fecha_revision: null
+                        fecha_actualizacion: "2026-04-08 11:23:07"
+                        establecimiento: "CESFAM Dr. Marcelo Lopetegui"
+                        nombre_corto: Lopetegui
+                        codigo_establecimiento: 102
+                        comuna: OSORNO
+                        codigo_comuna: 10301
+                        nombre_registro: "Victoria Martínez"
+                        nombre_supervisor: null
+                    message: Observaciones obtenidas exitosamente
+                estadisticas:
+                  summary: action=stats
+                  value:
+                    success: true
+                    data:
+                      total: 348
+                      por_estado:
+                        - { estado_actual: pendiente, total: 51 }
+                        - { estado_actual: aprobado, total: 262 }
+                        - { estado_actual: error, total: 24 }
+                        - { estado_actual: rechazado, total: 11 }
+                      por_mes:
+                        - { mes: Enero, total: 44 }
+                        - { mes: Febrero, total: 39 }
+                      por_tipo_error:
+                        - { tipo_error: ERROR, total: 180 }
+                        - { tipo_error: "S/OBSERVACION", total: 121 }
+                    message: Estadísticas obtenidas exitosamente
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '403':
+          description: Un registrador intentó ver una observación o un historial que no le pertenece.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SobreError' }
+              example:
+                success: false
+                data: null
+                message: No tiene permisos para ver esta observación
+        '404': { $ref: '#/components/responses/NoEncontrado' }
+        '500': { $ref: '#/components/responses/ErrorServidor' }
+
+    post:
+      tags: [Observaciones]
+      summary: Crear una observación
+      operationId: observacionCrear
+      description: |
+        **Solo registradores.** Un supervisor recibe 403.
+
+        Dos reglas que no son evidentes:
+
+        1. **`codigo_hoja` es obligatorio salvo cuando `tipo_error` es `S/OBSERVACION`.**
+        2. El registrador debe tener **asignación vigente para ese establecimiento y ese mes**.
+           Se comprueba con `tieneAsignacionParaMes()`, que da prioridad a las reasignaciones
+           temporales sobre las anuales, y que **niega** el acceso si otro usuario tiene una
+           temporal que cubre ese mes, aunque el solicitante sea el titular anual.
+
+        El valor `n/a` en `usa_validador` se normaliza a `no` antes de guardar. El año no se toma
+        del cuerpo sino de `?year=` o de la sesión.
+      parameters:
+        - $ref: '#/components/parameters/Anio'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ObservacionCrear' }
+            example:
+              mes: Marzo
+              establecimiento_id: 102
+              codigo_serie: SERIE A
+              codigo_hoja: A05
+              tipo_error: ERROR
+              detalle_observacion: "El total de la columna 12 no cuadra con el desglose por grupo etario."
+              plazo_entrega: dentro_plazo
+              usa_validador: si
+      responses:
+        '201':
+          description: Observación creada.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SobreExitoso'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        required: [id]
+                        properties:
+                          id: { type: integer, description: Id de la observación creada. }
+              example:
+                success: true
+                data: { id: 1482 }
+                message: Observación creada exitosamente
+        '400':
+          description: Falta un campo obligatorio.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SobreError' }
+              example:
+                success: false
+                data: null
+                message: El campo codigo_hoja es requerido
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '403':
+          description: |
+            El usuario no es registrador, o el establecimiento no está asignado a su usuario para
+            el mes indicado.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SobreError' }
+              examples:
+                rolIncorrecto:
+                  value:
+                    success: false
+                    data: null
+                    message: Solo los registradores pueden crear observaciones
+                sinAsignacion:
+                  value:
+                    success: false
+                    data: null
+                    message: El establecimiento no está asignado a su usuario para el mes seleccionado
+        '500': { $ref: '#/components/responses/ErrorServidor' }
+
+    put:
+      tags: [Observaciones]
+      summary: Actualizar una observación
+      operationId: observacionActualizar
+      description: |
+        **Un registrador puede editar en cualquier estado, no solo `pendiente`.** Si la
+        observación estaba aprobada, rechazada o en error, la edición **la devuelve a
+        `pendiente`** y reingresa al flujo de revisión. Solo puede editar las propias.
+
+        Al editar se revalida la asignación con el establecimiento y mes **resultantes** (los
+        nuevos si vienen en el cuerpo, los actuales si no).
+
+        Si un supervisor incluye `estado_actual`, se estampa su id en `usuario_supervisor_id`.
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema: { type: integer, minimum: 1 }
+          example: 1482
+        - $ref: '#/components/parameters/Anio'
+      requestBody:
+        required: true
+        description: Solo se envían los campos a modificar.
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ObservacionActualizar' }
+            example:
+              detalle_observacion: "Corregido: el total de la columna 12 ya cuadra."
+              respuesta_establecimiento: "Se rehízo la carga del REM A05."
+      responses:
+        '200':
+          description: Observación actualizada.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SobreExitoso' }
+              example:
+                success: true
+                data: null
+                message: Observación actualizada exitosamente
+        '400':
+          description: Falta el id.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SobreError' }
+              example:
+                success: false
+                data: null
+                message: ID de observación requerido
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '403':
+          description: La observación es de otro registrador, o falta la asignación para el mes.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SobreError' }
+              example:
+                success: false
+                data: null
+                message: No tiene permisos para editar esta observación
+        '404': { $ref: '#/components/responses/NoEncontrado' }
+        '500': { $ref: '#/components/responses/ErrorServidor' }
+
+    delete:
+      tags: [Observaciones]
+      summary: Enviar una observación a la papelera
+      operationId: observacionEliminar
+      description: |
+        **Solo supervisores.** Pese al verbo, **no borra**: copia la observación a
+        `observaciones_eliminadas` mediante `moveToTrash()` y es restaurable desde la papelera.
+
+        El único borrado irreversible del sistema es
+        `deleted.php` con `action=permanent_delete`.
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema: { type: integer, minimum: 1 }
+          example: 1482
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  description: Motivo. Por defecto "Eliminado por supervisor desde observaciones".
+            example:
+              reason: "Duplicada con la observación 1479"
+      responses:
+        '200':
+          description: Observación movida a la papelera.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SobreExitoso' }
+              example:
+                success: true
+                data: null
+                message: Observación enviada a papelera exitosamente
+        '400':
+          description: Falta el id.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SobreError' }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '403':
+          description: El usuario no es supervisor.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SobreError' }
+              example:
+                success: false
+                data: null
+                message: No tiene permisos para eliminar observaciones
+        '500': { $ref: '#/components/responses/ErrorServidor' }
+
+  # ==========================================================================
+  # SUPERVISIÓN
+  # ==========================================================================
+  /api/supervision.php:
+    get:
+      tags: [Supervisión]
+      summary: Consultar observaciones filtradas o el detalle de una
+      operationId: supervisionConsultar
+      description: |
+        **Todo este endpoint es solo para supervisores**; cualquier otro rol recibe 403 antes de
+        que se evalúe la acción.
+
+        Las respuestas **no usan el sobre común**: se emiten con `echo json_encode()` y llevan
+        claves propias (`count`, `historial`).
+      parameters:
+        - name: action
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [get_filtered, get_detail]
+          example: get_filtered
+        - name: id
+          in: query
+          description: Obligatorio con `get_detail`.
+          schema: { type: integer, minimum: 1 }
+        - name: anio
+          in: query
+          schema: { type: integer }
+          example: 2026
+        - name: mes
+          in: query
+          schema: { $ref: '#/components/schemas/Mes' }
+        - name: estado
+          in: query
+          schema: { $ref: '#/components/schemas/EstadoObservacion' }
+        - name: establecimiento_id
+          in: query
+          schema: { type: integer }
+        - name: usuario_registro_id
+          in: query
+          schema: { type: integer }
+        - name: busqueda
+          in: query
+          description: Texto libre.
+          schema: { type: string }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 100 }
+        - name: offset
+          in: query
+          schema: { type: integer, default: 0 }
+      responses:
+        '200':
+          description: Consulta exitosa.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/SupervisionRespuestaListado'
+                  - $ref: '#/components/schemas/SupervisionRespuestaDetalle'
+              examples:
+                filtrado:
+                  summary: get_filtered
+                  value:
+                    success: true
+                    data: []
+                    count: 0
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '403': { $ref: '#/components/responses/SoloSupervisor' }
+        '500':
+          description: |
+            La observación no existe, falta el id, o hubo un error. Este endpoint devuelve **500**
+            en situaciones que en otros endpoints serían 400 o 404, porque todo su cuerpo está
+            envuelto en un `try/catch` que responde 500 con el mensaje de la excepción.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SupervisionRespuestaError' }
+              example:
+                success: false
+                message: Observación no encontrada
+
+    post:
+      tags: [Supervisión]
+      summary: Aprobar, cancelar o eliminar observaciones pendientes
+      operationId: supervisionResolver
+      description: |
+        **Solo supervisores.** Acepta un id escalar o un arreglo de ids: la misma acción sirve
+        para una observación y para una operación masiva.
+
+        **Solo se procesan observaciones en estado `pendiente`.** Con un único id, si no está
+        pendiente se lanza error; en lote, las que no lo estén **se omiten en silencio** y solo se
+        informa cuántas se procesaron.
+
+        ### Aprobar exige decidir el resultado
+
+        `estado_resultante` es obligatorio y solo admite dos valores:
+
+        | `estado_resultante` | Estado final | `tipo_error` que se escribe |
+        |---|---|---|
+        | `sin_observacion` | `aprobado` | `S/OBSERVACION` |
+        | `error` | `error` | `ERROR` |
+
+        ### No existe rechazo directo
+
+        `action=reject` responde **403** de forma deliberada. El estado `rechazado` se alcanza
+        con `action=cancel`.
+
+        ### Eliminar es suave
+
+        `action=delete` mueve a `observaciones_eliminadas`; es restaurable.
+      parameters:
+        - name: action
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [approve, cancel, delete, reject]
+          example: approve
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SupervisionPeticion' }
+            examples:
+              aprobarUna:
+                summary: Aprobar una observación como corregida
+                value:
+                  id: 1482
+                  comment: "Verificado contra el REM cargado."
+                  estado_resultante: sin_observacion
+                  clasificacion: corregido
+              aprobarComoError:
+                summary: Aprobar dejándola marcada como error
+                value:
+                  id: 1482
+                  estado_resultante: error
+                  clasificacion: respuesta_incorrecta
+                  detalle_error: "El establecimiento respondió, pero el dato sigue descuadrado."
+              cancelarVarias:
+                summary: Cancelar en lote
+                value:
+                  id: [1482, 1483, 1490]
+                  comment: "Fuera del período de corrección."
+              eliminar:
+                summary: Enviar a la papelera
+                value:
+                  id: 1482
+                  reason: "Duplicada."
+      responses:
+        '200':
+          description: Acción aplicada. La forma varía entre operación individual y masiva.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/SupervisionRespuestaSimple'
+                  - $ref: '#/components/schemas/SupervisionRespuestaLote'
+              examples:
+                individual:
+                  value:
+                    success: true
+                    message: Observación aprobada correctamente
+                lote:
+                  value:
+                    success: true
+                    message: Se aprobaron 3 observaciones correctamente
+                    count: 3
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '403':
+          description: |
+            El usuario no es supervisor, **o** se usó `action=reject`, que está deshabilitada a
+            propósito.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SupervisionRespuestaError' }
+              example:
+                success: false
+                message: Acción no permitida. Los supervisores solo pueden aprobar observaciones.
+        '400':
+          description: Acción no reconocida.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SupervisionRespuestaError' }
+              example:
+                success: false
+                message: Acción no válida
+        '500':
+          description: |
+            Falta `estado_resultante`, no hay observaciones pendientes que procesar, o error
+            interno.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SupervisionRespuestaError' }
+              example:
+                success: false
+                message: Debe seleccionar si la aprobación queda como Sin Observación o Error
+
+  # ==========================================================================
+  # ASIGNACIONES
+  # ==========================================================================
+  /api/assignments.php:
+    get:
+      tags: [Asignaciones]
+      summary: Consultar registradores, establecimientos y asignaciones
+      operationId: asignacionesConsultar
+      description: |
+        **Solo supervisores.**
+
+        | `action` | Devuelve |
+        |---|---|
+        | `list` | registradores activos con su total de establecimientos asignados |
+        | `registradores` | registradores activos |
+        | `establecimientos` | con `registrador_id`, marca cuáles tiene asignados; sin él, todos |
+        | `asignados` | establecimientos asignados a un registrador |
+        | `referentes` | registradores a cargo de un establecimiento |
+        | `temporales` | reasignaciones temporales vigentes, cada una con su `titular_anual` |
+      parameters:
+        - name: action
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [list, registradores, establecimientos, asignados, referentes, temporales]
+          example: list
+        - name: anio
+          in: query
+          description: Por defecto, el año de la sesión.
+          schema: { type: integer }
+          example: 2026
+        - name: registrador_id
+          in: query
+          description: Obligatorio con `asignados`.
+          schema: { type: integer }
+        - name: establecimiento_id
+          in: query
+          description: Obligatorio con `referentes`.
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Consulta exitosa.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SobreExitoso'
+                  - type: object
+                    properties:
+                      data: { type: array, items: { type: object } }
+              example:
+                success: true
+                data:
+                  - id: 3
+                    nombre_completo: "Victoria Martínez"
+                    username: registrador2
+                    total_establecimientos: 7
+                message: ""
+        '400':
+          description: Acción no válida, o falta un id obligatorio.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SobreError' }
+              example:
+                success: false
+                data: null
+                message: ID de registrador requerido
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '403': { $ref: '#/components/responses/SoloSupervisor' }
+        '500': { $ref: '#/components/responses/ErrorServidor' }
+
+    post:
+      tags: [Asignaciones]
+      summary: Asignar, remover o copiar asignaciones
+      operationId: asignacionesMutar
+      description: |
+        **Solo supervisores.** Aquí `action` viaja **en el cuerpo JSON**, no en la query.
+
+        ### Cómo se resuelven los meses
+
+        `meses` es un CSV de números (`"1,2,3"`) o el literal `ALL`. En una asignación **anual**
+        el valor se fuerza a `ALL`; los meses concretos solo tienen sentido en las **temporales**.
+
+        ### Reglas de conflicto
+
+        - Dos **temporales** del mismo establecimiento y año que solapen meses se rechazan.
+        - Una **temporal** sí puede solapar una **anual**: ese es exactamente su propósito, y
+          mientras dure, **bloquea al titular anual** para esos meses.
+        - Una **anual** entra en conflicto con cualquier asignación de otro usuario que solape.
+        - Si ya existe una asignación propia **del mismo tipo**, no se duplica: los meses se
+          **fusionan** (unión ordenada; si cualquiera es `ALL`, el resultado es `ALL`).
+
+        Cuando hay conflicto la respuesta es `success: false` con **400**, no una excepción.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AsignacionPeticion' }
+            examples:
+              anual:
+                summary: Asignación anual
+                value:
+                  action: asignar
+                  usuario_id: 3
+                  establecimiento_id: 102
+                  anio: 2026
+                  tipo_asignacion: anual
+              temporal:
+                summary: Reasignación temporal por vacaciones (junio y julio)
+                value:
+                  action: asignar
+                  usuario_id: 4
+                  establecimiento_id: 102
+                  anio: 2026
+                  tipo_asignacion: temporal
+                  meses: "6,7"
+              multiple:
+                summary: Asignar varios establecimientos de una vez
+                value:
+                  action: asignar_multiple
+                  usuario_id: 3
+                  establecimiento_ids: [102, 103, 104]
+                  anio: 2026
+                  tipo_asignacion: anual
+              copiar:
+                summary: Copiar todas las asignaciones de un año a otro
+                value:
+                  action: copiar_anio
+                  anio_origen: 2025
+                  anio_destino: 2026
+      responses:
+        '200':
+          description: "Operación aplicada, o rechazada por conflicto: puede venir `success` en false."
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Sobre' }
+              examples:
+                ok:
+                  value:
+                    success: true
+                    data: null
+                    message: Reasignación temporal creada exitosamente
+        '400':
+          description: |
+            Faltan datos, `tipo_asignacion` no es `anual` ni `temporal`, los años de origen y
+            destino coinciden, o hay conflicto de asignación con otro usuario.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SobreError' }
+              example:
+                success: false
+                data: null
+                message: Ya existe una reasignación temporal para ese periodo
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '403': { $ref: '#/components/responses/SoloSupervisor' }
+        '405': { $ref: '#/components/responses/MetodoNoPermitido' }
+        '500': { $ref: '#/components/responses/ErrorServidor' }
+
+  # ==========================================================================
+  # PAPELERA
+  # ==========================================================================
+  /api/deleted.php:
+    get:
+      tags: [Papelera]
+      summary: Listar la papelera o sus estadísticas
+      operationId: papeleraConsultar
+      description: |
+        **Solo supervisores.** Las filas de `observaciones_eliminadas` son copias
+        desnormalizadas: conservan el nombre del establecimiento, la comuna y el nombre de quien
+        registró como texto, para que el registro sobreviva a cambios en las tablas maestras.
+      parameters:
+        - name: action
+          in: query
+          required: true
+          schema: { type: string, enum: [list, stats] }
+          example: list
+        - name: anio
+          in: query
+          schema: { type: integer }
+          example: 2026
+        - name: mes
+          in: query
+          schema: { $ref: '#/components/schemas/Mes' }
+        - name: comuna_nombre
+          in: query
+          schema: { type: string }
+          example: OSORNO
+        - name: establecimiento_id
+          in: query
+          schema: { type: integer }
+        - name: usuario_registro_id
+          in: query
+          schema: { type: integer }
+        - name: busqueda
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: Consulta exitosa.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SobreExitoso'
+                  - type: object
+                    properties:
+                      data:
+                        oneOf:
+                          - type: array
+                            items: { $ref: '#/components/schemas/ObservacionEliminada' }
+                          - type: object
+        '400': { $ref: '#/components/responses/PeticionInvalida' }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '403': { $ref: '#/components/responses/SoloSupervisor' }
+        '500': { $ref: '#/components/responses/ErrorServidor' }
+
+    post:
+      tags: [Papelera]
+      summary: Restaurar o eliminar permanentemente
+      operationId: papeleraMutar
+      description: |
+        **Solo supervisores.** `action` viaja **en el cuerpo JSON**.
+
+        ### El único borrado irreversible del sistema
+
+        `permanent_delete` y `permanent_delete_multiple` **exigen `confirm_irreversible: true`**
+        en el cuerpo. Sin ese campo la petición se rechaza con 400 antes de tocar nada. Es la
+        única salvaguarda: no hay confirmación adicional, y lo borrado no se recupera.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PapeleraPeticion' }
+            examples:
+              restaurar:
+                summary: Restaurar una observación
+                value:
+                  action: restore
+                  deleted_id: 87
+              borradoPermanente:
+                summary: Borrado irreversible, con confirmación obligatoria
+                value:
+                  action: permanent_delete
+                  deleted_id: 87
+                  confirm_irreversible: true
+              restaurarVarias:
+                value:
+                  action: restore_multiple
+                  deleted_ids: [87, 88, 91]
+      responses:
+        '200':
+          description: Operación aplicada.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Sobre' }
+              example:
+                success: true
+                data: null
+                message: Observación restaurada correctamente
+        '400':
+          description: Falta la confirmación de irreversibilidad, falta el id, o la acción no es válida.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SobreError' }
+              example:
+                success: false
+                data: null
+                message: Debe confirmar que la eliminación permanente es irreversible
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '403': { $ref: '#/components/responses/SoloSupervisor' }
+        '405': { $ref: '#/components/responses/MetodoNoPermitido' }
+        '500': { $ref: '#/components/responses/ErrorServidor' }
+
+  # ==========================================================================
+  # USUARIOS
+  # ==========================================================================
+  /api/users.php:
+    get:
+      tags: [Usuarios]
+      summary: Listar usuarios, ver uno o su historial de auditoría
+      operationId: usuariosConsultar
+      description: |
+        Cualquier usuario puede consultar **su propia** ficha pasando su `id`. Listar todos, ver
+        la ficha de otro o consultar el historial exige rol supervisor.
+
+        `password_hash` nunca se devuelve: se elimina de la respuesta en `models/User.php:33`.
+      parameters:
+        - name: action
+          in: query
+          schema: { type: string, enum: [history] }
+        - name: id
+          in: query
+          schema: { type: integer }
+          example: 3
+      responses:
+        '200':
+          description: Consulta exitosa.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SobreExitoso'
+                  - type: object
+                    properties:
+                      data:
+                        oneOf:
+                          - type: array
+                            items: { $ref: '#/components/schemas/Usuario' }
+                          - $ref: '#/components/schemas/Usuario'
+                          - type: array
+                            items: { $ref: '#/components/schemas/AuditoriaUsuario' }
+              example:
+                success: true
+                data:
+                  - id: 3
+                    username: registrador2
+                    nombre_completo: "Victoria Martínez"
+                    rol: registrador
+                    activo: 1
+                    fecha_creacion: "2026-01-15 09:14:02"
+                message: ""
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '403': { $ref: '#/components/responses/AccesoDenegado' }
+        '404': { $ref: '#/components/responses/NoEncontrado' }
+        '500': { $ref: '#/components/responses/ErrorServidor' }
+
+    post:
+      tags: [Usuarios]
+      summary: Crear un usuario
+      operationId: usuarioCrear
+      description: |
+        **Solo supervisores.**
+
+        Hay que enviar `password`, **o bien** `generate_password: true` para que el sistema
+        genere una aleatoria. La política es la misma en ambos casos: **mínimo 8 caracteres, al
+        menos una mayúscula y al menos un número**.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UsuarioCrear' }
+            examples:
+              conPassword:
+                value:
+                  username: registrador5
+                  password: "Osorno2026"
+                  nombre_completo: "Ana Contreras"
+                  rol: registrador
+              generada:
+                summary: Dejar que el sistema genere la contraseña
+                value:
+                  username: registrador5
+                  generate_password: true
+                  nombre_completo: "Ana Contreras"
+                  rol: registrador
+      responses:
+        '200':
+          description: Usuario creado.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SobreExitoso' }
+        '400':
+          description: |
+            Faltan campos, la contraseña no cumple la política, el rol es inválido, o el
+            `username` ya existe.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SobreError' }
+              example:
+                success: false
+                data: null
+                message: "La contraseña debe tener al menos 8 caracteres, una mayúscula y un número"
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '403': { $ref: '#/components/responses/SoloSupervisor' }
+        '500': { $ref: '#/components/responses/ErrorServidor' }
+
+    put:
+      tags: [Usuarios]
+      summary: Actualizar datos, cambiar contraseña o activar/desactivar
+      operationId: usuarioActualizar
+      description: |
+        La sub-operación va en el campo `action` **del cuerpo** (`update`, `password`, `toggle`);
+        si se omite, se asume `update`.
+
+        **Cambio de contraseña:** para la propia se exige `current_password` y que coincida. Un
+        supervisor puede cambiar la de otro usuario **sin** la contraseña actual.
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema: { type: integer }
+          example: 3
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UsuarioActualizar' }
+            examples:
+              datos:
+                value:
+                  action: update
+                  nombre_completo: "Victoria Martínez Soto"
+                  rol: registrador
+              passwordPropia:
+                value:
+                  action: password
+                  current_password: "Osorno2025"
+                  new_password: "Osorno2026"
+                  confirm_password: "Osorno2026"
+              desactivar:
+                value:
+                  action: toggle
+                  activo: false
+      responses:
+        '200':
+          description: Usuario actualizado.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SobreExitoso' }
+        '400':
+          description: |
+            Falta el id, la contraseña actual es incorrecta, las contraseñas no coinciden, o la
+            nueva no cumple la política.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SobreError' }
+              example:
+                success: false
+                data: null
+                message: Las contraseñas no coinciden
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '403':
+          description: Se intentó cambiar la contraseña de otro usuario sin ser supervisor.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SobreError' }
+              example:
+                success: false
+                data: null
+                message: Solo puede cambiar su propia contraseña
+        '404': { $ref: '#/components/responses/NoEncontrado' }
+        '500': { $ref: '#/components/responses/ErrorServidor' }
+
+    delete:
+      tags: [Usuarios]
+      summary: Eliminar un usuario
+      operationId: usuarioEliminar
+      description: |
+        **Solo supervisores.** Exige confirmación explícita en el cuerpo
+        (`requireExplicitConfirmation`), igual que el borrado permanente de la papelera.
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [confirm]
+              properties:
+                confirm:
+                  type: boolean
+                  description: Debe venir con valor verdadero.
+            example:
+              confirm: true
+      responses:
+        '200':
+          description: Usuario eliminado.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SobreExitoso' }
+        '400':
+          description: Falta la confirmación explícita.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SobreError' }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '403': { $ref: '#/components/responses/SoloSupervisor' }
+        '404': { $ref: '#/components/responses/NoEncontrado' }
+        '500': { $ref: '#/components/responses/ErrorServidor' }
+
+  # ==========================================================================
+  # ESTABLECIMIENTOS
+  # ==========================================================================
+  /api/locations.php:
+    get:
+      tags: [Establecimientos]
+      summary: Listar establecimientos
+      operationId: establecimientosListar
+      description: |
+        Accesible para cualquier sesión activa.
+
+        El parámetro de despacho es **`type`**, con `action` aceptado como alias
+        (`locations.php:29`). El filtro por comuna admite id (`comunaId` o `comuna_id`) o nombre
+        (`comuna_nombre`); sin ninguno, devuelve todos los establecimientos activos.
+      parameters:
+        - name: type
+          in: query
+          required: true
+          description: También se acepta como `action`.
+          schema: { type: string, enum: [establecimientos] }
+          example: establecimientos
+        - name: comuna_id
+          in: query
+          description: También se acepta como `comunaId`.
+          schema: { type: integer }
+          example: 1
+        - name: comuna_nombre
+          in: query
+          schema: { type: string }
+          example: OSORNO
+      responses:
+        '200':
+          description: Listado obtenido.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SobreExitoso'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/Establecimiento' }
+              example:
+                success: true
+                data:
+                  - id: 2
+                    codigo_establecimiento: 102
+                    nombre: "CESFAM Dr. Marcelo Lopetegui"
+                    nombre_corto: Lopetegui
+                    comuna_id: 1
+                    activo: 1
+                    comuna_nombre: OSORNO
+                message: Establecimientos obtenidos
+        '400':
+          description: Tipo no válido.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SobreError' }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '500': { $ref: '#/components/responses/ErrorServidor' }
+
+    post:
+      tags: [Establecimientos]
+      summary: Crear, actualizar o activar/desactivar un establecimiento
+      operationId: establecimientosMutar
+      description: |
+        **Solo supervisores.**
+
+        `codigo_establecimiento` es único: un duplicado devuelve **409 Conflict**, tanto al crear
+        como al actualizar.
+
+        Los establecimientos **nunca se borran**. `toggle` cambia la bandera `activo`, de modo
+        que las observaciones históricas que los referencian siguen siendo válidas.
+      parameters:
+        - name: action
+          in: query
+          required: true
+          schema: { type: string, enum: [create, update, toggle] }
+          example: create
+        - name: id
+          in: query
+          description: Obligatorio con `update` y `toggle`.
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EstablecimientoPeticion' }
+            examples:
+              crear:
+                value:
+                  codigo_establecimiento: 105
+                  nombre: "CESFAM Rahue Alto"
+                  nombre_corto: "Rahue Alto"
+                  comuna_id: 1
+              desactivar:
+                value:
+                  activo: false
+      responses:
+        '200':
+          description: Operación aplicada.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SobreExitoso' }
+        '400':
+          description: Faltan campos obligatorios o la acción no es válida.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SobreError' }
+              example:
+                success: false
+                data: null
+                message: "Código, nombre y comuna son obligatorios"
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '403':
+          description: El usuario no es supervisor.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SobreError' }
+              example:
+                success: false
+                data: null
+                message: Solo supervisores pueden gestionar establecimientos
+        '409':
+          description: Ya existe otro establecimiento con ese código.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SobreError' }
+              example:
+                success: false
+                data: null
+                message: Ya existe un establecimiento con ese código
+        '405': { $ref: '#/components/responses/MetodoNoPermitido' }
+        '500': { $ref: '#/components/responses/ErrorServidor' }
+
+  # ==========================================================================
+  # NOTIFICACIONES
+  # ==========================================================================
+  /api/notifications.php:
+    get:
+      tags: [Notificaciones]
+      summary: Listar las notificaciones del usuario
+      operationId: notificacionesListar
+      description: |
+        Devuelve las notificaciones del usuario en sesión. Si es supervisor, la respuesta incluye
+        además el conteo de observaciones pendientes de revisión.
+      parameters:
+        - name: action
+          in: query
+          schema: { type: string, enum: [list], default: list }
+      responses:
+        '200':
+          description: Listado obtenido.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SobreExitoso'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          notificaciones:
+                            type: array
+                            items: { $ref: '#/components/schemas/Notificacion' }
+                          no_leidas: { type: integer }
+              example:
+                success: true
+                data:
+                  notificaciones:
+                    - id: 412
+                      usuario_id: 3
+                      tipo: observacion_aprobada
+                      titulo: "Observación aprobada"
+                      mensaje: "Su observación del REM A05 de Marzo fue aprobada."
+                      url: "index.php?page=observaciones"
+                      leida: 0
+                      fecha_creacion: "2026-04-10 08:31:15"
+                      fecha_lectura: null
+                  no_leidas: 1
+                message: ""
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '500': { $ref: '#/components/responses/ErrorServidor' }
+
+    post:
+      tags: [Notificaciones]
+      summary: Marcar notificaciones como leídas
+      operationId: notificacionesMarcarLeidas
+      parameters:
+        - name: action
+          in: query
+          required: true
+          schema: { type: string, enum: [read, read_all] }
+          example: read
+      requestBody:
+        required: false
+        description: Requerido con `read`.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: integer
+                  description: Id de la notificación a marcar.
+            example:
+              id: 412
+      responses:
+        '200':
+          description: Notificaciones marcadas.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SobreExitoso' }
+        '400':
+          description: Falta el id con `read`, o la acción no es válida.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SobreError' }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '500': { $ref: '#/components/responses/ErrorServidor' }
+
+  # ==========================================================================
+  # REPORTES
+  # ==========================================================================
+  /api/reports.php:
+    get:
+      tags: [Reportes]
+      summary: Obtener un reporte agregado
+      operationId: reportesObtener
+      description: |
+        El parámetro de despacho es **`report`**, no `action`.
+
+        Accesible para ambos roles, pero **con alcance distinto**: para un registrador todas las
+        agregaciones se restringen a sus propias observaciones (`AND o.usuario_registro_id = ?`).
+
+        ### Defecto conocido del contrato
+
+        En `api/reports.php:172` la rama `default` **comparte cuerpo con `case 'all'`**. Un valor
+        de `report` no reconocido no produce 400: ejecuta las **17 consultas** del reporte
+        completo. Está documentado como defecto en la auditoría, no como comportamiento deseado.
+      parameters:
+        - name: report
+          in: query
+          required: true
+          description: |
+            Reporte a generar. `all` (y cualquier valor no reconocido) devuelve los 17 bloques.
+          schema:
+            type: string
+            enum:
+              - mes
+              - establecimiento
+              - comuna
+              - serie
+              - plazo
+              - validador
+              - plazo-agregado
+              - validador-agregado
+              - errores_mes
+              - errores_establecimiento
+              - errores_comuna
+              - fuera_plazo_mes
+              - fuera_plazo_establecimiento
+              - fuera_plazo_comuna
+              - validador_mes
+              - validador_establecimiento
+              - validador_comuna
+              - serie_detalle
+              - hoja_detalle
+              - error-reports
+              - all
+          example: error-reports
+        - name: year
+          in: query
+          description: Por defecto, el año de la sesión.
+          schema: { type: integer }
+          example: 2026
+        - name: meses
+          in: query
+          description: Meses a incluir, como números. Se acepta un valor suelto o un arreglo.
+          schema:
+            type: array
+            items: { type: integer, minimum: 1, maximum: 12 }
+          style: form
+          explode: true
+          example: [1, 2, 3]
+        - name: comuna_ids
+          in: query
+          schema:
+            type: array
+            items: { type: integer }
+          style: form
+          explode: true
+        - name: establecimiento_id
+          in: query
+          schema: { type: integer }
+      responses:
+        '200':
+          description: |
+            Reporte generado. La forma de `data` depende del reporte pedido. `error-reports`
+            agrupa cinco bloques y añade `errors` con los que fallaron, para que un fallo parcial
+            no tumbe la pantalla completa.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SobreExitoso'
+                  - type: object
+                    properties:
+                      data: { type: object }
+              examples:
+                errorReports:
+                  summary: report=error-reports
+                  value:
+                    success: true
+                    data:
+                      errores_establecimiento:
+                        - { establecimiento: Lopetegui, total: 24 }
+                        - { establecimiento: HBSJO, total: 19 }
+                      fuera_plazo_establecimiento:
+                        - { establecimiento: "Posta 3", total: 4 }
+                      no_validador_establecimiento: []
+                      errores_serie:
+                        - { codigo_serie: "SERIE A", total: 31 }
+                      errores_hoja:
+                        - { codigo_hoja: A05, total: 12 }
+                      errors: []
+                    message: ""
+                plazoAgregado:
+                  summary: report=plazo-agregado
+                  value:
+                    success: true
+                    data:
+                      total: { dentro: 288, fuera: 60 }
+                      detalle_mensual:
+                        - { mes: Enero, dentro: 40, fuera: 4 }
+                        - { mes: Febrero, dentro: 33, fuera: 6 }
+                    message: ""
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '500': { $ref: '#/components/responses/ErrorServidor' }
+
+  /api/informe_errores.php:
+    get:
+      tags: [Reportes]
+      summary: Informe de errores REM
+      operationId: informeErrores
+      description: '**Solo supervisores.** Devuelve JSON por defecto; admite otros formatos con `format`.'
+      parameters:
+        - name: tipo
+          in: query
+          schema: { type: string }
+        - name: trimestre
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 4 }
+          example: 2
+        - name: anio
+          in: query
+          schema: { type: integer }
+          example: 2026
+        - name: format
+          in: query
+          schema: { type: string, default: json }
+      responses:
+        '200':
+          description: Informe generado.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SobreExitoso' }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '403':
+          description: El usuario no es supervisor.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SobreError' }
+              example:
+                success: false
+                data: null
+                message: Solo los supervisores pueden generar informes
+        '500': { $ref: '#/components/responses/ErrorServidor' }
+
+  /api/boletin.php:
+    get:
+      tags: [Reportes]
+      summary: Boletín informativo de errores REM
+      operationId: boletin
+      description: |
+        **Solo supervisores**, porque el boletín es un documento institucional que se distribuye
+        a los establecimientos.
+      parameters:
+        - name: anio
+          in: query
+          schema: { type: integer }
+          example: 2026
+        - name: periodo
+          in: query
+          schema: { type: string, default: anual }
+          example: trimestral
+        - name: trimestre
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 4 }
+        - name: mes
+          in: query
+          schema: { $ref: '#/components/schemas/Mes' }
+        - name: comuna_id
+          in: query
+          schema: { type: integer }
+        - name: establecimiento_id
+          in: query
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Boletín generado.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SobreExitoso' }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '403':
+          description: El usuario no es supervisor.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SobreError' }
+              example:
+                success: false
+                data: null
+                message: Solo los supervisores pueden generar el boletin
+        '500': { $ref: '#/components/responses/ErrorServidor' }
+
+  # ==========================================================================
+  # EXPORTACIÓN E IMPORTACIÓN
+  # ==========================================================================
+  /api/export.php:
+    get:
+      tags: [Exportación]
+      summary: Descargar un reporte en Excel o PDF
+      operationId: exportar
+      description: |
+        Devuelve un **archivo binario**, no JSON. El parámetro de despacho es `report_type`.
+
+        Dos particularidades verificadas en el código:
+
+        - **Ante un error no devuelve JSON**, sino una página HTML de aviso con un enlace para
+          cerrar la ventana (`exportAviso()`), porque se invoca abriendo una pestaña nueva.
+        - **Comprueba la sesión con `$_SESSION['user_id']`**, no con `$_SESSION['logged_in']`
+          como los otros catorce endpoints. Es una inconsistencia conocida.
+      parameters:
+        - name: report_type
+          in: query
+          required: true
+          schema: { type: string, default: general }
+          example: general
+        - name: format
+          in: query
+          schema: { type: string, enum: [excel, xlsx, pdf], default: excel }
+          example: xlsx
+        - name: year
+          in: query
+          schema: { type: integer }
+          example: 2026
+        - name: month
+          in: query
+          schema: { $ref: '#/components/schemas/Mes' }
+        - name: months
+          in: query
+          description: Alternativa a `month` para varios meses.
+          schema:
+            type: array
+            items: { $ref: '#/components/schemas/Mes' }
+          style: form
+          explode: true
+        - name: estado
+          in: query
+          schema: { $ref: '#/components/schemas/EstadoObservacion' }
+        - name: establecimiento_id
+          in: query
+          schema: { type: integer }
+        - name: comuna_id
+          in: query
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Archivo generado.
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema: { type: string, format: binary }
+            application/pdf:
+              schema: { type: string, format: binary }
+        '401':
+          description: Sesión expirada. Devuelve **HTML**, no JSON.
+          content:
+            text/html:
+              schema: { type: string }
+
+  /api/import.php:
+    post:
+      tags: [Importación]
+      summary: Importar observaciones desde un archivo Excel
+      operationId: importar
+      description: |
+        **Solo registradores** — un supervisor recibe 403. Es el único endpoint del sistema
+        vedado a los supervisores.
+
+        Aplica las mismas reglas que el alta manual, fila por fila:
+
+        - `rem` (la hoja) es obligatorio **salvo** para `S/OBSERVACION`. Si falta `rem` pero
+          viene `codigo_hoja`, se usa ese.
+        - **Valida la asignación mensual** con `tieneAsignacionParaMes()`, igual que la creación
+          manual.
+
+        Los errores se acumulan **por fila** y se informan todos juntos: una fila inválida no
+        aborta el lote.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [archivo]
+              properties:
+                archivo:
+                  type: string
+                  format: binary
+                  description: Archivo .xlsx con el formato de la plantilla.
+      responses:
+        '200':
+          description: Importación procesada, con el detalle de filas correctas y con error.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SobreExitoso'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          importadas: { type: integer }
+                          errores:
+                            type: array
+                            items: { type: string }
+              example:
+                success: true
+                data:
+                  importadas: 18
+                  errores:
+                    - "Fila 7: Campo 'rem' (Hoja) es requerido para tipo 'ERROR'"
+                    - "Fila 12: El establecimiento no está asignado para el mes Abril"
+                message: Importación completada
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '403':
+          description: El usuario no es registrador.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SobreError' }
+        '405': { $ref: '#/components/responses/MetodoNoPermitido' }
+        '500': { $ref: '#/components/responses/ErrorServidor' }
+
+  /api/import_template.php:
+    get:
+      tags: [Importación]
+      summary: Descargar la plantilla Excel de importación
+      operationId: plantillaImportacion
+      description: |
+        Genera la plantilla con las columnas que espera el importador. Sin restricción de rol.
+
+        **Sin sesión activa no devuelve 401**: emite un `header('Location: ../index.php')` y
+        redirige. Es el único endpoint que responde así.
+      responses:
+        '200':
+          description: Plantilla generada.
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema: { type: string, format: binary }
+        '302':
+          description: Sin sesión activa; redirige a `index.php`.
+
+  # ==========================================================================
+  # COLA DE REPORTES
+  # ==========================================================================
+  /api/report_queue.php:
+    get:
+      tags: [Cola de reportes]
+      summary: Listar o descargar reportes encolados
+      operationId: colaConsultar
+      deprecated: true
+      description: |
+        **Sin ningún llamador en la interfaz.** El subsistema está completo y es funcional, pero
+        nada en la UI lo usa. Se documenta para que la decisión de conectarlo o retirarlo sea
+        informada. Ver hallazgo E de la auditoría.
+
+        La descarga solo la permite el dueño del reporte o un supervisor, y exige que el reporte
+        esté en estado `LISTO` (si no, 409).
+      parameters:
+        - name: action
+          in: query
+          required: true
+          schema: { type: string, enum: [list, download] }
+        - name: id
+          in: query
+          description: Obligatorio con `download`.
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Listado JSON, o el archivo binario con `download`.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SobreExitoso'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/ReporteEncolado' }
+            application/octet-stream:
+              schema: { type: string, format: binary }
+        '400': { $ref: '#/components/responses/PeticionInvalida' }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '403':
+          description: El reporte pertenece a otro usuario y el solicitante no es supervisor.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SobreError' }
+              example:
+                success: false
+                data: null
+                message: No tiene permisos para descargar este reporte
+        '404': { $ref: '#/components/responses/NoEncontrado' }
+        '409':
+          description: El reporte todavía no está listo.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SobreError' }
+              example:
+                success: false
+                data: null
+                message: El reporte aún no está listo
+        '500': { $ref: '#/components/responses/ErrorServidor' }
+
+    post:
+      tags: [Cola de reportes]
+      summary: Encolar un reporte para generación asíncrona
+      operationId: colaEncolar
+      deprecated: true
+      description: |
+        **Sin ningún llamador en la interfaz.** El reporte de tipo `detallado` obliga al formato
+        `pdf`. Lo consume `worker_reportes.php` por cron.
+      parameters:
+        - name: action
+          in: query
+          required: true
+          schema: { type: string, enum: [enqueue] }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EncolarReportePeticion' }
+            example:
+              tipo_reporte: detallado
+              formato: pdf
+              parametros:
+                year: 2026
+                comuna_id: 1
+      responses:
+        '200':
+          description: Reporte encolado.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SobreExitoso' }
+        '400':
+          description: Tipo o formato no permitido, o `detallado` sin formato `pdf`.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SobreError' }
+              example:
+                success: false
+                data: null
+                message: El reporte detallado debe ser PDF
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '500': { $ref: '#/components/responses/ErrorServidor' }
+
+# ============================================================================
+# COMPONENTES
+# ============================================================================
+components:
+
+  securitySchemes:
+    sesionPHP:
+      type: apiKey
+      in: cookie
+      name: PHPSESSID
+      description: |
+        Cookie de sesión de PHP, emitida por `auth.php?action=login`. El servidor comprueba
+        `$_SESSION['logged_in'] === true` (salvo `export.php`, que comprueba
+        `$_SESSION['user_id']`).
+    tokenCSRF:
+      type: apiKey
+      in: header
+      name: X-CSRF-TOKEN
+      description: |
+        Token anti-CSRF validado por `CSRF::validateRequest()`. **Obligatorio en las mutaciones**
+        de `observations.php`, `supervision.php`, `assignments.php`, `deleted.php`, `users.php`,
+        `locations.php`, `notifications.php`, `import.php` y `report_queue.php`.
+
+        El navegador lo lee de `<meta name="csrf-token">`. Se acepta también como campo
+        `csrf_token` en el cuerpo.
+
+        **`auth.php` no lo valida en ninguna de sus operaciones**, incluidas `logout` y
+        `change_year`, que son POST y modifican la sesión.
+
+  parameters:
+    Anio:
+      name: year
+      in: query
+      required: false
+      description: Año de trabajo. Si se omite, se usa `$_SESSION['year']` y, en su defecto, el año actual.
+      schema: { type: integer, minimum: 2020 }
+      example: 2026
+
+  responses:
+    NoAutenticado:
+      description: No hay sesión activa.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/SobreError' }
+          example:
+            success: false
+            data: null
+            message: No autorizado
+    AccesoDenegado:
+      description: El rol o la propiedad del recurso no permiten la operación.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/SobreError' }
+          example:
+            success: false
+            data: null
+            message: Acceso denegado
+    SoloSupervisor:
+      description: La operación requiere rol supervisor.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/SobreError' }
+          example:
+            success: false
+            data: null
+            message: Acceso denegado
+    NoEncontrado:
+      description: El recurso no existe.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/SobreError' }
+          example:
+            success: false
+            data: null
+            message: Observación no encontrada
+    PeticionInvalida:
+      description: Parámetros ausentes o inválidos.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/SobreError' }
+          example:
+            success: false
+            data: null
+            message: Acción no válida
+    MetodoNoPermitido:
+      description: El método HTTP no está soportado por esta acción.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/SobreError' }
+          example:
+            success: false
+            data: null
+            message: Método no permitido
+    ErrorServidor:
+      description: |
+        Error interno. **Aviso:** varios manejadores concatenan el mensaje crudo de la excepción
+        (`'Error en el servidor: ' . $e->getMessage()`), lo que puede filtrar estructura de
+        tablas o rutas del servidor.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/SobreError' }
+          example:
+            success: false
+            data: null
+            message: "Error en el servidor: SQLSTATE[42S22]: Column not found"
+
+  schemas:
+
+    # ---- Sobres de respuesta -----------------------------------------------
+    Sobre:
+      type: object
+      description: Sobre estándar de respuesta. Lo usan todos los endpoints salvo `supervision.php`.
+      required: [success, message]
+      properties:
+        success:
+          type: boolean
+          description: Indica si la operación se completó.
+        data:
+          description: Carga útil. Es `null` en operaciones que no devuelven datos.
+        message:
+          type: string
+          description: Mensaje legible, en español. Puede venir vacío.
+      example:
+        success: true
+        data: null
+        message: Operación completada
+
+    SobreExitoso:
+      allOf:
+        - $ref: '#/components/schemas/Sobre'
+        - type: object
+          properties:
+            success: { const: true }
+
+    SobreError:
+      allOf:
+        - $ref: '#/components/schemas/Sobre'
+        - type: object
+          properties:
+            success: { const: false }
+            data: { type: "null" }
+
+    # ---- Respuestas propias de supervision.php ------------------------------
+    SupervisionRespuestaSimple:
+      type: object
+      description: Respuesta de una acción sobre una sola observación. **No lleva `data`.**
+      required: [success, message]
+      properties:
+        success: { const: true }
+        message: { type: string }
+      example:
+        success: true
+        message: Observación aprobada correctamente
+
+    SupervisionRespuestaLote:
+      type: object
+      description: Respuesta de una acción masiva. `count` indica cuántas se procesaron realmente.
+      required: [success, message, count]
+      properties:
+        success: { const: true }
+        message: { type: string }
+        count:
+          type: integer
+          description: |
+            Observaciones efectivamente procesadas. Puede ser **menor** que la cantidad de ids
+            enviados: las que no estaban en estado `pendiente` se omiten en silencio.
+      example:
+        success: true
+        message: Se aprobaron 3 observaciones correctamente
+        count: 3
+
+    SupervisionRespuestaListado:
+      type: object
+      required: [success, data, count]
+      properties:
+        success: { const: true }
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/Observacion' }
+        count: { type: integer }
+
+    SupervisionRespuestaDetalle:
+      type: object
+      description: Detalle con el historial en una clave hermana de `data`, no dentro de ella.
+      required: [success, data, historial]
+      properties:
+        success: { const: true }
+        data: { $ref: '#/components/schemas/Observacion' }
+        historial:
+          type: array
+          items: { $ref: '#/components/schemas/HistorialEstado' }
+
+    SupervisionRespuestaError:
+      type: object
+      required: [success, message]
+      properties:
+        success: { const: false }
+        message: { type: string }
+
+    # ---- Enumeraciones ------------------------------------------------------
+    EstadoObservacion:
+      type: string
+      description: |
+        Estado del ciclo de vida (`config/constants.php:8-12`).
+
+        - `pendiente` — registrada, esperando revisión. Es el único estado sobre el que
+          `supervision.php` actúa.
+        - `aprobado` — el supervisor la cerró como corregida.
+        - `error` — el supervisor la cerró dejándola marcada como error.
+        - `rechazado` — cancelada por el supervisor.
+        - `justificado` — el establecimiento justificó la observación.
+      enum: [pendiente, aprobado, rechazado, error, justificado]
+      example: pendiente
+
+    RolUsuario:
+      type: string
+      description: |
+        `registrador` crea y edita observaciones de los establecimientos que tiene asignados.
+        `supervisor` revisa, aprueba y administra usuarios, asignaciones y establecimientos.
+      enum: [registrador, supervisor]
+      example: registrador
+
+    TipoError:
+      type: string
+      description: |
+        Clasificación REM de la observación (`config/constants.php:27-32`). `S/OBSERVACION` es el
+        único valor que **exime** de informar `codigo_hoja`.
+      enum: ["S/OBSERVACION", "ERROR", "REVISAR", "F/PLAZO"]
+      example: ERROR
+
+    SerieREM:
+      type: string
+      description: Serie del Resumen Estadístico Mensual (`config/constants.php:35-42`).
+      enum: ["SERIE A", "SERIE BS", "SERIE BM", "SERIE P", "SERIE ANEXO", "SERIE D"]
+      example: SERIE A
+
+    PlazoEntrega:
+      type: string
+      description: Si el establecimiento entregó dentro del plazo comprometido.
+      enum: [dentro_plazo, fuera_plazo]
+      example: dentro_plazo
+
+    UsaValidador:
+      type: string
+      description: |
+        Si el establecimiento usó el validador DEIS. Al crear se acepta también `n/a`, que se
+        normaliza a `no` antes de guardar.
+      enum: [si, "no"]
+      example: si
+
+    Clasificacion:
+      type: string
+      description: |
+        Clasificación de la respuesta del establecimiento (`config/constants.php:162-171`). Si
+        queda vacía, la etiqueta se deriva del estado.
+      enum: [corregido, error, sin_respuesta, respuesta_incorrecta]
+      example: corregido
+
+    Mes:
+      type: string
+      description: |
+        Mes en **nombre y en español**. La columna `observaciones.mes` guarda este texto, no un
+        número. Las asignaciones, en cambio, guardan números — `getMesNumero()` traduce entre
+        ambos.
+      enum: [Enero, Febrero, Marzo, Abril, Mayo, Junio, Julio, Agosto, Septiembre, Octubre, Noviembre, Diciembre]
+      example: Marzo
+
+    TipoAsignacion:
+      type: string
+      description: |
+        `anual` es la asignación base del año. `temporal` es una reasignación acotada a ciertos
+        meses que **tiene prioridad** sobre la anual y bloquea al titular durante ese período.
+      enum: [anual, temporal]
+      example: anual
+
+    # ---- Entidades ----------------------------------------------------------
+    Observacion:
+      type: object
+      description: |
+        Observación REM. Los campos posteriores a `fecha_actualizacion` provienen de los JOIN con
+        establecimientos, comunas y usuarios; no son columnas de la tabla.
+      required:
+        - id
+        - anio
+        - mes
+        - establecimiento_id
+        - codigo_serie
+        - codigo_hoja
+        - tipo_error
+        - detalle_observacion
+        - plazo_entrega
+        - usa_validador
+        - estado_actual
+        - usuario_registro_id
+      properties:
+        id: { type: integer, description: Identificador único. }
+        anio: { type: integer, description: Año del período REM observado. }
+        mes: { $ref: '#/components/schemas/Mes' }
+        establecimiento_id: { type: integer, description: Establecimiento observado. }
+        codigo_serie: { $ref: '#/components/schemas/SerieREM' }
+        codigo_hoja:
+          type: string
+          maxLength: 50
+          description: |
+            Hoja REM ("A05", "Hoja Control"…). Obligatoria salvo cuando `tipo_error` es
+            `S/OBSERVACION`; en ese caso se guarda cadena vacía.
+        tipo_error: { $ref: '#/components/schemas/TipoError' }
+        detalle_observacion: { type: string, description: Descripción de la observación. }
+        respuesta_establecimiento:
+          type: [string, "null"]
+          description: Respuesta del establecimiento.
+        plazo_entrega: { $ref: '#/components/schemas/PlazoEntrega' }
+        usa_validador: { $ref: '#/components/schemas/UsaValidador' }
+        estado_actual: { $ref: '#/components/schemas/EstadoObservacion' }
+        clasificacion:
+          type: [string, "null"]
+          description: Clasificación del supervisor. Ver `Clasificacion`.
+        detalle_error:
+          type: [string, "null"]
+          description: Anotación breve del supervisor al clasificar.
+        usuario_registro_id: { type: integer, description: Registrador que la creó. }
+        usuario_supervisor_id:
+          type: [integer, "null"]
+          description: Supervisor que la revisó. Queda en `null` si se elimina esa cuenta.
+        fecha_registro: { type: string, description: "Fecha de creación, formato 'YYYY-MM-DD HH:MM:SS'." }
+        fecha_revision: { type: [string, "null"], description: Fecha de la revisión del supervisor. }
+        fecha_actualizacion: { type: string, description: Última modificación. }
+        establecimiento: { type: string, description: "Nombre del establecimiento (JOIN)." }
+        nombre_corto: { type: [string, "null"], description: "Nombre corto del establecimiento (JOIN)." }
+        codigo_establecimiento: { type: integer, description: "Código oficial del establecimiento (JOIN)." }
+        comuna: { type: string, description: "Nombre de la comuna (JOIN)." }
+        codigo_comuna: { type: integer, description: "Código DEIS de la comuna (JOIN)." }
+        nombre_registro: { type: string, description: "Nombre del registrador (JOIN)." }
+        nombre_supervisor: { type: [string, "null"], description: "Nombre del supervisor (JOIN)." }
+
+    ObservacionCrear:
+      type: object
+      description: |
+        Cuerpo para crear. **`codigo_hoja` es obligatorio salvo cuando `tipo_error` es
+        `S/OBSERVACION`** — una condición que no puede expresarse en el `required` de este
+        esquema y que valida `api/observations.php:100-103`.
+      required: [mes, establecimiento_id, tipo_error, detalle_observacion, plazo_entrega, usa_validador]
+      properties:
+        mes: { $ref: '#/components/schemas/Mes' }
+        establecimiento_id: { type: integer }
+        codigo_serie: { $ref: '#/components/schemas/SerieREM' }
+        codigo_hoja: { type: string, maxLength: 50 }
+        tipo_error: { $ref: '#/components/schemas/TipoError' }
+        detalle_observacion: { type: string, minLength: 1 }
+        plazo_entrega: { $ref: '#/components/schemas/PlazoEntrega' }
+        usa_validador:
+          type: string
+          enum: [si, "no", "n/a"]
+          description: "`n/a` se normaliza a `no`."
+        respuesta_establecimiento: { type: [string, "null"] }
+        clasificacion: { type: [string, "null"] }
+        detalle_error: { type: [string, "null"] }
+
+    ObservacionActualizar:
+      type: object
+      description: |
+        Cuerpo para actualizar. Todos los campos son opcionales. Si un registrador edita una
+        observación que no está `pendiente`, el servidor **fuerza** `estado_actual` a `pendiente`
+        aunque no se envíe.
+      properties:
+        mes: { $ref: '#/components/schemas/Mes' }
+        establecimiento_id: { type: integer }
+        codigo_serie: { $ref: '#/components/schemas/SerieREM' }
+        codigo_hoja: { type: string }
+        tipo_error: { $ref: '#/components/schemas/TipoError' }
+        detalle_observacion: { type: string }
+        respuesta_establecimiento: { type: [string, "null"] }
+        plazo_entrega: { $ref: '#/components/schemas/PlazoEntrega' }
+        usa_validador: { $ref: '#/components/schemas/UsaValidador' }
+        estado_actual:
+          $ref: '#/components/schemas/EstadoObservacion'
+          description: Solo un supervisor puede fijarlo libremente.
+        clasificacion: { type: [string, "null"] }
+        detalle_error: { type: [string, "null"] }
+
+    ObservacionEliminada:
+      type: object
+      description: |
+        Fila de la papelera. Es una **copia desnormalizada**: guarda nombres de establecimiento,
+        comuna y registrador como texto, sin claves foráneas, para sobrevivir a cambios en las
+        tablas maestras.
+      properties:
+        id: { type: integer, description: Id dentro de la papelera. }
+        observacion_id: { type: integer, description: Id que tenía la observación original. }
+        anio: { type: integer }
+        mes: { $ref: '#/components/schemas/Mes' }
+        establecimiento_id: { type: integer }
+        establecimiento_nombre: { type: string }
+        establecimiento_nombre_corto: { type: [string, "null"] }
+        comuna: { type: string }
+        codigo_serie: { type: string }
+        codigo_hoja: { type: string }
+        tipo_error: { $ref: '#/components/schemas/TipoError' }
+        detalle_observacion: { type: string }
+        plazo_entrega: { $ref: '#/components/schemas/PlazoEntrega' }
+        usa_validador: { $ref: '#/components/schemas/UsaValidador' }
+        estado_actual: { type: string, description: Estado que tenía al eliminarse. }
+        clasificacion: { type: [string, "null"] }
+        usuario_registro_id: { type: integer }
+        nombre_registro: { type: string }
+        usuario_supervisor_id: { type: [integer, "null"], description: Supervisor que la eliminó. }
+        motivo_eliminacion: { type: [string, "null"] }
+        fecha_eliminacion: { type: string }
+        fecha_registro_original: { type: [string, "null"] }
+        fecha_revision: { type: [string, "null"] }
+
+    HistorialEstado:
+      type: object
+      description: Una transición de estado. Se borra en cascada con su observación.
+      properties:
+        id: { type: integer }
+        observacion_id: { type: integer }
+        estado_anterior: { type: string }
+        estado_nuevo: { type: string }
+        usuario_id: { type: integer }
+        comentario: { type: [string, "null"] }
+        fecha_cambio: { type: string }
+      example:
+        id: 903
+        observacion_id: 1482
+        estado_anterior: pendiente
+        estado_nuevo: aprobado
+        usuario_id: 1
+        comentario: "Verificado contra el REM cargado."
+        fecha_cambio: "2026-04-10 08:30:52"
+
+    EstadisticasObservaciones:
+      type: object
+      description: Agregaciones del año, ya restringidas al alcance del rol solicitante.
+      required: [total, por_estado, por_mes, por_tipo_error]
+      properties:
+        total: { type: integer, description: Total de observaciones del año. }
+        por_estado:
+          type: array
+          items:
+            type: object
+            properties:
+              estado_actual: { $ref: '#/components/schemas/EstadoObservacion' }
+              total: { type: integer }
+        por_mes:
+          type: array
+          items:
+            type: object
+            properties:
+              mes: { $ref: '#/components/schemas/Mes' }
+              total: { type: integer }
+        por_tipo_error:
+          type: array
+          description: Los 10 tipos más frecuentes, de mayor a menor.
+          items:
+            type: object
+            properties:
+              tipo_error: { $ref: '#/components/schemas/TipoError' }
+              total: { type: integer }
+
+    Usuario:
+      type: object
+      description: Cuenta del sistema. `password_hash` nunca se incluye en las respuestas.
+      required: [id, username, nombre_completo, rol, activo]
+      properties:
+        id: { type: integer }
+        username: { type: string, maxLength: 50, description: Único en el sistema. }
+        nombre_completo: { type: string, maxLength: 100 }
+        rol: { $ref: '#/components/schemas/RolUsuario' }
+        activo:
+          type: [boolean, integer]
+          description: MySQL lo devuelve como 0/1. Los usuarios inactivos no pueden autenticarse.
+        fecha_creacion: { type: string }
+      example:
+        id: 3
+        username: registrador2
+        nombre_completo: "Victoria Martínez"
+        rol: registrador
+        activo: 1
+        fecha_creacion: "2026-01-15 09:14:02"
+
+    UsuarioCrear:
+      type: object
+      description: |
+        Hay que enviar `password` **o** `generate_password: true`. La política se aplica en ambos
+        casos: mínimo 8 caracteres, una mayúscula y un número.
+      required: [username, nombre_completo]
+      properties:
+        username: { type: string, maxLength: 50 }
+        password: { type: string, minLength: 8 }
+        generate_password:
+          type: boolean
+          default: false
+          description: Si es verdadero, el sistema genera la contraseña y `password` se ignora.
+        nombre_completo: { type: string, maxLength: 100 }
+        rol:
+          $ref: '#/components/schemas/RolUsuario'
+          default: registrador
+
+    UsuarioActualizar:
+      type: object
+      description: La sub-operación va en `action` dentro del cuerpo. Si se omite, se asume `update`.
+      properties:
+        action:
+          type: string
+          enum: [update, password, toggle]
+          default: update
+        nombre_completo: { type: string }
+        rol: { $ref: '#/components/schemas/RolUsuario' }
+        activo: { type: boolean, description: Para `action=toggle`. }
+        current_password:
+          type: string
+          description: Obligatoria al cambiar la contraseña propia; un supervisor no la necesita.
+        new_password: { type: string, minLength: 8 }
+        confirm_password: { type: string, description: Debe coincidir con `new_password`. }
+
+    AuditoriaUsuario:
+      type: object
+      description: Entrada de `historial_usuarios`. Se escribe en cada mutación de una cuenta.
+      properties:
+        id: { type: integer }
+        usuario_id: { type: integer }
+        usuario_responsable_id: { type: [integer, "null"], description: Quién hizo el cambio. }
+        accion:
+          type: string
+          enum: [CREACION, ACTUALIZACION, CAMBIO_PASSWORD, ACTIVADO, DESACTIVADO, ELIMINACION]
+        detalles: { type: [string, "null"] }
+        fecha_registro: { type: string }
+
+    Establecimiento:
+      type: object
+      description: |
+        Establecimiento de salud. **Nunca se borra**: se desactiva con `activo`, para que las
+        observaciones históricas que lo referencian sigan resolviendo.
+      required: [id, codigo_establecimiento, nombre, comuna_id, activo]
+      properties:
+        id: { type: integer }
+        codigo_establecimiento: { type: integer, description: Código oficial, único. }
+        nombre: { type: string, maxLength: 200 }
+        nombre_corto: { type: [string, "null"], maxLength: 100 }
+        comuna_id: { type: integer }
+        activo: { type: [boolean, integer] }
+        comuna_nombre: { type: string, description: "Nombre de la comuna (JOIN)." }
+
+    EstablecimientoPeticion:
+      type: object
+      description: Cuerpo para `create`, `update` y `toggle`. En `update` solo se envían los campos a cambiar.
+      properties:
+        codigo_establecimiento: { type: integer }
+        nombre: { type: string, maxLength: 200 }
+        nombre_corto: { type: [string, "null"], maxLength: 100 }
+        comuna_id: { type: integer }
+        activo: { type: boolean }
+
+    Notificacion:
+      type: object
+      properties:
+        id: { type: integer }
+        usuario_id: { type: integer }
+        tipo: { type: string, maxLength: 50 }
+        titulo: { type: string, maxLength: 150 }
+        mensaje: { type: string }
+        url: { type: [string, "null"], description: Destino al pulsar la notificación. }
+        leida: { type: integer, enum: [0, 1] }
+        fecha_creacion: { type: string }
+        fecha_lectura: { type: [string, "null"] }
+
+    ReporteEncolado:
+      type: object
+      description: Entrada de `reportes_pendientes`, consumida por `worker_reportes.php`.
+      properties:
+        id: { type: integer }
+        usuario_id: { type: integer }
+        tipo_reporte: { type: string, maxLength: 50 }
+        formato: { type: string, maxLength: 10 }
+        parametros: { type: [string, "null"], description: JSON serializado con los filtros. }
+        estado:
+          type: string
+          enum: [PENDIENTE, PROCESANDO, LISTO, ERROR]
+        archivo_url: { type: [string, "null"] }
+        fecha_creacion: { type: string }
+        fecha_procesamiento: { type: [string, "null"] }
+        mensaje_error: { type: [string, "null"] }
+
+    # ---- Cuerpos de petición ------------------------------------------------
+    LoginPeticion:
+      type: object
+      required: [username, password]
+      properties:
+        username: { type: string }
+        password: { type: string, format: password }
+        year:
+          type: integer
+          description: Año de trabajo inicial. Por defecto, el año actual.
+      example:
+        username: supervisor1
+        password: "Sup3rvisor2026"
+        year: 2026
+
+    CambiarAnioPeticion:
+      type: object
+      required: [year]
+      properties:
+        year:
+          type: integer
+          minimum: 2020
+          description: Debe estar entre 2020 y el año siguiente al actual.
+      example:
+        year: 2025
+
+    SesionIniciada:
+      type: object
+      required: [user, year]
+      properties:
+        user: { $ref: '#/components/schemas/Usuario' }
+        year: { type: integer, description: Año de trabajo activo. }
+
+    AnioTrabajo:
+      type: object
+      required: [year]
+      properties:
+        year: { type: integer }
+
+    SupervisionPeticion:
+      type: object
+      description: |
+        Cuerpo común de `approve`, `cancel` y `delete`. `id` acepta un entero o un arreglo: la
+        misma forma sirve para una observación y para un lote.
+      required: [id]
+      properties:
+        id:
+          oneOf:
+            - type: integer
+            - type: array
+              items: { type: integer }
+          description: Id o arreglo de ids. Se normalizan a enteros positivos únicos.
+        comment:
+          type: string
+          description: Comentario que queda en el historial de estados.
+        reason:
+          type: string
+          description: Motivo de eliminación; solo se usa con `action=delete`.
+        estado_resultante:
+          type: string
+          enum: [sin_observacion, error]
+          description: |
+            **Obligatorio con `action=approve`.** `sin_observacion` deja la observación en estado
+            `aprobado` con `tipo_error = S/OBSERVACION`; `error` la deja en estado `error` con
+            `tipo_error = ERROR`. Si falta o trae otro valor, la petición falla.
+        clasificacion: { $ref: '#/components/schemas/Clasificacion' }
+        detalle_error:
+          type: string
+          description: Anotación del supervisor. Solo se aplica con `action=approve`.
+
+    AsignacionPeticion:
+      type: object
+      description: |
+        Cuerpo de las mutaciones de asignaciones. **`action` viaja aquí, no en la query.**
+      required: [action]
+      properties:
+        action:
+          type: string
+          enum: [asignar, asignar_multiple, remover, copiar_anio, temporales]
+        usuario_id: { type: integer, description: Registrador destinatario. }
+        establecimiento_id: { type: integer, description: Para `asignar` y `remover`. }
+        establecimiento_ids:
+          type: array
+          items: { type: integer }
+          description: Para `asignar_multiple`. Se descartan los valores no positivos.
+        anio: { type: integer }
+        tipo_asignacion:
+          $ref: '#/components/schemas/TipoAsignacion'
+          default: anual
+        meses:
+          type: string
+          description: |
+            CSV de números de mes (`"6,7"`) o el literal `ALL`. **Solo tiene efecto en
+            asignaciones temporales**: en las anuales se fuerza a `ALL`.
+          example: "6,7"
+        anio_origen: { type: integer, description: Para `copiar_anio`. }
+        anio_destino: { type: integer, description: Para `copiar_anio`. Debe diferir del origen. }
+
+    PapeleraPeticion:
+      type: object
+      description: |
+        Cuerpo de las mutaciones de la papelera. **`action` viaja aquí, no en la query.**
+      required: [action]
+      properties:
+        action:
+          type: string
+          enum: [restore, permanent_delete, restore_multiple, permanent_delete_multiple]
+        deleted_id: { type: integer, description: Para las operaciones individuales. }
+        deleted_ids:
+          type: array
+          items: { type: integer }
+          description: Para las operaciones masivas.
+        confirm_irreversible:
+          type: boolean
+          description: |
+            **Obligatorio con `permanent_delete` y `permanent_delete_multiple`.** Sin este campo
+            la petición se rechaza con 400 antes de borrar nada. Es la única salvaguarda del
+            único borrado irreversible del sistema.
+
+    EncolarReportePeticion:
+      type: object
+      required: [tipo_reporte, formato]
+      properties:
+        tipo_reporte:
+          type: string
+          description: "El tipo `detallado` obliga a que `formato` sea `pdf`."
+        formato:
+          type: string
+          enum: [xlsx, pdf]
+        parametros:
+          type: object
+          description: Filtros del reporte; se serializan a JSON en la cola.

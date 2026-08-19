@@ -56,7 +56,7 @@ $usuarios = $userModel->getAll();
                                             </td>
                                             <td class="fw-semibold"><?php echo htmlspecialchars($usuario['nombre_completo']); ?></td>
                                             <td>
-                                                <span class="badge <?php echo $usuario['rol'] === ROL_SUPERVISOR ? 'bg-blue text-blue-fg' : 'bg-azure text-azure-fg'; ?>">
+                                                <span class="badge <?php echo $usuario['rol'] === ROL_SUPERVISOR ? 'bg-primary text-primary-fg' : 'bg-azure text-azure-fg'; ?>">
                                                     <?php echo ucfirst($usuario['rol']); ?>
                                                 </span>
                                             </td>
@@ -366,7 +366,7 @@ $usuarios = $userModel->getAll();
                         <thead><tr><th>Acción</th><th>Detalle</th><th>Fecha</th></tr></thead>
                         <tbody>${items.map(item => `
                             <tr>
-                                <td><span class="badge bg-blue text-blue-fg">${escapeHtml(item.accion)}</span></td>
+                                <td><span class="badge bg-primary text-primary-fg">${escapeHtml(item.accion)}</span></td>
                                 <td class="text-secondary">${escapeHtml(item.detalles || '')}</td>
                                 <td class="text-secondary">${formatDateTime(item.fecha_registro)}</td>
                             </tr>

@@ -210,7 +210,7 @@ try {
                     jsonResponse(false, null, 'Error al actualizar contraseña', 500);
                 }
             } elseif ($action === 'reset_password') {
-                // Restablecer contraseña a credencial por defecto (solo supervisores)
+                // Restablecer contraseña generando una aleatoria (solo supervisores)
                 if ($userRole !== ROL_SUPERVISOR) {
                     jsonResponse(false, null, 'Acceso denegado', 403);
                 }

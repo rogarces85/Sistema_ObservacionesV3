@@ -176,22 +176,6 @@ class Observation
     }
 
     /**
-     * Eliminar observación
-     */
-    public function delete($id)
-    {
-        // El historial se eliminará en cascada por la FK
-        $sql = "DELETE FROM observaciones WHERE id = ?";
-
-        try {
-            return $this->db->execute($sql, [$id]);
-        } catch (Exception $e) {
-            error_log("Error al eliminar observación: " . $e->getMessage());
-            return false;
-        }
-    }
-
-    /**
      * Obtener historial de una observación
      */
     public function getHistorial($observacionId)
@@ -324,28 +308,6 @@ class Observation
             return $result;
         } catch (Exception $e) {
             error_log("Error al actualizar estado: " . $e->getMessage());
-            return false;
-        }
-    }
-
-    /**
-     * Eliminar observación con registro de auditoría
-     */
-    public function deleteWithAudit($id, $supervisorId, $reason = 'Eliminado por supervisor')
-    {
-        try {
-            // Registrar en historial antes de eliminar
-            $obs = $this->getById($id);
-            if (!$obs) {
-                return false;
-            }
-
-            $this->addHistorial($id, $obs['estado_actual'], 'eliminado', $supervisorId, $reason);
-
-            // Eliminar observación
-            return $this->delete($id);
-        } catch (Exception $e) {
-            error_log("Error al eliminar observación: " . $e->getMessage());
             return false;
         }
     }
@@ -739,10 +701,10 @@ class Observation
      */
     public function reportePorSerieDetalle($year, $userId = null, $userRole = null, $meses = [], $comunaIds = [], $establecimientoId = null)
     {
-        $sql = "SELECT o.codigo_serie, o.tipo_error, COUNT(*) as total 
+        $sql = "SELECT o.codigo_serie, o.tipo_error, COUNT(*) as total
                 FROM observaciones o
                 INNER JOIN establecimientos e ON o.establecimiento_id = e.id
-                WHERE o.anio = ? AND o.codigo_serie IS NOT NULL AND o.codigo_serie != ''";
+                WHERE o.anio = ? AND o.codigo_serie IS NOT NULL AND o.codigo_serie != '' AND o.tipo_error != 'S/OBSERVACION'";
         $params = [$year];
         if ($userRole === ROL_REGISTRADOR && $userId) {
             $sql .= " AND o.usuario_registro_id = ?";
@@ -771,10 +733,10 @@ class Observation
      */
     public function reportePorHojaDetalle($year, $userId = null, $userRole = null, $meses = [], $comunaIds = [], $establecimientoId = null)
     {
-        $sql = "SELECT o.codigo_hoja, o.tipo_error, o.detalle_observacion, COUNT(*) as total 
+        $sql = "SELECT o.codigo_hoja, o.tipo_error, o.detalle_observacion, COUNT(*) as total
                 FROM observaciones o
                 INNER JOIN establecimientos e ON o.establecimiento_id = e.id
-                WHERE o.anio = ? AND o.codigo_hoja IS NOT NULL AND o.codigo_hoja != ''";
+                WHERE o.anio = ? AND o.codigo_hoja IS NOT NULL AND o.codigo_hoja != '' AND o.tipo_error != 'S/OBSERVACION'";
         $params = [$year];
         if ($userRole === ROL_REGISTRADOR && $userId) {
             $sql .= " AND o.usuario_registro_id = ?";
@@ -1009,10 +971,37 @@ class Observation
     }
 
     /**
+     * Filtros comunes de los reportes Plazo/Validador: mismo criterio que los reportes
+     * de errores (rol registrador ve solo lo suyo, comuna y establecimiento del filtro).
+     * Modifica $sql y $params por referencia; asume alias o = observaciones, e = establecimientos.
+     */
+    private function aplicarFiltrosPlazoValidador(string &$sql, array &$params, array $meses, $userId, $userRole, array $comunaIds, $establecimientoId): void
+    {
+        if ($userRole === ROL_REGISTRADOR && $userId) {
+            $sql .= " AND o.usuario_registro_id = ?";
+            $params[] = $userId;
+        }
+        if (!empty($meses)) {
+            $placeholders = implode(',', array_fill(0, count($meses), '?'));
+            $sql .= " AND o.mes IN ($placeholders)";
+            $params = array_merge($params, $meses);
+        }
+        if (!empty($comunaIds)) {
+            $placeholders = implode(',', array_fill(0, count($comunaIds), '?'));
+            $sql .= " AND e.comuna_id IN ($placeholders)";
+            $params = array_merge($params, $comunaIds);
+        }
+        if ($establecimientoId) {
+            $sql .= " AND o.establecimiento_id = ?";
+            $params[] = $establecimientoId;
+        }
+    }
+
+    /**
      * Reporte: Plazo de entrega agregado por establecimiento
      * Agregación binaria por establecimiento+mes: si al menos una serie está dentro/fuera, cuenta como 1
      */
-    public function reportePlazoAgregado(int $anio, array $meses = []): array
+    public function reportePlazoAgregado(int $anio, array $meses = [], $userId = null, $userRole = null, array $comunaIds = [], $establecimientoId = null): array
     {
         $params = [$anio];
         $sql = "WITH per_mes AS (
@@ -1022,11 +1011,7 @@ class Observation
             FROM observaciones o
             INNER JOIN establecimientos e ON o.establecimiento_id = e.id
             WHERE o.anio = ? AND o.plazo_entrega IS NOT NULL AND o.plazo_entrega != ''";
-        if (!empty($meses)) {
-            $placeholders = implode(',', array_fill(0, count($meses), '?'));
-            $sql .= " AND o.mes IN ($placeholders)";
-            $params = array_merge($params, $meses);
-        }
+        $this->aplicarFiltrosPlazoValidador($sql, $params, $meses, $userId, $userRole, $comunaIds, $establecimientoId);
         $sql .= " GROUP BY e.id, e.nombre, e.nombre_corto, o.mes
         )
         SELECT id, nombre, nombre_corto,
@@ -1042,7 +1027,7 @@ class Observation
     /**
      * Reporte: Plazo de entrega detalle mensual por establecimiento
      */
-    public function reportePlazoMensual(int $anio, array $meses = []): array
+    public function reportePlazoMensual(int $anio, array $meses = [], $userId = null, $userRole = null, array $comunaIds = [], $establecimientoId = null): array
     {
         $params = [$anio];
         $sql = "SELECT e.id, e.nombre_corto, o.mes,
@@ -1052,11 +1037,7 @@ class Observation
                 FROM observaciones o
                 INNER JOIN establecimientos e ON o.establecimiento_id = e.id
                 WHERE o.anio = ? AND o.plazo_entrega IS NOT NULL AND o.plazo_entrega != ''";
-        if (!empty($meses)) {
-            $placeholders = implode(',', array_fill(0, count($meses), '?'));
-            $sql .= " AND o.mes IN ($placeholders)";
-            $params = array_merge($params, $meses);
-        }
+        $this->aplicarFiltrosPlazoValidador($sql, $params, $meses, $userId, $userRole, $comunaIds, $establecimientoId);
         $sql .= " GROUP BY e.id, e.nombre_corto, o.mes
                 ORDER BY e.nombre_corto, FIELD(o.mes, 'Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre')";
         return $this->db->query($sql, $params);
@@ -1066,7 +1047,7 @@ class Observation
      * Reporte: Uso de validador agregado por establecimiento
      * Agregación binaria por establecimiento+mes: si al menos una serie usa/no usa validador, cuenta como 1
      */
-    public function reporteValidadorAgregado(int $anio, array $meses = []): array
+    public function reporteValidadorAgregado(int $anio, array $meses = [], $userId = null, $userRole = null, array $comunaIds = [], $establecimientoId = null): array
     {
         $params = [$anio];
         $sql = "WITH per_mes AS (
@@ -1076,11 +1057,7 @@ class Observation
             FROM observaciones o
             INNER JOIN establecimientos e ON o.establecimiento_id = e.id
             WHERE o.anio = ? AND o.usa_validador IS NOT NULL AND o.usa_validador != ''";
-        if (!empty($meses)) {
-            $placeholders = implode(',', array_fill(0, count($meses), '?'));
-            $sql .= " AND o.mes IN ($placeholders)";
-            $params = array_merge($params, $meses);
-        }
+        $this->aplicarFiltrosPlazoValidador($sql, $params, $meses, $userId, $userRole, $comunaIds, $establecimientoId);
         $sql .= " GROUP BY e.id, e.nombre, e.nombre_corto, o.mes
         )
         SELECT id, nombre, nombre_corto,
@@ -1096,7 +1073,7 @@ class Observation
     /**
      * Reporte: Uso de validador detalle mensual por establecimiento
      */
-    public function reporteValidadorMensual(int $anio, array $meses = []): array
+    public function reporteValidadorMensual(int $anio, array $meses = [], $userId = null, $userRole = null, array $comunaIds = [], $establecimientoId = null): array
     {
         $params = [$anio];
         $sql = "SELECT e.id, e.nombre_corto, o.mes,
@@ -1106,11 +1083,7 @@ class Observation
                 FROM observaciones o
                 INNER JOIN establecimientos e ON o.establecimiento_id = e.id
                 WHERE o.anio = ? AND o.usa_validador IS NOT NULL AND o.usa_validador != ''";
-        if (!empty($meses)) {
-            $placeholders = implode(',', array_fill(0, count($meses), '?'));
-            $sql .= " AND o.mes IN ($placeholders)";
-            $params = array_merge($params, $meses);
-        }
+        $this->aplicarFiltrosPlazoValidador($sql, $params, $meses, $userId, $userRole, $comunaIds, $establecimientoId);
         $sql .= " GROUP BY e.id, e.nombre_corto, o.mes
                 ORDER BY e.nombre_corto, FIELD(o.mes, 'Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre')";
         return $this->db->query($sql, $params);

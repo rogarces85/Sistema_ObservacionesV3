@@ -1,5 +1,7 @@
 <?php
-$currentPage = $_GET['page'] ?? 'dashboard';
+// $page viene saneado desde index.php (lista blanca + guards de rol);
+// solo se cae a $_GET si esta vista se incluye fuera de ese flujo.
+$currentPage = $page ?? ($_GET['page'] ?? 'dashboard');
 $userRole = $_SESSION['rol'] ?? '';
 $currentYear = $_SESSION['year'] ?? date('Y');
 $appVersion = defined('APP_VERSION') ? APP_VERSION : '1.0';
@@ -25,6 +27,7 @@ $navGroups = [
         'icon'  => 'chart-bar',
         'items' => [
             ['id' => 'reportes', 'title' => 'Reportes', 'icon' => 'chart-bar', 'roles' => [ROL_REGISTRADOR, ROL_SUPERVISOR]],
+            ['id' => 'boletin',  'title' => 'Boletín Informativo', 'icon' => 'report', 'roles' => [ROL_SUPERVISOR]],
         ],
     ],
     [
@@ -35,7 +38,6 @@ $navGroups = [
             ['id' => 'asignaciones',   'title' => 'Asignar Establec.', 'icon' => 'package',    'roles' => [ROL_SUPERVISOR]],
             ['id' => 'establecimientos','title' => 'Establecimientos',  'icon' => 'building',   'roles' => [ROL_SUPERVISOR]],
             ['id' => 'eliminadas',     'title' => 'Eliminadas',         'icon' => 'trash',      'roles' => [ROL_SUPERVISOR]],
-            ['id' => 'versionado',     'title' => 'Versionado',         'icon' => 'git-branch', 'roles' => [ROL_SUPERVISOR]],
             ['id' => 'perfil',         'title' => 'Mi Perfil',          'icon' => 'user',       'roles' => [ROL_REGISTRADOR, ROL_SUPERVISOR]],
         ],
     ],

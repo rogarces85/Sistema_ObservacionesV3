@@ -35,7 +35,6 @@ MIGRATIONS=(
     "config/migration_2026_05_08_reportes.sql"
     "specs/sprint1_migration.sql"
     "specs/sprint2_migration.sql"
-    "specs/sprint3_migration.sql"
     "specs/sprint4_migration.sql"
     "specs/sprint5_migration.sql"
     "config/sprint3_migration.sql"

@@ -153,3 +153,65 @@ $STATUS_COLORS = [
     ESTADO_ERROR => 'rose',
     ESTADO_JUSTIFICADO => 'sky'
 ];
+
+// ---------------------------------------------------------------------------
+// Clasificacion de la respuesta del establecimiento
+// Valores tal como se almacenan en observaciones.clasificacion: SIEMPRE minuscula.
+// Antes vivian hardcodeados en el <select> de views/supervision.php.
+// ---------------------------------------------------------------------------
+define('CLASIF_CORREGIDO', 'corregido');
+define('CLASIF_ERROR', 'error');
+define('CLASIF_SIN_RESPUESTA', 'sin_respuesta');
+define('CLASIF_RESPUESTA_INCORRECTA', 'respuesta_incorrecta');
+
+$CLASIFICACIONES = [
+    CLASIF_CORREGIDO            => 'Corregido',
+    CLASIF_ERROR                => 'Error',
+    CLASIF_SIN_RESPUESTA        => 'Sin respuesta del Establecimiento',
+    CLASIF_RESPUESTA_INCORRECTA => 'Respuesta incorrecta de Establecimiento'
+];
+
+/**
+ * Etiqueta legible de la clasificacion.
+ * Si el supervisor no clasifico, se deriva del estado actual de la observacion.
+ */
+function clasificacionLabel($valor, $estadoActual = null)
+{
+    global $CLASIFICACIONES;
+
+    $key = strtolower(trim((string) $valor));
+    if ($key !== '' && isset($CLASIFICACIONES[$key])) {
+        return $CLASIFICACIONES[$key];
+    }
+
+    switch ($estadoActual) {
+        case ESTADO_APROBADO:
+            return 'Corregido';
+        case ESTADO_JUSTIFICADO:
+            return 'Justificado';
+        case ESTADO_RECHAZADO:
+            return 'No corregido';
+        case ESTADO_PENDIENTE:
+            return 'Pendiente de respuesta';
+        case ESTADO_ERROR:
+            return 'Error';
+    }
+
+    return 'Sin clasificar';
+}
+
+/**
+ * Determina si una observacion quedo corregida.
+ * La clasificacion manda; si no existe, se infiere del estado aprobado.
+ */
+function esCorregido($clasificacion, $estadoActual = null)
+{
+    $key = strtolower(trim((string) $clasificacion));
+    if ($key === CLASIF_CORREGIDO) {
+        return true;
+    }
+    if ($key !== '') {
+        return false;
+    }
+    return $estadoActual === ESTADO_APROBADO;
+}

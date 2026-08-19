@@ -39,36 +39,6 @@ class CSRF
     }
 
     /**
-     * Obtener campo HTML con el token
-     */
-    public static function getTokenField()
-    {
-        $token = self::generateToken();
-        return "<input type='hidden' name='csrf_token' value='{$token}'>";
-    }
-
-    /**
-     * Limpiar token (útil después del login o logout)
-     */
-    public static function clearToken()
-    {
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
-
-        unset($_SESSION['csrf_token']);
-    }
-
-    /**
-     * Regenerar token (útil después de acciones importantes)
-     */
-    public static function regenerateToken()
-    {
-        self::clearToken();
-        return self::generateToken();
-    }
-
-    /**
      * Validar request y retornar error JSON si falla
      */
     public static function validateRequest()

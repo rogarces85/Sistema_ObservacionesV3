@@ -97,16 +97,44 @@ define('APP_NAME', 'Sistema de Observaciones REM');
 // Zona horaria
 date_default_timezone_set('America/Santiago');
 
+/**
+ * Ruta del log de errores.
+ *
+ * La ruta por defecto (/var/log/rem) solo existe en el servidor Linux. Si no se
+ * puede escribir en ella -por ejemplo en un XAMPP de Windows- los errores se
+ * perdian sin dejar rastro: ni en pantalla (display_errors=0) ni en archivo.
+ * En ese caso se usa logs/ dentro del proyecto, que ya esta en .gitignore.
+ */
+function remResolverErrorLog(): string
+{
+    $configurada = getenv('REM_PHP_ERROR_LOG') ?: '/var/log/rem/php-error.log';
+
+    $dir = dirname($configurada);
+    if (is_dir($dir) && is_writable($dir)) {
+        return $configurada;
+    }
+
+    $local = __DIR__ . '/../logs';
+    if (!is_dir($local)) {
+        @mkdir($local, 0775, true);
+    }
+
+    return is_dir($local) && is_writable($local)
+        ? $local . '/php-error.log'
+        : $configurada; // se deja la original; PHP caera a su destino por defecto
+}
+
 // Errores segun entorno
 if (ENVIRONMENT === 'production') {
     ini_set('display_errors', 0);
     ini_set('display_startup_errors', 0);
     ini_set('log_errors', 1);
-    ini_set('error_log', getenv('REM_PHP_ERROR_LOG') ?: '/var/log/rem/php-error.log');
+    ini_set('error_log', remResolverErrorLog());
 } else {
     ini_set('display_errors', 1);
     ini_set('display_startup_errors', 1);
     ini_set('log_errors', 1);
+    ini_set('error_log', remResolverErrorLog());
 }
 
 // Configuracion de sesion

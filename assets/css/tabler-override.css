@@ -1111,7 +1111,9 @@ a:focus-visible {
 /* === Reports module === */
 .report-chart-frame {
   position: relative;
-  height: 400px;
+  /* El alto lo fija setChartFrameSize() segun la cantidad de barras; las clases
+     --tall/--long/--xlong quedan como respaldo si la variable no se define. */
+  height: var(--rem-chart-frame-height, 400px);
   margin-bottom: 1rem;
 }
 
@@ -1154,6 +1156,186 @@ a:focus-visible {
   color: var(--tblr-primary);
   font-size: 2rem;
 }
+
+/* === Informe: matriz mensual Plazo / Validador (tabs Reportes) ===
+   Tabla de doble entrada (establecimiento x mes) pensada para presentarse
+   e imprimirse. Los colores salen de tokens.css; nada cableado aqui. */
+
+.rem-informe-head {
+  display: none; /* solo se muestra al imprimir; en pantalla ya hay titulo de pagina */
+  align-items: center;
+  gap: 1rem;
+  padding-bottom: 0.75rem;
+  margin-bottom: 1rem;
+  border-bottom: 2px solid var(--rem-boletin-header-bg);
+}
+
+.rem-informe-logo {
+  height: 48px;
+  width: auto;
+}
+
+.rem-informe-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--rem-boletin-header-bg);
+  margin: 0;
+}
+
+.rem-informe-subtitle,
+.rem-informe-periodo {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--tblr-muted);
+}
+
+.rem-informe-periodo {
+  font-weight: 600;
+}
+
+.rem-informe-barra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.rem-matriz-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  color: var(--tblr-muted);
+  font-size: 0.8125rem;
+}
+
+.rem-matriz-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 9999px;
+  margin-right: 0.4rem;
+  font-size: 0.75rem;
+  vertical-align: -0.35em;
+}
+
+.rem-matriz-chip--ok {
+  background: var(--rem-matriz-ok-bg);
+  color: var(--rem-matriz-ok-fg);
+}
+
+.rem-matriz-chip--falla {
+  background: var(--rem-matriz-falla-bg);
+  color: var(--rem-matriz-falla-fg);
+}
+
+.rem-matriz-chip--vacio {
+  background: var(--tblr-bg-surface-2);
+  color: var(--tblr-muted);
+}
+
+/* --- Tabla --- */
+.rem-matriz-wrap {
+  border: 1px solid var(--rem-boletin-border);
+  border-radius: var(--rem-radius-lg);
+}
+
+.rem-matriz-table {
+  margin-bottom: 0;
+  font-size: 0.8125rem;
+}
+
+.rem-matriz-table thead th {
+  background: var(--rem-boletin-header-bg);
+  color: var(--rem-boletin-header-fg);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 0.6875rem;
+  text-align: center;
+  vertical-align: middle;
+  padding: 0.55rem 0.4rem;
+  border-color: var(--rem-boletin-header-bg);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.rem-matriz-table thead th.rem-matriz-est-col {
+  text-align: left;
+  min-width: 15rem;
+}
+
+.rem-matriz-mes-col {
+  width: 3.25rem;
+}
+
+.rem-matriz-total-col {
+  width: 4.5rem;
+}
+
+/* El establecimiento es la clave de lectura: se resalta como columna cabecera. */
+.rem-matriz-table th.rem-matriz-est {
+  background: var(--rem-boletin-group-bg);
+  color: var(--tblr-body-color);
+  font-weight: 600;
+  text-align: left;
+  border-left: 3px solid var(--rem-brand-accent);
+  padding: 0.4rem 0.6rem;
+  white-space: normal;
+}
+
+.rem-matriz-table td.rem-matriz-cell {
+  text-align: center;
+  vertical-align: middle;
+  padding: 0.35rem 0.2rem;
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.rem-matriz-table td.rem-matriz-cell--ok {
+  background: var(--rem-matriz-ok-bg);
+  color: var(--rem-matriz-ok-fg);
+}
+
+.rem-matriz-table td.rem-matriz-cell--falla {
+  background: var(--rem-matriz-falla-bg);
+  color: var(--rem-matriz-falla-fg);
+  font-weight: 700;
+}
+
+.rem-matriz-table td.rem-matriz-cell--vacio {
+  color: var(--tblr-border-color);
+}
+
+.rem-matriz-table td.rem-matriz-resumen {
+  text-align: center;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--tblr-body-color);
+}
+
+.rem-matriz-table td.rem-matriz-resumen--parcial {
+  color: var(--rem-matriz-falla-fg);
+}
+
+.rem-matriz-table tfoot th,
+.rem-matriz-table tfoot td {
+  background: var(--rem-boletin-header-bg);
+  color: var(--rem-boletin-header-fg);
+  font-weight: 700;
+  font-size: 0.75rem;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.rem-matriz-table tfoot th {
+  text-align: left;
+}
+
 
 /* === Floating action button === */
 .btn-fab {
@@ -1692,4 +1874,56 @@ img:not([loading="eager"]) {
   .rem-boletin-wrap { overflow: visible; }
   .rem-boletin-toolbar .btn-list,
   .navbar, .sidebar, .footer, .chart-export-btn { display: none !important; }
+
+  /* --- Matriz Plazo / Validador como informe --- */
+  /* Solo se imprime la pestana visible: el resto son .tab-pane sin .active. */
+  .tab-pane:not(.active) { display: none !important; }
+
+  .page-header,
+  .card-header,
+  .rem-informe-acciones,
+  .breadcrumb,
+  .rem-informe + .table-responsive .chart-export-btn { display: none !important; }
+
+  /* Los filtros son un control de pantalla, no parte del informe. */
+  #filterYear, #btnApplyFilters { display: none; }
+  .card:has(#btnApplyFilters) { display: none !important; }
+
+  .rem-informe-head { display: flex !important; }
+
+  .rem-informe { page-break-inside: auto; }
+
+  .card, .card-body, .rem-matriz-wrap {
+    border: 0 !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  /* Filas compactas: el objetivo es que el informe quepa en pocas hojas. */
+  .rem-matriz-table { font-size: 8pt; }
+  .rem-matriz-table th,
+  .rem-matriz-table td {
+    padding: 0.12rem 0.3rem;
+    line-height: 1.2;
+  }
+  .rem-matriz-table thead { display: table-header-group; }
+  .rem-matriz-table tfoot { display: table-footer-group; }
+  .rem-matriz-table thead th { position: static; }
+  .rem-matriz-table tr { page-break-inside: avoid; }
+  .rem-matriz-est { min-width: 0; }
+
+  /* Sin esto los navegadores omiten los fondos y se pierde el verde/rojo. */
+  .rem-matriz-table th,
+  .rem-matriz-table td,
+  .rem-matriz-chip {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+
+/* Con muchos meses la matriz necesita hoja apaisada. */
+@page {
+  size: A4 landscape;
+  margin: 12mm;
 }

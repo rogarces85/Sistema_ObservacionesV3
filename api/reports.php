@@ -74,16 +74,21 @@ try {
         case 'plazo-agregado':
         case 'validador-agregado':
             $meses = $_GET['meses'] ?? [];
+            $comunaIds = $_GET['comuna_ids'] ?? [];
+            $establecimientoId = !empty($_GET['establecimiento_id']) ? intval($_GET['establecimiento_id']) : null;
             if (!is_array($meses)) $meses = $meses ? [$meses] : [];
+            if (!is_array($comunaIds)) $comunaIds = $comunaIds ? [$comunaIds] : [];
+            $comunaIds = array_map('intval', $comunaIds);
+
             if ($report === 'plazo-agregado') {
                 jsonResponse(true, [
-                    'establecimientos' => $obsModel->reportePlazoAgregado((int)$year, $meses),
-                    'detalle_mensual' => $obsModel->reportePlazoMensual((int)$year, $meses)
+                    'establecimientos' => $obsModel->reportePlazoAgregado((int)$year, $meses, $userId, $userRole, $comunaIds, $establecimientoId),
+                    'detalle_mensual' => $obsModel->reportePlazoMensual((int)$year, $meses, $userId, $userRole, $comunaIds, $establecimientoId)
                 ]);
             } else {
                 jsonResponse(true, [
-                    'establecimientos' => $obsModel->reporteValidadorAgregado((int)$year, $meses),
-                    'detalle_mensual' => $obsModel->reporteValidadorMensual((int)$year, $meses)
+                    'establecimientos' => $obsModel->reporteValidadorAgregado((int)$year, $meses, $userId, $userRole, $comunaIds, $establecimientoId),
+                    'detalle_mensual' => $obsModel->reporteValidadorMensual((int)$year, $meses, $userId, $userRole, $comunaIds, $establecimientoId)
                 ]);
             }
             break;

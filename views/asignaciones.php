@@ -52,7 +52,7 @@ $registradores = $asignacionModel->getEstadisticasAsignaciones($anioSeleccionado
                                     <h3 class="card-title">Registradores</h3>
                                     <div class="card-subtitle">Seleccione un registrador</div>
                                 </div>
-                                <div class="list-group list-group-flush" style="max-height: 600px; overflow-y: auto;" id="listaRegistradores">
+                                <div class="list-group list-group-flush list-scrollable-lg" id="listaRegistradores">
                                     <?php if (!empty($registradores)): ?>
                                         <?php foreach ($registradores as $reg): ?>
                                             <div class="list-group-item list-group-item-action registrador-item"
@@ -159,7 +159,7 @@ $registradores = $asignacionModel->getEstadisticasAsignaciones($anioSeleccionado
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Establecimientos Disponibles</label>
-                    <div id="listaEstablecimientosDisponibles" class="border rounded" style="max-height: 260px; overflow-y: auto;"></div>
+                    <div id="listaEstablecimientosDisponibles" class="border rounded list-scrollable-md"></div>
                 </div>
                 <div id="periodoContainer" class="mb-3">
                     <label class="form-label">Periodo de validez</label>

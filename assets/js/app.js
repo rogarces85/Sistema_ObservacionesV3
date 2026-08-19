@@ -6,7 +6,6 @@
 // Configuración global
 const API_BASE = window.location.pathname.split('/').slice(0, -1).join('/') + '/api';
 let currentYear = new Date().getFullYear();
-let currentUser = null;
 
 // === CountUp helper for [data-countup] elements ===
 function initCountUp(el) {
@@ -192,6 +191,14 @@ function getCurrentPage() {
     return params.get('page') || 'dashboard';
 }
 
+// Sanitizar HTML (prevenir XSS)
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 // Logout
 async function logout(event) {
     if (event) event.preventDefault();
@@ -205,30 +212,6 @@ async function logout(event) {
         }
     }
     return false;
-}
-
-// Validar formulario
-function validateForm(formId) {
-    const form = document.getElementById(formId);
-    if (!form) return false;
-
-    const inputs = form.querySelectorAll('[required]');
-    let isValid = true;
-
-    inputs.forEach(input => {
-        if (!input.value.trim()) {
-            isValid = false;
-            input.style.borderColor = 'var(--color-rose-500)';
-        } else {
-            input.style.borderColor = 'var(--color-slate-200)';
-        }
-    });
-
-    if (!isValid) {
-        showMessage('Por favor, complete todos los campos requeridos', 'error');
-    }
-
-    return isValid;
 }
 
 // Inicializar tooltips y otros componentes al cargar
@@ -335,4 +318,110 @@ function escapeHtmlGlobal(text) {
     const div = document.createElement('div');
     div.textContent = text || '';
     return div.innerHTML;
+}
+
+// ============================================
+// Descarga de exportaciones (Excel / PDF)
+// ============================================
+
+/**
+ * Abre o descarga un archivo generado por el servidor avisando al usuario si algo falla.
+ *
+ * Antes se usaba window.open() a ciegas: si el servidor respondia un error o el
+ * bloqueador de ventanas emergentes intervenia, el usuario solo veia una pestana
+ * en blanco. Aqui se pide el archivo por fetch, se comprueba lo que llego y solo
+ * despues se abre.
+ *
+ * @param {string} url        endpoint de exportacion con sus parametros
+ * @param {object} [opciones] { boton: HTMLElement, nombre: string, textoCargando: string }
+ */
+async function descargarArchivo(url, opciones = {}) {
+    const boton = opciones.boton || null;
+    const etiquetaOriginal = boton ? boton.innerHTML : null;
+
+    // Navegadores sin fetch/Blob: se cae al comportamiento clasico.
+    if (typeof fetch !== 'function' || typeof Blob === 'undefined' || !window.URL || !URL.createObjectURL) {
+        const ventana = window.open(url, '_blank');
+        if (!ventana) {
+            showError('Su navegador bloqueó la ventana emergente. Permita las ventanas emergentes para este sitio e intente de nuevo.');
+        }
+        return;
+    }
+
+    try {
+        if (boton) {
+            boton.disabled = true;
+            boton.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>' +
+                (opciones.textoCargando || 'Generando…');
+        }
+
+        const respuesta = await fetch(url, { credentials: 'same-origin' });
+        const tipo = (respuesta.headers.get('Content-Type') || '').toLowerCase();
+
+        // El servidor responde HTML/JSON cuando no hay datos o algo fallo.
+        if (!respuesta.ok || tipo.includes('text/html') || tipo.includes('application/json')) {
+            const texto = await respuesta.text();
+            let mensaje = '';
+
+            if (tipo.includes('application/json')) {
+                try { mensaje = (JSON.parse(texto) || {}).message || ''; } catch (e) { mensaje = ''; }
+            } else {
+                // La pagina de aviso trae el motivo en el primer <p>.
+                const doc = new DOMParser().parseFromString(texto, 'text/html');
+                mensaje = (doc.querySelector('.aviso p') || {}).textContent || '';
+                const titulo = (doc.querySelector('.aviso h1') || {}).textContent || '';
+                if (titulo && mensaje) mensaje = titulo + ': ' + mensaje;
+            }
+
+            if (respuesta.status === 401) {
+                mensaje = mensaje || 'Su sesión expiró. Vuelva a iniciar sesión.';
+            }
+            showError(mensaje || ('No se pudo generar el archivo (error ' + respuesta.status + ').'));
+            return;
+        }
+
+        const blob = await respuesta.blob();
+        const nombre = opciones.nombre || nombreDesdeCabecera(respuesta) || 'reporte';
+        const esPdf = tipo.includes('application/pdf');
+        const objeto = URL.createObjectURL(blob);
+
+        if (esPdf) {
+            // El PDF se abre en el visor del navegador: no requiere un lector instalado.
+            const ventana = window.open(objeto, '_blank');
+            if (!ventana) {
+                // Con el emergente bloqueado, al menos se ofrece la descarga.
+                dispararDescarga(objeto, nombre);
+                showInfo('El PDF se descargó porque el navegador bloqueó la ventana emergente.');
+            }
+        } else {
+            dispararDescarga(objeto, nombre);
+        }
+
+        // Se libera algo despues para no cortar la apertura del visor.
+        setTimeout(() => URL.revokeObjectURL(objeto), 60000);
+
+    } catch (error) {
+        showError(error.message || 'No se pudo generar el archivo. Revise su conexión e intente nuevamente.');
+    } finally {
+        if (boton) {
+            boton.disabled = false;
+            if (etiquetaOriginal !== null) boton.innerHTML = etiquetaOriginal;
+        }
+    }
+}
+
+/** Nombre sugerido por el servidor en Content-Disposition. */
+function nombreDesdeCabecera(respuesta) {
+    const cd = respuesta.headers.get('Content-Disposition') || '';
+    const match = cd.match(/filename="?([^";]+)"?/i);
+    return match ? match[1] : '';
+}
+
+function dispararDescarga(objectUrl, nombre) {
+    const enlace = document.createElement('a');
+    enlace.href = objectUrl;
+    enlace.download = nombre;
+    document.body.appendChild(enlace);
+    enlace.click();
+    document.body.removeChild(enlace);
 }

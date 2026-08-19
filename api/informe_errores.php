@@ -12,6 +12,10 @@ require_once __DIR__ . '/../models/Exporter.php';
 
 function jsonResponse($success, $data = null, $message = '', $statusCode = 200)
 {
+    // Descarta cualquier salida previa: un aviso suelto invalidaria el JSON.
+    while (ob_get_level() > 0) {
+        ob_end_clean();
+    }
     http_response_code($statusCode);
     echo json_encode([
         'success' => $success,

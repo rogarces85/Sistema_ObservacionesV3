@@ -16,6 +16,7 @@
 | `/var/log/apache2/rem-access.log` | Accesos HTTP | logrotate semanal |
 | `/var/log/apache2/rem-error.log` | Errores Apache | logrotate semanal |
 | `/var/log/rem/php-error.log` | Errores PHP | logrotate diario |
+| `logs/php-error.log` (dentro del proyecto) | Respaldo automatico: se usa cuando `/var/log/rem` no existe o no es escribible, por ejemplo en un XAMPP de Windows | manual |
 | `/var/log/rem/worker.log` | Salida del worker | logrotate diario |
 
 Verificar rapidamente:
@@ -107,9 +108,12 @@ sudo systemctl start apache2
 
 ### Rotar password de un usuario
 
-Opcion A: UI de supervisor en `?page=usuarios` -> boton "Restablecer
-contrasena". El sistema la deja en `admin123` (deuda tecnica
-documentada; en produccion, cambiar inmediatamente despues).
+Opcion A (recomendada): UI de supervisor en `?page=usuarios` -> boton
+"Restablecer contrasena". Genera una contrasena **aleatoria de 12 caracteres**
+con mayuscula, minuscula, digito y simbolo garantizados
+(`Mailer::generateRandomPassword()`), exige confirmacion explicita
+(`confirm_reset`) y, si el correo esta configurado, se la envia al usuario.
+Un supervisor no puede restablecerse a si mismo: para eso esta `?page=perfil`.
 
 Opcion B: SQL directo (emergencias):
 
@@ -163,6 +167,23 @@ sudo chown www-data:www-data /etc/rem/env.php
 sudo chmod 640 /etc/rem/env.php
 ```
 
+### "La exportacion no funciona" (Excel o PDF)
+
+Desde agosto 2026 las exportaciones ya no fallan en silencio: el usuario recibe
+una pagina con el motivo y el detalle queda en el log de PHP.
+
+| Sintoma | Causa probable | Que hacer |
+|---|---|---|
+| "Sin datos para exportar" | Los filtros no devuelven registros | No es un fallo; ajustar periodo, comuna o establecimiento |
+| "Faltan las librerias de exportacion" | No se ejecuto Composer en el servidor | `composer install --no-dev --optimize-autoloader` en la raiz del proyecto |
+| "No se pudo generar el archivo" | Excepcion durante la generacion | Buscar `Error en exportacion` en el log de PHP: trae tipo de reporte, formato, mensaje, archivo y linea |
+| El PDF no se abre en el equipo del usuario | El PDF se emite `inline` y se abre en el visor de Chrome/Edge; no hace falta ningun lector instalado | Si el navegador bloqueo la ventana emergente, el sistema lo descarga y lo avisa |
+| El archivo descargado "esta danado" | Alguna salida (aviso PHP, espacio) se colo antes del binario | Revisar el log: `Exporter::prepararSalidaBinaria()` limpia el bufer, asi que esto solo puede venir de una salida emitida **despues** de las cabeceras |
+
+```bash
+grep "Error en exportacion" /var/log/rem/php-error.log | tail -20
+```
+
 ### "Token CSRF invalido"
 
 - Sesion expirada: el usuario debe volver a iniciar sesion.
@@ -209,15 +230,9 @@ sudo systemctl reload apache2
 
 ### Rollback a version anterior
 
-Via UI Versionado (preferido):
-
-1. Login como supervisor.
-2. `?page=versionado`.
-3. Click "Crear snapshot" del estado actual (previo).
-4. Click "Rollback" sobre la version estable.
-5. Confirmar con "ACEPTAR".
-
-Manual (emergencias):
+Se hace con Git. El modulo web "Versionado" fue retirado en agosto de 2026:
+copiaba el codigo a `uploads/` (expuesto por web) y su rollback no restauraba
+nada aunque informara exito. Ver CHANGELOG.
 
 ```bash
 cd /var/www/rem
@@ -225,6 +240,9 @@ sudo -u www-data git log --oneline -5
 sudo -u www-data git checkout <COMMIT_HASH>
 sudo systemctl reload apache2
 ```
+
+Si el rollback debe revertir cambios de esquema, restaurar tambien la base
+desde el backup previo al despliegue (ver `deploy/restore.sh`).
 
 ## Capacidad y limites
 
@@ -250,7 +268,6 @@ sudo systemctl reload apache2
 `historial_estados` guarda cambios de estado de observaciones.
 `historial_usuarios` guarda acciones de usuarios.
 `reportes_pendientes` guarda el estado de reportes.
-`versiones_sistema` guarda snapshots.
 
 Consultas utiles:
 

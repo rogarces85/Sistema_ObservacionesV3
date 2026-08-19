@@ -63,9 +63,9 @@ global $TIPOS_ERROR, $MESES;
     </header>
 
     <?php if ($userRole === ROL_REGISTRADOR && !$tieneAsignaciones): ?>
-        <div class="card" style="background: rgba(245, 158, 11, 0.10); border: 0;">
+        <div class="card alert-warning-card">
             <div class="card-body empty-state">
-                <div class="empty-icon" style="background: rgba(245, 158, 11, 0.18); color: var(--tblr-warning);">
+                <div class="empty-icon alert-warning-icon">
                     <i class="ti ti-alert-triangle"></i>
                 </div>
                 <h3>No tiene establecimientos asignados</h3>
@@ -182,7 +182,7 @@ global $TIPOS_ERROR, $MESES;
                                         </a>
                                         <?php
                                         $canEdit = ($userRole === ROL_SUPERVISOR) ||
-                                            ($userRole === ROL_REGISTRADOR && $obs['usuario_registro_id'] == $userId && $obs['estado_actual'] === ESTADO_PENDIENTE);
+                                            ($userRole === ROL_REGISTRADOR && $obs['usuario_registro_id'] == $userId);
                                         if ($canEdit):
                                             ?>
                                             <a class="dropdown-item" href="#" onclick="editObservation(<?php echo $obs['id']; ?>); return false;">
@@ -298,6 +298,7 @@ global $TIPOS_ERROR, $MESES;
                                     <select id="tipo_error" name="tipo_error" class="form-select" required>
                                         <option value="">Seleccione...</option>
                                         <?php foreach ($TIPOS_ERROR as $tipo): ?>
+                                            <?php if ($tipo === 'F/PLAZO') continue; ?>
                                             <option value="<?php echo htmlspecialchars($tipo); ?>"><?php echo htmlspecialchars($tipo); ?></option>
                                         <?php endforeach; ?>
                                     </select>
@@ -451,12 +452,12 @@ global $TIPOS_ERROR, $MESES;
                         </div>
                     </div>
 
-                    <div id="importErrors" class="d-none mb-3" style="max-height: 8rem; overflow-y: auto;">
+                    <div id="importErrors" class="d-none mb-3 detail-panel-scrollable">
                         <p class="small fw-semibold text-danger mb-1">Errores encontrados:</p>
                         <ul id="errorList" class="small text-danger"></ul>
                     </div>
 
-                    <div id="importPreview" class="mb-3" style="max-height: 12rem; overflow-y: auto;">
+                    <div id="importPreview" class="mb-3 detail-preview-scrollable">
                         <p class="small fw-semibold mb-1">Vista previa:</p>
                         <div class="table-responsive">
                             <table class="table table-sm table-vcenter">
@@ -554,14 +555,14 @@ global $TIPOS_ERROR, $MESES;
             <!-- Detalle de la observación -->
             <div class="mb-4">
                 <div class="small fw-bold text-secondary mb-2">Detalle de la Observación</div>
-                <div id="detailObservacion" class="p-4 rounded rem-themed-surface small" style="min-height: 80px;">-
+                <div id="detailObservacion" class="p-4 rounded rem-themed-surface small detail-section">-
                 </div>
             </div>
 
             <!-- Respuesta (si existe) -->
             <div id="detailRespuestaSection" class="mb-4 d-none">
                 <div class="small fw-bold text-secondary mb-2">Respuesta / Justificación</div>
-                <div id="detailRespuesta" class="p-4 rounded rem-detail-tile rem-detail-tile--success small" style="min-height: 60px;">-
+                <div id="detailRespuesta" class="p-4 rounded rem-detail-tile rem-detail-tile--success small detail-section-small">-
                 </div>
             </div>
 

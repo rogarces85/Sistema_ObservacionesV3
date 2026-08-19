@@ -25,12 +25,85 @@ class Exporter
     const COLOR_BORDE_ARGB = 'FFB6D7EB';
     const COLOR_BORDE_HEX = '#B6D7EB';
 
+    /** Meses en el orden del calendario, para las matrices mensuales. */
+    const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+                   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+
+    const MESES_ABREV = ['Enero' => 'ENE', 'Febrero' => 'FEB', 'Marzo' => 'MAR', 'Abril' => 'ABR',
+                         'Mayo' => 'MAY', 'Junio' => 'JUN', 'Julio' => 'JUL', 'Agosto' => 'AGO',
+                         'Septiembre' => 'SEP', 'Octubre' => 'OCT', 'Noviembre' => 'NOV', 'Diciembre' => 'DIC'];
+
+    /**
+     * Carga las librerias de exportacion y avisa de forma clara si faltan.
+     * Sin esto, un vendor/ ausente en el servidor produce un fatal error
+     * "Class not found" que el navegador muestra como pestana en blanco.
+     *
+     * @param string $necesita 'pdf' | 'excel'
+     * @throws RuntimeException si la libreria no esta disponible
+     */
+    public static function requerirLibreria(string $necesita): void
+    {
+        $autoload = __DIR__ . '/../vendor/autoload.php';
+        if (!is_file($autoload)) {
+            throw new RuntimeException(
+                'Faltan las librerias de exportacion (no existe vendor/autoload.php). ' .
+                'Ejecute "composer install --no-dev --optimize-autoloader" en el servidor.'
+            );
+        }
+        require_once $autoload;
+
+        if ($necesita === 'pdf' && !class_exists('\TCPDF')) {
+            throw new RuntimeException(
+                'La libreria de PDF (tecnickcom/tcpdf) no esta instalada. ' .
+                'Ejecute "composer install --no-dev" en el servidor.'
+            );
+        }
+        if ($necesita === 'excel' && !class_exists(Spreadsheet::class)) {
+            throw new RuntimeException(
+                'La libreria de Excel (phpoffice/phpspreadsheet) no esta instalada. ' .
+                'Ejecute "composer install --no-dev" en el servidor.'
+            );
+        }
+    }
+
+    /**
+     * Deja la salida limpia justo antes de enviar un archivo binario.
+     *
+     * php.ini trae output_buffering activo: cualquier aviso, espacio o BOM emitido
+     * antes queda en el bufer y se pega delante del XLSX/PDF, que entonces "no abre".
+     * Tambien se apagan los errores en pantalla por el mismo motivo.
+     */
+    private function prepararSalidaBinaria(): void
+    {
+        while (ob_get_level() > 0) {
+            ob_end_clean();
+        }
+        ini_set('display_errors', '0');
+
+        if (function_exists('set_time_limit')) {
+            @set_time_limit(300);
+        }
+        if ((int)ini_get('memory_limit') !== -1) {
+            @ini_set('memory_limit', '512M');
+        }
+    }
+
+    /** Cabeceras comunes de descarga/visualizacion de un archivo generado. */
+    private function cabecerasArchivo(string $contentType, string $filename, string $disposition = 'attachment'): void
+    {
+        header('Content-Type: ' . $contentType);
+        header('Content-Disposition: ' . $disposition . '; filename="' . basename($filename) . '"');
+        header('Cache-Control: max-age=0, must-revalidate');
+        header('Pragma: public');
+        header('X-Content-Type-Options: nosniff');
+    }
+
     /**
      * Exportar datos a Excel (.xlsx)
      */
     public function exportToExcel($data, $filename, $headers = [], $download = true)
     {
-        require_once __DIR__ . '/../vendor/autoload.php';
+        self::requerirLibreria('excel');
 
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
@@ -88,9 +161,8 @@ class Exporter
             $writer->save($filename);
             return true;
         }
-        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        header('Content-Disposition: attachment; filename="' . $filename . '"');
-        header('Cache-Control: max-age=0');
+        $this->prepararSalidaBinaria();
+        $this->cabecerasArchivo('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', $filename);
         $writer->save('php://output');
         exit;
     }
@@ -98,9 +170,9 @@ class Exporter
     /**
      * Exportar datos a PDF
      */
-    public function exportToPDF($data, $filename, $headers = [], $title = 'Reporte de Observaciones REM', $dest = 'D')
+    public function exportToPDF($data, $filename, $headers = [], $title = 'Reporte de Observaciones REM', $dest = 'I')
     {
-        require_once __DIR__ . '/../vendor/autoload.php';
+        self::requerirLibreria('pdf');
 
         // Crear PDF
         $pdf = new \TCPDF('L', 'mm', 'A4', true, 'UTF-8');
@@ -156,36 +228,9 @@ class Exporter
         $pdf->writeHTML($html, true, false, true, false, '');
 
         // Salida
+        $this->prepararSalidaBinaria();
         $pdf->Output($filename, $dest);
         if ($dest === 'F') return true;
-        exit;
-    }
-
-    /**
-     * Exportar datos a CSV
-     */
-    public function exportToCSV($data, $filename, $headers = [])
-    {
-        header('Content-Type: text/csv; charset=utf-8');
-        header('Content-Disposition: attachment; filename="' . $filename . '"');
-        header('Cache-Control: max-age=0');
-
-        $output = fopen('php://output', 'w');
-
-        // BOM para Excel UTF-8
-        fprintf($output, chr(0xEF) . chr(0xBB) . chr(0xBF));
-
-        // Headers
-        if (!empty($headers)) {
-            fputcsv($output, $headers, ';');
-        }
-
-        // Datos
-        foreach ($data as $record) {
-            fputcsv($output, $record, ';');
-        }
-
-        fclose($output);
         exit;
     }
 
@@ -248,9 +293,9 @@ class Exporter
     /**
      * Exportar reporte detallado jerárquico a PDF (comuna → establecimiento → mes)
      */
-    public function exportDetalladoPDF($data, $filename, $filters = [], $dest = 'D')
+    public function exportDetalladoPDF($data, $filename, $filters = [], $dest = 'I')
     {
-        require_once __DIR__ . '/../vendor/autoload.php';
+        self::requerirLibreria('pdf');
 
         $pdf = new \TCPDF('L', 'mm', 'A4', true, 'UTF-8');
 
@@ -362,8 +407,11 @@ class Exporter
             $mes = $item['mes'];
             $detalle = $item['detalle_observacion'];
             $clasificacion = $item['clasificacion'];
-            $clasificacionLabel = clasificacionLabel($clasificacion, $estado);
+            // $estado debe asignarse ANTES: clasificacionLabel() lo usa como respaldo
+            // cuando la clasificacion viene vacia. Antes se leia el estado de la fila
+            // anterior (y en la primera fila, una variable indefinida).
             $estado = $item['estado_actual'];
+            $clasificacionLabel = clasificacionLabel($clasificacion, $estado);
 
             $comunaSpan = $item['comuna_span'] ?? 1;
             $estSpan = $item['est_span'] ?? 1;
@@ -441,6 +489,7 @@ class Exporter
 
         $pdf->writeHTML($html, true, false, true, false, '');
 
+        $this->prepararSalidaBinaria();
         $pdf->Output($filename, $dest);
         if ($dest === 'F') return true;
         exit;
@@ -451,7 +500,7 @@ class Exporter
      */
     public function exportErroresExcel($data, $filename, $reportType = 'general', $download = true)
     {
-        require_once __DIR__ . '/../vendor/autoload.php';
+        self::requerirLibreria('excel');
 
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
@@ -524,9 +573,8 @@ class Exporter
             $writer->save($filename);
             return true;
         }
-        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        header('Content-Disposition: attachment; filename="' . $filename . '"');
-        header('Cache-Control: max-age=0');
+        $this->prepararSalidaBinaria();
+        $this->cabecerasArchivo('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', $filename);
         $writer->save('php://output');
         exit;
     }
@@ -537,7 +585,7 @@ class Exporter
      */
     public function exportInformeErroresPDF($data, $periodo, $filename)
     {
-        require_once __DIR__ . '/../vendor/autoload.php';
+        self::requerirLibreria('pdf');
 
         $pdf = new \TCPDF('P', 'mm', 'A4', true, 'UTF-8');
 
@@ -588,7 +636,8 @@ class Exporter
         if (empty($data)) {
             $pdf->SetFont('helvetica', '', 10);
             $pdf->Cell(0, 10, 'No se encontraron errores en el período seleccionado.', 0, 1, 'C');
-            $pdf->Output($filename, 'D');
+            $this->prepararSalidaBinaria();
+            $pdf->Output($filename, 'I');
             exit;
         }
 
@@ -755,7 +804,8 @@ class Exporter
 
         $pdf->writeHTML($html, true, false, true, false, '');
 
-        $pdf->Output($filename, 'D');
+        $this->prepararSalidaBinaria();
+        $pdf->Output($filename, 'I');
         exit;
     }
 
@@ -877,7 +927,7 @@ class Exporter
      */
     public function exportBoletinExcel($data, $meta, $filename, $download = true)
     {
-        require_once __DIR__ . '/../vendor/autoload.php';
+        self::requerirLibreria('excel');
 
         $columnas = self::boletinColumnas();
         $letras = range('A', 'G');
@@ -1087,9 +1137,8 @@ class Exporter
             return true;
         }
 
-        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        header('Content-Disposition: attachment; filename="' . $filename . '"');
-        header('Cache-Control: max-age=0');
+        $this->prepararSalidaBinaria();
+        $this->cabecerasArchivo('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', $filename);
         $writer->save('php://output');
         exit;
     }
@@ -1104,9 +1153,9 @@ class Exporter
      * @param array $data filas de Observation::getBoletinErrores()
      * @param array $meta ['periodo' => string, 'resumen' => array]
      */
-    public function exportBoletinPDF($data, $meta, $filename, $dest = 'D')
+    public function exportBoletinPDF($data, $meta, $filename, $dest = 'I')
     {
-        require_once __DIR__ . '/../vendor/autoload.php';
+        self::requerirLibreria('pdf');
 
         $columnas = self::boletinColumnas();
         $periodo = $meta['periodo'] ?? '';
@@ -1167,6 +1216,7 @@ class Exporter
         if (empty($data)) {
             $pdf->SetFont('helvetica', '', 10);
             $pdf->Cell(0, 10, 'No se encontraron errores en el periodo seleccionado.', 0, 1, 'C');
+            $this->prepararSalidaBinaria();
             return $pdf->Output($filename, $dest);
         }
 
@@ -1274,6 +1324,341 @@ class Exporter
         $pdf->SetFont('helvetica', '', 8);
         $pdf->Cell(0, 4, 'Servicio de Salud Osorno', 0, 1, 'R');
 
+        $this->prepararSalidaBinaria();
+        return $pdf->Output($filename, $dest);
+    }
+
+    // ==========================================================
+    // Matriz mensual de cumplimiento (Plazo de entrega / Uso de validador)
+    // Misma tabla que muestran las pestanas del modulo Reportes.
+    // ==========================================================
+
+    /**
+     * Reorganiza el detalle mensual en la matriz que se presenta:
+     * una fila por establecimiento y una columna por mes.
+     *
+     * @param array  $detalle    filas de Observation::reportePlazoMensual()/reporteValidadorMensual()
+     * @param array  $mesesFiltro meses pedidos; si viene vacio se usan los que tengan datos
+     * @param string $campoOk    columna binaria de cumplimiento ('dentro' | 'usa')
+     * @param string $campoFalla columna binaria de incumplimiento ('fuera' | 'no_usa')
+     * @return array ['meses' => [...], 'filas' => [['nombre','celdas'=>['ok'|'falla'|'vacio'],'cumple','conDatos']], 'totales' => [...]]
+     */
+    public function armarMatrizMensual(array $detalle, array $mesesFiltro, string $campoOk, string $campoFalla): array
+    {
+        $meses = $mesesFiltro;
+        if (empty($meses)) {
+            $conDatos = array_unique(array_column($detalle, 'mes'));
+            $meses = array_values(array_filter(self::MESES, fn($m) => in_array($m, $conDatos, true)));
+        }
+
+        $porEst = [];
+        foreach ($detalle as $row) {
+            $clave = $row['nombre_corto'];
+            if (!isset($porEst[$clave])) {
+                $porEst[$clave] = ['nombre' => $clave, 'meses' => []];
+            }
+            $porEst[$clave]['meses'][$row['mes']] = $row;
+        }
+
+        $totales = array_fill(0, count($meses), ['ok' => 0, 'conDatos' => 0]);
+        $filas = [];
+
+        foreach ($porEst as $est) {
+            $celdas = [];
+            $cumple = 0;
+            $conDatos = 0;
+
+            foreach ($meses as $i => $mes) {
+                $row = $est['meses'][$mes] ?? null;
+                $estado = 'vacio';
+
+                if ($row) {
+                    $conDatos++;
+                    $totales[$i]['conDatos']++;
+                    if ((int) $row[$campoFalla] === 1) {
+                        $estado = 'falla';
+                    } elseif ((int) $row[$campoOk] === 1) {
+                        $estado = 'ok';
+                        $cumple++;
+                        $totales[$i]['ok']++;
+                    }
+                }
+                $celdas[] = $estado;
+            }
+
+            $filas[] = [
+                'nombre' => $est['nombre'],
+                'celdas' => $celdas,
+                'cumple' => $cumple,
+                'conDatos' => $conDatos,
+            ];
+        }
+
+        return ['meses' => $meses, 'filas' => $filas, 'totales' => $totales];
+    }
+
+    /** Etiqueta corta del mes para las cabeceras de la matriz. */
+    private static function mesAbrev(string $mes): string
+    {
+        return self::MESES_ABREV[$mes] ?? strtoupper(mb_substr($mes, 0, 3));
+    }
+
+    /** Simbolo de cada estado en las exportaciones (sin depender de tipografias con iconos). */
+    private static function simboloEstado(string $estado): string
+    {
+        if ($estado === 'ok') return 'SI';
+        if ($estado === 'falla') return 'NO';
+        return '-';
+    }
+
+    /**
+     * Matriz mensual en Excel, con el mismo formato institucional del boletin.
+     *
+     * @param array $meta ['titulo' => string, 'periodo' => string, 'etiquetaOk' => string, 'etiquetaFalla' => string]
+     */
+    public function exportMatrizMensualExcel(array $matriz, array $meta, string $filename, bool $download = true)
+    {
+        self::requerirLibreria('excel');
+
+        $meses = $matriz['meses'];
+        $titulo = $meta['titulo'] ?? 'Matriz de cumplimiento';
+        $periodo = $meta['periodo'] ?? '';
+
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Matriz');
+
+        $totalCols = count($meses) + 2; // establecimiento + meses + cumple
+        $ultimaCol = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($totalCols);
+
+        // ---- Encabezado ----
+        $sheet->setCellValue('A1', 'SERVICIO DE SALUD OSORNO');
+        $sheet->mergeCells('A1:' . $ultimaCol . '1');
+        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(13)
+            ->getColor()->setARGB(self::COLOR_NAVY_ARGB);
+
+        $sheet->setCellValue('A2', $titulo);
+        $sheet->mergeCells('A2:' . $ultimaCol . '2');
+        $sheet->getStyle('A2')->getFont()->setBold(true)->setSize(11);
+
+        $sheet->setCellValue('A3', $periodo);
+        $sheet->mergeCells('A3:' . $ultimaCol . '3');
+
+        $sheet->setCellValue('A4', 'Emitido: ' . date('d/m/Y H:i'));
+        $sheet->mergeCells('A4:' . $ultimaCol . '4');
+        $sheet->getStyle('A4')->getFont()->setSize(9)->setItalic(true);
+
+        foreach (['A1', 'A2', 'A3', 'A4'] as $celda) {
+            $sheet->getStyle($celda)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        }
+
+        // ---- Cabecera de la tabla ----
+        $filaCab = 6;
+        $sheet->setCellValue('A' . $filaCab, 'ESTABLECIMIENTO');
+        foreach ($meses as $i => $mes) {
+            $col = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($i + 2);
+            $sheet->setCellValue($col . $filaCab, self::mesAbrev($mes));
+        }
+        $sheet->setCellValue($ultimaCol . $filaCab, 'CUMPLE');
+
+        $rangoCab = 'A' . $filaCab . ':' . $ultimaCol . $filaCab;
+        $sheet->getStyle($rangoCab)->getFont()->setBold(true)->getColor()->setARGB('FFFFFFFF');
+        $sheet->getStyle($rangoCab)->getFill()->setFillType(Fill::FILL_SOLID)
+            ->getStartColor()->setARGB(self::COLOR_NAVY_ARGB);
+        $sheet->getStyle($rangoCab)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+        // ---- Filas ----
+        $VERDE = 'FFDCF5E7';
+        $ROJO = 'FFFDE2E2';
+        $fila = $filaCab + 1;
+
+        foreach ($matriz['filas'] as $registro) {
+            $sheet->setCellValue('A' . $fila, $registro['nombre']);
+            $sheet->getStyle('A' . $fila)->getFill()->setFillType(Fill::FILL_SOLID)
+                ->getStartColor()->setARGB(self::COLOR_SUAVE_ARGB);
+            $sheet->getStyle('A' . $fila)->getFont()->setBold(true);
+
+            foreach ($registro['celdas'] as $i => $estado) {
+                $col = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($i + 2);
+                $sheet->setCellValue($col . $fila, self::simboloEstado($estado));
+                $sheet->getStyle($col . $fila)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+                if ($estado === 'ok') {
+                    $sheet->getStyle($col . $fila)->getFill()->setFillType(Fill::FILL_SOLID)
+                        ->getStartColor()->setARGB($VERDE);
+                } elseif ($estado === 'falla') {
+                    $sheet->getStyle($col . $fila)->getFill()->setFillType(Fill::FILL_SOLID)
+                        ->getStartColor()->setARGB($ROJO);
+                    $sheet->getStyle($col . $fila)->getFont()->setBold(true);
+                }
+            }
+
+            $resumen = $registro['conDatos'] ? $registro['cumple'] . '/' . $registro['conDatos'] . ' (' . round($registro['cumple'] / $registro['conDatos'] * 100) . '%)' : '-';
+            $sheet->setCellValue($ultimaCol . $fila, $resumen);
+            $sheet->getStyle($ultimaCol . $fila)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $sheet->getStyle($ultimaCol . $fila)->getFont()->setBold(true);
+            $fila++;
+        }
+
+        // ---- Totales ----
+        $sheet->setCellValue('A' . $fila, 'CUMPLEN');
+        foreach ($matriz['totales'] as $i => $t) {
+            $col = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($i + 2);
+            $sheet->setCellValue($col . $fila, $t['conDatos'] ? $t['ok'] . '/' . $t['conDatos'] : '-');
+            $sheet->getStyle($col . $fila)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        }
+        $rangoTot = 'A' . $fila . ':' . $ultimaCol . $fila;
+        $sheet->getStyle($rangoTot)->getFont()->setBold(true);
+        $sheet->getStyle($rangoTot)->getFill()->setFillType(Fill::FILL_SOLID)
+            ->getStartColor()->setARGB(self::COLOR_SUAVE_ARGB);
+
+        // ---- Bordes, anchos y leyenda ----
+        $sheet->getStyle('A' . $filaCab . ':' . $ultimaCol . $fila)->getBorders()->getAllBorders()
+            ->setBorderStyle(Border::BORDER_THIN)->getColor()->setARGB(self::COLOR_BORDE_ARGB);
+
+        $sheet->getColumnDimension('A')->setWidth(46);
+        for ($i = 2; $i <= $totalCols; $i++) {
+            $col = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($i);
+            $sheet->getColumnDimension($col)->setWidth(8);
+        }
+
+        $filaLeyenda = $fila + 2;
+        $sheet->setCellValue('A' . $filaLeyenda, 'SI = ' . ($meta['etiquetaOk'] ?? 'Cumple')
+            . '   |   NO = ' . ($meta['etiquetaFalla'] ?? 'No cumple') . '   |   - = Sin datos');
+        $sheet->getStyle('A' . $filaLeyenda)->getFont()->setSize(9)->setItalic(true);
+        $sheet->setCellValue('A' . ($filaLeyenda + 1), 'Fuente: DEIS-SSO');
+        $sheet->getStyle('A' . ($filaLeyenda + 1))->getFont()->setSize(9)->setItalic(true);
+
+        // Repetir la cabecera al imprimir y ajustar al ancho de la hoja
+        $sheet->freezePane('B' . ($filaCab + 1));
+        $ps = $sheet->getPageSetup();
+        $ps->setOrientation(\PhpOffice\PhpSpreadsheet\Worksheet\PageSetup::ORIENTATION_LANDSCAPE);
+        $ps->setPaperSize(\PhpOffice\PhpSpreadsheet\Worksheet\PageSetup::PAPERSIZE_A4);
+        $ps->setFitToWidth(1);
+        $ps->setFitToHeight(0);
+        $sheet->getPageSetup()->setRowsToRepeatAtTopByStartAndEnd($filaCab, $filaCab);
+
+        $writer = new Xlsx($spreadsheet);
+        if (!$download) {
+            $writer->save($filename);
+            return true;
+        }
+        $this->prepararSalidaBinaria();
+        $this->cabecerasArchivo('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', $filename);
+        $writer->save('php://output');
+        exit;
+    }
+
+    /**
+     * Matriz mensual en PDF (A4 horizontal), con el encabezado institucional del boletin.
+     */
+    public function exportMatrizMensualPDF(array $matriz, array $meta, string $filename, string $dest = 'I')
+    {
+        self::requerirLibreria('pdf');
+
+        $meses = $matriz['meses'];
+        $titulo = $meta['titulo'] ?? 'Matriz de cumplimiento';
+        $periodo = $meta['periodo'] ?? '';
+
+        $NAVY = self::COLOR_NAVY_HEX;
+        $SUAVE = self::COLOR_SUAVE_HEX;
+        $BORDE = self::COLOR_BORDE_HEX;
+        $VERDE = '#DCF5E7';
+        $ROJO = '#FDE2E2';
+
+        $pdf = new \TCPDF('L', 'mm', 'A4', true, 'UTF-8');
+        $pdf->SetCreator('Sistema de Observaciones REM');
+        $pdf->SetAuthor('Servicio de Salud Osorno');
+        $pdf->SetTitle($titulo . ' - ' . $periodo);
+        $pdf->SetMargins(10, 12, 10);
+        $pdf->SetFooterMargin(12);
+        $pdf->SetAutoPageBreak(true, 16);
+        $pdf->setPrintHeader(false);
+        $pdf->setPrintFooter(true);
+        $pdf->setFooterFont(['helvetica', '', 8]);
+        $pdf->AddPage();
+
+        // ---- Encabezado institucional ----
+        $logo = __DIR__ . '/../assets/images/logo-boletin.png';
+        if (!file_exists($logo)) {
+            $logo = __DIR__ . '/../assets/images/logo.png';
+        }
+        if (file_exists($logo)) {
+            $pdf->Image($logo, 12, 8, 24, 0, 'PNG', '', '', false, 300, '', false, false, 0);
+        }
+
+        $pdf->SetY(10);
+        $pdf->SetFont('helvetica', 'B', 12);
+        $pdf->Cell(0, 6, 'SERVICIO SALUD OSORNO', 0, 1, 'C');
+        $pdf->SetFont('helvetica', '', 9);
+        $pdf->Cell(0, 4, 'DEGI - Departamento de Estadistica', 0, 1, 'C');
+
+        $pdf->SetDrawColor(0, 174, 239);
+        $pdf->SetLineWidth(0.6);
+        $pdf->Line(60, $pdf->GetY() + 2, $pdf->getPageWidth() - 60, $pdf->GetY() + 2);
+        $pdf->Ln(5);
+
+        $pdf->SetFont('helvetica', 'B', 14);
+        $pdf->SetTextColor(0, 51, 102);
+        $pdf->Cell(0, 7, mb_strtoupper($titulo, 'UTF-8'), 0, 1, 'C');
+        $pdf->SetTextColor(0, 0, 0);
+        $pdf->SetFont('helvetica', '', 10);
+        $pdf->Cell(0, 5, $periodo, 0, 1, 'C');
+        $pdf->SetFont('helvetica', '', 8);
+        $pdf->Cell(0, 4, 'Emitido: ' . date('d/m/Y H:i'), 0, 1, 'C');
+        $pdf->Ln(2);
+
+        if (empty($matriz['filas'])) {
+            $pdf->SetFont('helvetica', '', 10);
+            $pdf->Cell(0, 10, 'No se encontraron datos para los filtros seleccionados.', 0, 1, 'C');
+            $this->prepararSalidaBinaria();
+            return $pdf->Output($filename, $dest);
+        }
+
+        // ---- Tabla ----
+        $anchoMes = max(8, min(16, 150 / max(1, count($meses))));
+        $anchoEst = 100 - ($anchoMes * count($meses)) - 8;
+        if ($anchoEst < 25) $anchoEst = 25;
+
+        $html = '<table border="0" cellpadding="3" cellspacing="0" style="width:100%;">';
+        $html .= '<thead><tr style="background-color:' . $NAVY . ';color:#FFFFFF;font-weight:bold;">';
+        $html .= '<th width="' . $anchoEst . '%" align="left">ESTABLECIMIENTO</th>';
+        foreach ($meses as $mes) {
+            $html .= '<th width="' . $anchoMes . '%" align="center">' . self::mesAbrev($mes) . '</th>';
+        }
+        $html .= '<th width="8%" align="center">CUMPLE</th></tr></thead><tbody>';
+
+        foreach ($matriz['filas'] as $registro) {
+            $html .= '<tr>';
+            $html .= '<td style="background-color:' . $SUAVE . ';"><b>' . htmlspecialchars($registro['nombre'], ENT_QUOTES, 'UTF-8') . '</b></td>';
+            foreach ($registro['celdas'] as $estado) {
+                $fondo = $estado === 'ok' ? $VERDE : ($estado === 'falla' ? $ROJO : '#FFFFFF');
+                $html .= '<td align="center" style="background-color:' . $fondo . ';">' . self::simboloEstado($estado) . '</td>';
+            }
+            $resumen = $registro['conDatos'] ? $registro['cumple'] . '/' . $registro['conDatos'] . ' (' . round($registro['cumple'] / $registro['conDatos'] * 100) . '%)' : '-';
+            $html .= '<td align="center"><b>' . $resumen . '</b></td>';
+            $html .= '</tr>';
+        }
+
+        $html .= '<tr style="background-color:' . $SUAVE . ';font-weight:bold;">';
+        $html .= '<td><b>CUMPLEN</b></td>';
+        foreach ($matriz['totales'] as $t) {
+            $html .= '<td align="center"><b>' . ($t['conDatos'] ? $t['ok'] . '/' . $t['conDatos'] : '-') . '</b></td>';
+        }
+        $html .= '<td></td></tr>';
+        $html .= '</tbody></table>';
+
+        $pdf->SetFont('helvetica', '', 7.5);
+        $pdf->writeHTML($html, true, false, true, false, '');
+
+        $pdf->Ln(2);
+        $pdf->SetFont('helvetica', 'I', 8);
+        $pdf->Cell(0, 4, 'SI = ' . ($meta['etiquetaOk'] ?? 'Cumple')
+            . '   |   NO = ' . ($meta['etiquetaFalla'] ?? 'No cumple')
+            . '   |   - = Sin datos', 0, 1, 'L');
+        $pdf->Cell(0, 4, 'Fuente: DEIS-SSO', 0, 1, 'L');
+
+        $this->prepararSalidaBinaria();
         return $pdf->Output($filename, $dest);
     }
 }

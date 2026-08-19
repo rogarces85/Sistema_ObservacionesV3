@@ -171,7 +171,6 @@ mysql -u rem_app -p observaciones_rem < config/migration_2026_05_08_limpieza_com
 mysql -u rem_app -p observaciones_rem < config/migration_2026_05_08_reportes.sql
 mysql -u rem_app -p observaciones_rem < specs/sprint1_migration.sql
 mysql -u rem_app -p observaciones_rem < specs/sprint2_migration.sql
-mysql -u rem_app -p observaciones_rem < specs/sprint3_migration.sql
 mysql -u rem_app -p observaciones_rem < specs/sprint4_migration.sql
 mysql -u rem_app -p observaciones_rem < specs/sprint5_migration.sql
 mysql -u rem_app -p observaciones_rem < config/sprint3_migration.sql
@@ -235,15 +234,14 @@ curl -k -c /tmp/c.txt -H "Content-Type: application/json" \
 
 ## Rollback a version anterior
 
-```bash
-# Ver snapshots
-sudo -u www-data php /var/www/rem/api/versioning.php?action=list
-# (gestionado desde la UI Versionado con doble confirmacion)
+Se hace con Git. El modulo web "Versionado" fue retirado en agosto de 2026
+(ver CHANGELOG).
 
-# O manual via git
+```bash
 cd /var/www/rem
 sudo -u www-data git log --oneline -5
 sudo -u www-data git checkout afb31f5  # commit anterior deseado
+sudo systemctl reload apache2
 ```
 
 ## Cambiar credenciales por primera vez

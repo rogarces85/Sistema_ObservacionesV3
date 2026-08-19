@@ -51,8 +51,6 @@
   eliminacion permanente.
 - `api/users.php` exige `confirm_delete: true` y
   `confirm_reset: true`.
-- `api/versioning.php` rollback requiere confirm en UI
-  con tipeo de "ACEPTAR".
 - Eliminacion permanente **no ejecutada** durante la auditoria
   de junio 2026; la BD oficial quedo solo con mutaciones
   reversibles.
@@ -65,8 +63,13 @@
 ## Controles recomendados post-lanzamiento
 
 ### Corto plazo
-- [ ] Reemplazar reset de password literal `admin123` por
-      generacion aleatoria y envio por email.
+- [x] ~~Reemplazar reset de password literal `admin123` por generacion
+      aleatoria y envio por email.~~ **Hecho**: `api/users.php:230` usa
+      `Mailer::generateRandomPassword(12)` y envia por correo si esta
+      configurado.
+- [ ] Rotar las cuentas semilla de `config/init_db.sql` (`supervisor1`,
+      `registrador1..4`) si siguen existiendo en produccion con la password
+      `admin123`.
 - [ ] Implementar recuperacion de password via email.
 - [ ] Implementar bloqueo tras N intentos fallidos.
 - [ ] Forzar cambio de password en primer login.
@@ -101,7 +104,7 @@
 - **Nunca** commitear passwords, tokens o llaves privadas al repo.
 - Variables sensibles en `/etc/rem/env.php` con permisos `640`.
 - `.gitignore` excluye: `vendor/`, `node_modules/`, `uploads/*`,
-  `.opencode/`, `assets/libs/*/coverage/`.
+  `assets/libs/*/coverage/`.
 - Secrets de despliegue guardados en bovedas del equipo
   (1Password, Bitwarden, etc.).
 
@@ -129,7 +132,6 @@
 | `historial_estados` | indefinido | auditoria |
 | `historial_usuarios` | indefinido | auditoria |
 | `reportes_pendientes` | 30 dias despues de `LISTO` | limpieza |
-| `versiones_sistema` | 5 snapshots mas recientes | historial |
 | `logs` | 90 dias | operacion |
 | Backups | 30 dias | recuperacion |
 
