@@ -108,9 +108,12 @@ sudo systemctl start apache2
 
 ### Rotar password de un usuario
 
-Opcion A: UI de supervisor en `?page=usuarios` -> boton "Restablecer
-contrasena". El sistema la deja en `admin123` (deuda tecnica
-documentada; en produccion, cambiar inmediatamente despues).
+Opcion A (recomendada): UI de supervisor en `?page=usuarios` -> boton
+"Restablecer contrasena". Genera una contrasena **aleatoria de 12 caracteres**
+con mayuscula, minuscula, digito y simbolo garantizados
+(`Mailer::generateRandomPassword()`), exige confirmacion explicita
+(`confirm_reset`) y, si el correo esta configurado, se la envia al usuario.
+Un supervisor no puede restablecerse a si mismo: para eso esta `?page=perfil`.
 
 Opcion B: SQL directo (emergencias):
 

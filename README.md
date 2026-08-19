@@ -2,6 +2,26 @@
 
 Sistema de gestion y registro de observaciones del Resumen Estadistico Mensual (REM) para el Servicio de Salud Osorno.
 
+> ## ⚠️ Linea base autoritativa: `docs/spec/`
+>
+> **El sistema esta en produccion con datos reales.** Toda operacion sobre la base de datos
+> requiere respaldo verificado previo: no hay herramienta de migraciones ni suite de pruebas
+> automatizadas.
+>
+> La fuente de verdad del comportamiento actual vive en `docs/spec/`, extraida del codigo en
+> ejecucion y verificada linea por linea:
+>
+> | Documento | Contiene |
+> |---|---|
+> | [`docs/spec/BASELINE.md`](docs/spec/BASELINE.md) | Proposito, diccionario de datos, flujos criticos y las **17 reglas de oro** |
+> | [`docs/spec/openapi.yaml`](docs/spec/openapi.yaml) | Contrato formal de la API (OpenAPI 3.1.0, validado) para los 15 endpoints |
+> | [`docs/spec/VERDAD-ACTUAL.md`](docs/spec/VERDAD-ACTUAL.md) | Modelo de datos exacto, 47 reglas de negocio citadas y matriz de autorizacion |
+> | [`docs/spec/AUDITORIA-CODIGO-MUERTO.md`](docs/spec/AUDITORIA-CODIGO-MUERTO.md) | Inventario de codigo muerto con evidencia y nivel de riesgo |
+>
+> Este README conserva su valor para instalacion, historia y contexto, pero **donde discrepe con
+> `docs/spec/`, manda `docs/spec/`**. Las afirmaciones obsoletas detectadas en la auditoria ya
+> fueron corregidas mas abajo y quedan marcadas como **Corregido**.
+
 ## 📋 Descripcion General
 
 El Sistema de Observaciones REM centraliza el registro, revision, supervision, importacion y reporte de observaciones asociadas a los reportes REM de establecimientos de salud. Su operacion se organiza alrededor de dos perfiles principales: registradores, responsables de ingresar observaciones de establecimientos asignados, y supervisores, responsables de revisar, aprobar, cancelar, gestionar usuarios, administrar asignaciones y generar reportes consolidados.
@@ -23,7 +43,7 @@ Fuentes revisadas durante la ingenieria inversa:
 | `views/` | Flujos de usuario, formularios, consumo de APIs y experiencia frontend. |
 | `assets/` | JS compartido, notificaciones, graficos y estilos. |
 | `specs/` | Especificaciones previas por modulo y migraciones por sprint. |
-| `A.md` | Documentacion historica del sistema, funcionalidades declaradas y despliegue. |
+| `docs/spec/` | **Linea base autoritativa**: contrato OpenAPI, modelo de datos, reglas de negocio y auditoria de codigo muerto. |
 | Scripts raiz | Pruebas manuales, seed demo, worker de reportes y verificacion de modelo. |
 
 Validaciones ejecutadas:
@@ -170,7 +190,7 @@ Sistema_ObservacionesV3/
 ├── test_*.php                   # Pruebas manuales con efectos en BD
 ├── verify_model.php             # Verificacion puntual de modelo
 ├── composer.json                # Dependencias PHP
-├── A.md                         # Documentacion historica previa
+├── docs/spec/                   # Linea base: openapi.yaml, BASELINE.md, VERDAD-ACTUAL.md
 └── README.md                    # Fuente de verdad generada por /speckit.discover
 ```
 
@@ -602,11 +622,11 @@ Estas asunciones deben tratarse como decisiones pendientes para futuros specs de
 | `ALL` o meses vacios significan todos los meses. | `EstablecimientoAsignacion::tieneMes()` y `fusionarMeses()`. | Regla implicita fuerte; un valor vacio puede otorgar acceso completo. |
 | Los meses se modelan como texto en observaciones y numeros en asignaciones. | `observaciones.mes` usa nombres; `asignaciones_establecimientos.meses` usa `1,2,3` o `ALL`. | Riesgo de inconsistencias, errores por ortografia y dificultad para consultar. |
 | La reasignacion temporal tiene prioridad sobre la anual. | `tieneAsignacionParaMes()` consulta temporales antes que anuales y bloquea titular. | Regla critica no expresada en constraints de BD; depende del modelo PHP. |
-| La eliminacion es hibrida. | `api/observations.php` hace hard delete; `api/supervision.php?action=delete` usa papelera. | Riesgo de perdida irreversible si se usa endpoint incorrecto. |
-| La importacion no valida asignacion mensual como el registro manual. | `api/import.php` crea observaciones sin llamar `tieneAsignacionParaMes()`. | Riesgo de cargar datos para establecimientos no asignados. |
-| El worker asincrono no esta listo para produccion. | `worker_reportes.php` usa `$this->db` fuera de clase. | Fallo runtime al procesar reportes pendientes. |
+| ~~La eliminacion es hibrida.~~ **Corregido.** | Ambas vias (`api/observations.php` DELETE y `api/supervision.php?action=delete`) usan `moveToTrash()`. El unico borrado irreversible es `api/deleted.php?action=permanent_delete`, que exige `confirm_irreversible`. | Sin riesgo pendiente; no reintroducir hard delete. |
+| ~~La importacion no valida asignacion mensual.~~ **Corregido.** | `api/import.php:183` llama a `tieneAsignacionParaMes()` por fila, igual que el alta manual. | Sin riesgo pendiente. |
+| La cola de reportes esta desconectada de la interfaz. | El bug de `$this->db` **ya fue corregido** (`worker_reportes.php:19` usa `Database::getInstance()`). El problema real: `api/report_queue.php` no tiene ningun llamador en la UI, pero `deploy/healthcheck.sh:74` monitorea la tabla. | Subsistema funcional pero inalcanzable; decidir entre conectarlo o retirarlo completo. |
 | La documentacion historica indica exportacion asincrona, pero el endpoint principal es sincronico. | Documentacion previa vs `api/export.php`. | Divergencia entre comportamiento esperado y real. |
-| `admin123` sigue siendo password por defecto/restablecimiento. | `config/init_db.sql`, `api/users.php`. | Riesgo de credenciales debiles si se usa fuera de demo. |
+| ~~Credenciales de prueba visibles en la pantalla de login.~~ **Corregido.** | El bloque de `views/login.php` esta condicionado a `ENVIRONMENT === 'development'`; en produccion no se renderiza. El reset tampoco es fijo: `api/users.php:230` genera aleatoria. | Pendiente solo rotar las cuentas semilla de `config/init_db.sql:154` si aun tienen `admin123` en produccion. |
 | Las APIs duplican formato de respuesta y validaciones. | Multiples `jsonResponse()` locales en `api/*.php`. | Dificulta consistencia y mantenimiento. |
 | El control de acceso esta distribuido. | `index.php`, APIs y modelos aplican reglas en distintos lugares. | Riesgo de omisiones o comportamiento distinto por ruta. |
 | Algunas reglas viven en constantes PHP, no en tablas configurables. | `config/constants.php` contiene series, hojas REM, tipos y meses. | Cambios de catalogo requieren despliegue de codigo. |
@@ -706,7 +726,7 @@ Riesgos actuales:
 |---|---|
 | Secretos en `config/config.php`. | Migrar a `.env` o variables de entorno. |
 | `session.cookie_secure=0`. | Activar en produccion con HTTPS. |
-| Password default `admin123`. | Eliminar como reset fijo; generar temporal rotatoria. |
+| Cuentas semilla de `config/init_db.sql` con password `admin123`. | Rotar esas cuentas en produccion. El **reset ya genera aleatoria** (`api/users.php:230`). |
 | Control de acceso distribuido. | Centralizar middleware/helper de autorizacion. |
 | CSRF no uniforme en todos los endpoints mutables. | Auditar y aplicar validacion consistente. |
 
@@ -825,7 +845,7 @@ Precaucion: los scripts `test_*.php` no son pruebas aisladas. Limpian y crean re
 | Frontend | Vistas PHP + JavaScript `fetch`. |
 | Sesion | Uso directo de `$_SESSION`. |
 | Estados/roles | Constantes PHP desde `config/constants.php`. |
-| Estilos | CSS propio y convenciones tipo BEM documentadas en `A.md`. |
+| Estilos | Tabler 1.4; tokens en `assets/css/tokens.css` y overrides en `assets/css/tabler-override.css`. `assets/css/styles.css` esta deprecado. |
 
 ### Convenciones De Git
 
@@ -858,7 +878,7 @@ git diff
 | Corregir `worker_reportes.php`. | Permite usar cola asincrona sin fallo runtime. |
 | Unificar hard delete vs soft delete. | Evita perdida irreversible accidental. |
 | Validar asignaciones en importacion. | Mantiene integridad de permisos por establecimiento/mes. |
-| Reemplazar reset fijo `admin123`. | Reduce riesgo de acceso no autorizado. |
+| Rotar las cuentas semilla que aun tengan `admin123`. | Reduce riesgo de acceso no autorizado. El reset fijo ya fue reemplazado por generacion aleatoria. |
 
 ### Prioridad Media
 
@@ -884,10 +904,10 @@ git diff
 |---|---|---|---|---|
 | Configuracion segura | Credenciales y entorno hardcodeados en `config/config.php`. | Usar `.env` o variables de entorno, con `config.example.php` sin secretos. | Evita fuga de credenciales y facilita ambientes dev/staging/prod. | Media; riesgo de romper despliegue si no se documenta bien. |
 | Seguridad de sesion | `session.cookie_secure=0`. | Activar `secure=1` en produccion y exigir HTTPS. | Protege cookies de sesion. | Baja; requiere TLS correctamente configurado. |
-| Password reset | Reset a `admin123`. | Generar password temporal aleatoria con expiracion o cambio obligatorio. | Reduce riesgo de credenciales conocidas. | Baja/Media; requiere UX para entrega/cambio. |
-| Eliminacion | Hard delete en `api/observations.php`, soft delete en supervision. | Unificar eliminacion en papelera y reservar hard delete solo a accion explicita auditada. | Evita perdida accidental de datos. | Media; revisar vistas que usan DELETE directo. |
-| Importacion | No se observa validacion mensual de asignacion. | Reutilizar `tieneAsignacionParaMes()` para cada fila importada. | Mantiene consistencia con registro manual. | Baja; riesgo de rechazar archivos antes aceptados. |
-| Worker de reportes | `worker_reportes.php` contiene error runtime potencial por `$this->db`. | Obtener rol via modelo/Database y envolver seleccion en transaccion. | Habilita reportes asincronos reales. | Media; requiere pruebas con cola. |
+| Credenciales en login | **Ya condicionado** a `ENVIRONMENT === 'development'` en `views/login.php`. | Queda rotar las cuentas semilla en produccion si conservan `admin123`. | Cierra la ultima via de credenciales conocidas. | Baja; operacion sobre la base con respaldo previo. |
+| Eliminacion | **Ya unificada en papelera.** El hard delete solo vive en `api/deleted.php?action=permanent_delete` y exige `confirm_irreversible`. | Ninguna accion pendiente; mantener la confirmacion obligatoria. | — | — |
+| Importacion | **Ya valida** la asignacion mensual por fila (`api/import.php:183`). | Ninguna accion pendiente. | — | — |
+| Cola de reportes | Funcional (`php -l` limpio, bug de `$this->db` corregido) pero **sin ningun llamador en la UI**. | Decidir: conectar el encolado a la interfaz, o retirar los cuatro componentes mas el cron y la linea de `healthcheck.sh`. | Elimina un subsistema fantasma monitoreado en produccion. | Media; es decision de producto. |
 | Migraciones | SQL disperso en `config/` (consolidado en `config/migrations/`). | Crear sistema de migraciones con versionado automático. | Despliegues reproducibles y auditables. | Media; mejora incremental viable. |
 | Autorizacion | Reglas distribuidas entre `index.php`, APIs y modelos. | Helper central `Auth::requireRole()` / middleware comun. | Reduce duplicacion y errores de permisos. | Media; cambios transversales. |
 | API | Endpoints procedurales con `jsonResponse()` duplicado. | Bootstrap comun para JSON, errores, CSRF y auth. | Mejora mantenibilidad. | Media; migracion incremental posible. |

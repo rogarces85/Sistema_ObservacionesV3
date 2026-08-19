@@ -63,8 +63,13 @@
 ## Controles recomendados post-lanzamiento
 
 ### Corto plazo
-- [ ] Reemplazar reset de password literal `admin123` por
-      generacion aleatoria y envio por email.
+- [x] ~~Reemplazar reset de password literal `admin123` por generacion
+      aleatoria y envio por email.~~ **Hecho**: `api/users.php:230` usa
+      `Mailer::generateRandomPassword(12)` y envia por correo si esta
+      configurado.
+- [ ] Rotar las cuentas semilla de `config/init_db.sql` (`supervisor1`,
+      `registrador1..4`) si siguen existiendo en produccion con la password
+      `admin123`.
 - [ ] Implementar recuperacion de password via email.
 - [ ] Implementar bloqueo tras N intentos fallidos.
 - [ ] Forzar cambio de password en primer login.
