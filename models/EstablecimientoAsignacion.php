@@ -405,17 +405,6 @@ class EstablecimientoAsignacion
     }
 
     /**
-     * Obtener IDs de establecimientos asignados a un registrador para un año
-     */
-    public function getIdsAsignados($usuarioId, $anio)
-    {
-        $sql = "SELECT establecimiento_id FROM asignaciones_establecimientos 
-                WHERE usuario_id = ? AND anio = ?";
-        $rows = $this->db->query($sql, [$usuarioId, $anio]);
-        return array_map(fn($r) => (int)$r['establecimiento_id'], $rows);
-    }
-
-    /**
      * Verificar si un usuario tiene asignado un establecimiento para un mes específico
      * Lógica de prioridad: Las asignaciones temporales tienen prioridad sobre las anuales
      */
@@ -534,20 +523,6 @@ class EstablecimientoAsignacion
                 WHERE establecimiento_id = ? AND activo = 1
                 ORDER BY FIELD(cargo, 'Encargado Estadísticas', 'Digitador Estadísticas') ASC";
         return $this->db->query($sql, [$establecimientoId]);
-    }
-
-    /**
-     * Obtener referentes de múltiples establecimientos
-     */
-    public function getReferentesMultiple($establecimientoIds)
-    {
-        if (empty($establecimientoIds)) return [];
-        
-        $placeholders = implode(',', array_fill(0, count($establecimientoIds), '?'));
-        $sql = "SELECT * FROM referentes_establecimientos 
-                WHERE establecimiento_id IN ($placeholders) AND activo = 1
-                ORDER BY establecimiento_id, FIELD(cargo, 'Encargado Estadísticas', 'Digitador Estadísticas') ASC";
-        return $this->db->query($sql, $establecimientoIds);
     }
 
     /**

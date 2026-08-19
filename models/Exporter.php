@@ -235,33 +235,6 @@ class Exporter
     }
 
     /**
-     * Exportar datos a CSV
-     */
-    public function exportToCSV($data, $filename, $headers = [])
-    {
-        $this->prepararSalidaBinaria();
-        $this->cabecerasArchivo('text/csv; charset=utf-8', $filename);
-
-        $output = fopen('php://output', 'w');
-
-        // BOM para Excel UTF-8
-        fprintf($output, chr(0xEF) . chr(0xBB) . chr(0xBF));
-
-        // Headers
-        if (!empty($headers)) {
-            fputcsv($output, $headers, ';');
-        }
-
-        // Datos
-        foreach ($data as $record) {
-            fputcsv($output, $record, ';');
-        }
-
-        fclose($output);
-        exit;
-    }
-
-    /**
      * Preparar datos de observaciones para exportación
      */
     public function prepareObservationsData($observations)

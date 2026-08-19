@@ -33,15 +33,6 @@ class Location
     }
 
     /**
-     * Obtener comuna por ID
-     */
-    public function getComunaById($id)
-    {
-        $sql = "SELECT * FROM comunas WHERE id = ?";
-        return $this->db->queryOne($sql, [$id]);
-    }
-
-    /**
      * Obtener comuna por nombre
      */
     public function getComunaByNombre($nombre)
@@ -74,49 +65,6 @@ class Location
                 WHERE e.comuna_id = ? AND e.activo = 1
                 ORDER BY e.nombre ASC";
         return $this->db->query($sql, [$comunaId]);
-    }
-
-    /**
-     * Obtener establecimiento por ID
-     */
-    public function getEstablecimientoById($id)
-    {
-        $sql = "SELECT e.*, c.nombre as comuna_nombre, c.codigo_comuna
-                FROM establecimientos e
-                INNER JOIN comunas c ON e.comuna_id = c.id
-                WHERE e.id = ?";
-        return $this->db->queryOne($sql, [$id]);
-    }
-
-    /**
-     * Buscar establecimientos por nombre
-     */
-    public function searchEstablecimientos($searchTerm)
-    {
-        $sql = "SELECT e.*, c.nombre as comuna_nombre 
-                FROM establecimientos e
-                INNER JOIN comunas c ON e.comuna_id = c.id
-                WHERE (e.nombre LIKE ? OR e.nombre_corto LIKE ?) AND e.activo = 1
-                ORDER BY e.nombre ASC";
-
-        $term = "%{$searchTerm}%";
-        return $this->db->query($sql, [$term, $term]);
-    }
-
-    /**
-     * Crear nueva comuna
-     */
-    public function createComuna($codigoComuna, $nombre)
-    {
-        $sql = "INSERT INTO comunas (codigo_comuna, nombre) VALUES (?, ?)";
-
-        try {
-            $this->db->execute($sql, [$codigoComuna, $nombre]);
-            return $this->db->lastInsertId();
-        } catch (Exception $e) {
-            error_log("Error al crear comuna: " . $e->getMessage());
-            return false;
-        }
     }
 
     /**

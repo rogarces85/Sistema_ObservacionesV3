@@ -68,16 +68,6 @@ class User
     }
 
     /**
-     * Verificar si el usuario está activo
-     */
-    public function isActive($id)
-    {
-        $sql = "SELECT activo FROM usuarios WHERE id = ?";
-        $user = $this->db->queryOne($sql, [$id]);
-        return $user && $user['activo'] == 1;
-    }
-
-    /**
      * Crear nuevo usuario
      */
     public function create($username, $password, $nombreCompleto, $rol)

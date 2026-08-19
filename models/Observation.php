@@ -176,22 +176,6 @@ class Observation
     }
 
     /**
-     * Eliminar observación
-     */
-    public function delete($id)
-    {
-        // El historial se eliminará en cascada por la FK
-        $sql = "DELETE FROM observaciones WHERE id = ?";
-
-        try {
-            return $this->db->execute($sql, [$id]);
-        } catch (Exception $e) {
-            error_log("Error al eliminar observación: " . $e->getMessage());
-            return false;
-        }
-    }
-
-    /**
      * Obtener historial de una observación
      */
     public function getHistorial($observacionId)
@@ -324,28 +308,6 @@ class Observation
             return $result;
         } catch (Exception $e) {
             error_log("Error al actualizar estado: " . $e->getMessage());
-            return false;
-        }
-    }
-
-    /**
-     * Eliminar observación con registro de auditoría
-     */
-    public function deleteWithAudit($id, $supervisorId, $reason = 'Eliminado por supervisor')
-    {
-        try {
-            // Registrar en historial antes de eliminar
-            $obs = $this->getById($id);
-            if (!$obs) {
-                return false;
-            }
-
-            $this->addHistorial($id, $obs['estado_actual'], 'eliminado', $supervisorId, $reason);
-
-            // Eliminar observación
-            return $this->delete($id);
-        } catch (Exception $e) {
-            error_log("Error al eliminar observación: " . $e->getMessage());
             return false;
         }
     }
