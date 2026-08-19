@@ -220,8 +220,41 @@ que era cierto cuando se escribieron.
 
 | Hallazgo | Evidencia | Acción |
 |---|---|---|
-| `config/sprint3_migration.sql` y `specs/sprint3_migration.sql` son **idénticos byte a byte** | Mismo MD5 `1a8f4953`, 38 líneas cada uno | Conservar uno solo |
-| `sprint3` está fuera de sitio | `sprint1`, `sprint2` y `sprint4` viven en `config/migrations/`; `sprint3` quedó en `config/` | Mover a `config/migrations/` |
+| ~~`config/sprint3_migration.sql` y `specs/sprint3_migration.sql` idénticos byte a byte~~ **Corregido** | Se conservó `config/sprint3_migration.sql` y se eliminó la copia de `specs/`, junto con sus referencias en `deploy/migrate.sh` y `DEPLOY.md` | Hecho |
+| `sprint3` está fuera de sitio | `sprint1`, `sprint2` y `sprint4` viven en `config/migrations/`; `sprint3` quedó en `config/` | Sin mover: se dejó en `config/` para no romper más referencias mientras `deploy/migrate.sh` siga sin validar (ver abajo) |
+
+### Hallazgo grave descubierto al desduplicar: `deploy/migrate.sh` está roto
+
+El script aborta en una instalación nueva. Referencia **cuatro archivos que no
+existen** y omite uno que sí hace falta:
+
+| Entrada en `migrate.sh` | Realidad |
+|---|---|
+| `specs/sprint1_migration.sql` | Movido a `config/migrations/` en el commit `d514e8a` |
+| `specs/sprint2_migration.sql` | Movido a `config/migrations/` |
+| `specs/sprint4_migration.sql` | Movido a `config/migrations/` |
+| `specs/sprint5_migration.sql` | **Eliminado**: creaba `versiones_sistema`, la tabla del módulo Versionado que ya no existe |
+| `config/migration_2026_08_12_boletin.sql` | **Ausente de la lista**, pese a ser necesaria |
+
+Como el bucle hace `if [ ! -f "$path" ]; then exit 1; fi`, el script muere en la
+primera entrada ausente.
+
+Y hay un **segundo problema, de orden**: `config/migrations/add_tipo_asignacion.sql`
+se aplica en la posición 3, pero hace `ALTER TABLE asignaciones_establecimientos`,
+y esa tabla la crea `config/create_asignaciones_table.sql`, que está en la
+posición **última**. Además `create_asignaciones_table.sql` ya define las columnas
+`meses` y `tipo_asignacion`, así que `sprint2_migration.sql` y
+`add_tipo_asignacion.sql` fallarían con "Duplicate column name" si se ejecutaran
+después de él.
+
+**Por qué no lo arreglé aquí:** corregir el orden exige validarlo contra una base
+desechable, y los archivos contienen `USE observaciones_rem;` — uno de ellos hace
+`DELETE FROM comunas`. Ejecutarlos en esta máquina habría operado sobre la base
+real. Reordenar sin validar sería peor que dejarlo documentado. **Requiere trabajo
+aparte con una base de pruebas aislada.**
+
+**Impacto real acotado:** esto solo afecta a instalaciones **nuevas**. La base de
+producción actual ya tiene el esquema aplicado y no corre riesgo por este defecto.
 
 Sin herramienta de migraciones, el orden de aplicación depende de la documentación. Un duplicado
 en dos rutas distintas es exactamente el tipo de ambigüedad que provoca aplicar dos veces la

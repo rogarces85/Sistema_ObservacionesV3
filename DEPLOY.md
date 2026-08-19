@@ -171,7 +171,6 @@ mysql -u rem_app -p observaciones_rem < config/migration_2026_05_08_limpieza_com
 mysql -u rem_app -p observaciones_rem < config/migration_2026_05_08_reportes.sql
 mysql -u rem_app -p observaciones_rem < specs/sprint1_migration.sql
 mysql -u rem_app -p observaciones_rem < specs/sprint2_migration.sql
-mysql -u rem_app -p observaciones_rem < specs/sprint3_migration.sql
 mysql -u rem_app -p observaciones_rem < specs/sprint4_migration.sql
 mysql -u rem_app -p observaciones_rem < specs/sprint5_migration.sql
 mysql -u rem_app -p observaciones_rem < config/sprint3_migration.sql
