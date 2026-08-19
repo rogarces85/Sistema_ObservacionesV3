@@ -182,7 +182,7 @@ global $TIPOS_ERROR, $MESES;
                                         </a>
                                         <?php
                                         $canEdit = ($userRole === ROL_SUPERVISOR) ||
-                                            ($userRole === ROL_REGISTRADOR && $obs['usuario_registro_id'] == $userId && $obs['estado_actual'] === ESTADO_PENDIENTE);
+                                            ($userRole === ROL_REGISTRADOR && $obs['usuario_registro_id'] == $userId);
                                         if ($canEdit):
                                             ?>
                                             <a class="dropdown-item" href="#" onclick="editObservation(<?php echo $obs['id']; ?>); return false;">
@@ -298,6 +298,7 @@ global $TIPOS_ERROR, $MESES;
                                     <select id="tipo_error" name="tipo_error" class="form-select" required>
                                         <option value="">Seleccione...</option>
                                         <?php foreach ($TIPOS_ERROR as $tipo): ?>
+                                            <?php if ($tipo === 'F/PLAZO') continue; ?>
                                             <option value="<?php echo htmlspecialchars($tipo); ?>"><?php echo htmlspecialchars($tipo); ?></option>
                                         <?php endforeach; ?>
                                     </select>

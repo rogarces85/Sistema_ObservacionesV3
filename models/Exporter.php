@@ -1520,7 +1520,7 @@ class Exporter
                 }
             }
 
-            $resumen = $registro['conDatos'] ? $registro['cumple'] . '/' . $registro['conDatos'] : '-';
+            $resumen = $registro['conDatos'] ? $registro['cumple'] . '/' . $registro['conDatos'] . ' (' . round($registro['cumple'] / $registro['conDatos'] * 100) . '%)' : '-';
             $sheet->setCellValue($ultimaCol . $fila, $resumen);
             $sheet->getStyle($ultimaCol . $fila)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
             $sheet->getStyle($ultimaCol . $fila)->getFont()->setBold(true);
@@ -1662,7 +1662,7 @@ class Exporter
                 $fondo = $estado === 'ok' ? $VERDE : ($estado === 'falla' ? $ROJO : '#FFFFFF');
                 $html .= '<td align="center" style="background-color:' . $fondo . ';">' . self::simboloEstado($estado) . '</td>';
             }
-            $resumen = $registro['conDatos'] ? $registro['cumple'] . '/' . $registro['conDatos'] : '-';
+            $resumen = $registro['conDatos'] ? $registro['cumple'] . '/' . $registro['conDatos'] . ' (' . round($registro['cumple'] / $registro['conDatos'] * 100) . '%)' : '-';
             $html .= '<td align="center"><b>' . $resumen . '</b></td>';
             $html .= '</tr>';
         }

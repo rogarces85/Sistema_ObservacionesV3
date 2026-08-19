@@ -739,10 +739,10 @@ class Observation
      */
     public function reportePorSerieDetalle($year, $userId = null, $userRole = null, $meses = [], $comunaIds = [], $establecimientoId = null)
     {
-        $sql = "SELECT o.codigo_serie, o.tipo_error, COUNT(*) as total 
+        $sql = "SELECT o.codigo_serie, o.tipo_error, COUNT(*) as total
                 FROM observaciones o
                 INNER JOIN establecimientos e ON o.establecimiento_id = e.id
-                WHERE o.anio = ? AND o.codigo_serie IS NOT NULL AND o.codigo_serie != ''";
+                WHERE o.anio = ? AND o.codigo_serie IS NOT NULL AND o.codigo_serie != '' AND o.tipo_error != 'S/OBSERVACION'";
         $params = [$year];
         if ($userRole === ROL_REGISTRADOR && $userId) {
             $sql .= " AND o.usuario_registro_id = ?";
@@ -771,10 +771,10 @@ class Observation
      */
     public function reportePorHojaDetalle($year, $userId = null, $userRole = null, $meses = [], $comunaIds = [], $establecimientoId = null)
     {
-        $sql = "SELECT o.codigo_hoja, o.tipo_error, o.detalle_observacion, COUNT(*) as total 
+        $sql = "SELECT o.codigo_hoja, o.tipo_error, o.detalle_observacion, COUNT(*) as total
                 FROM observaciones o
                 INNER JOIN establecimientos e ON o.establecimiento_id = e.id
-                WHERE o.anio = ? AND o.codigo_hoja IS NOT NULL AND o.codigo_hoja != ''";
+                WHERE o.anio = ? AND o.codigo_hoja IS NOT NULL AND o.codigo_hoja != '' AND o.tipo_error != 'S/OBSERVACION'";
         $params = [$year];
         if ($userRole === ROL_REGISTRADOR && $userId) {
             $sql .= " AND o.usuario_registro_id = ?";

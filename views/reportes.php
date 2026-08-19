@@ -175,11 +175,8 @@ $mesesList = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto',
                                             <span><i class="ti ti-minus rem-matriz-chip rem-matriz-chip--vacio"></i>Sin datos</span>
                                         </div>
                                         <div class="btn-list rem-informe-acciones">
-                                            <button type="button" class="btn btn-sm btn-outline-secondary" data-imprimir-informe>
-                                                <i class="ti ti-printer me-1"></i>Imprimir
-                                            </button>
-                                            <button type="button" class="btn btn-sm btn-outline-danger" data-pdf-matriz>
-                                                <i class="ti ti-file-type-pdf me-1"></i>PDF
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" data-png-informe>
+                                                <i class="ti ti-photo-download me-1"></i>Descargar PNG
                                             </button>
                                         </div>
                                     </div>
@@ -213,11 +210,8 @@ $mesesList = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto',
                                             <span><i class="ti ti-minus rem-matriz-chip rem-matriz-chip--vacio"></i>Sin datos</span>
                                         </div>
                                         <div class="btn-list rem-informe-acciones">
-                                            <button type="button" class="btn btn-sm btn-outline-secondary" data-imprimir-informe>
-                                                <i class="ti ti-printer me-1"></i>Imprimir
-                                            </button>
-                                            <button type="button" class="btn btn-sm btn-outline-danger" data-pdf-matriz>
-                                                <i class="ti ti-file-type-pdf me-1"></i>PDF
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" data-png-informe>
+                                                <i class="ti ti-photo-download me-1"></i>Descargar PNG
                                             </button>
                                         </div>
                                     </div>
@@ -810,7 +804,7 @@ function renderMatrizMensual(tablaId, detalle, campoOk, campoFalla, textos) {
             celdas += `<td class="${clase}" title="${escapeHtml(titulo)}"><span class="visually-hidden">${escapeHtml(titulo)}</span>${icono}</td>`;
         });
 
-        const resumen = conDatos ? `${cumple}/${conDatos}` : '—';
+        const resumen = conDatos ? `${cumple}/${conDatos} (${Math.round(cumple / conDatos * 100)}%)` : '—';
         const claseResumen = conDatos && cumple < conDatos ? 'rem-matriz-resumen rem-matriz-resumen--parcial' : 'rem-matriz-resumen';
 
         return `<tr>
@@ -883,14 +877,9 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btnExportExcel').addEventListener('click', exportActiveReportExcel);
     document.getElementById('btnExportPdf').addEventListener('click', exportDetailedPdf);
 
-    // Imprimir la matriz visible (los estilos @media print dejan solo el informe)
-    document.querySelectorAll('[data-imprimir-informe]').forEach(btn => {
-        btn.addEventListener('click', () => window.print());
-    });
-
-    // PDF de la matriz visible
-    document.querySelectorAll('[data-pdf-matriz]').forEach(btn => {
-        btn.addEventListener('click', exportMatrizPdf);
+    // PNG de la matriz visible
+    document.querySelectorAll('[data-png-informe]').forEach(btn => {
+        btn.addEventListener('click', descargarInformePNG);
     });
 
     // Restore tab from hash
@@ -945,16 +934,28 @@ function exportDetailedPdf(evento) {
     descargarArchivo('api/export.php?' + params.toString(), { boton: evento?.currentTarget });
 }
 
-/** PDF de la matriz visible (pestañas Plazos Entrega / Uso Validador). */
-function exportMatrizPdf(evento) {
-    const activeTab = document.querySelector('.tab-pane.active')?.id;
-    const reportType = EXPORT_REPORT_TYPES[activeTab];
-    if (!reportType) return;
+/** PNG de la matriz visible (pestañas Plazos Entrega / Uso Validador). */
+function descargarInformePNG(evento) {
+    const btn = evento.currentTarget;
+    const section = btn.closest('.rem-informe');
+    if (!section || typeof html2canvas === 'undefined') return;
 
-    const params = getExportFilters();
-    params.set('format', 'pdf');
-    params.set('report_type', reportType);
-    descargarArchivo('api/export.php?' + params.toString(), { boton: evento?.currentTarget });
+    html2canvas(section, {
+        backgroundColor: chartTokenColor('--chart-export-canvas-bg', '#ffffff'),
+        scale: 2
+    }).then(canvas => {
+        const slug = section.dataset.informePara || 'informe';
+        const stamp = new Date().toISOString().slice(0, 10);
+        const link = document.createElement('a');
+        link.href = canvas.toDataURL('image/png');
+        link.download = `REM_${slug}_${stamp}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }).catch(err => {
+        console.error('Error capturando PNG:', err);
+        showError('No se pudo descargar la imagen. Intenta nuevamente.');
+    });
 }
 
 
