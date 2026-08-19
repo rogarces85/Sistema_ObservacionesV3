@@ -123,6 +123,12 @@ $initialTheme = in_array($initialTheme, ['light', 'dark'], true) ? $initialTheme
                     </div>
                 </form>
 
+                <?php
+                // Las credenciales de prueba solo se muestran en desarrollo.
+                // ENVIRONMENT vale 'production' por defecto (config/config.php:15), de modo que
+                // si la constante no llegara a estar definida, el bloque queda oculto.
+                if (defined('ENVIRONMENT') && ENVIRONMENT === 'development'):
+                ?>
                 <details class="login-credentials">
                     <summary>
                         <i class="ti ti-key"></i>
@@ -139,6 +145,7 @@ $initialTheme = in_array($initialTheme, ['light', 'dark'], true) ? $initialTheme
                         </div>
                     </div>
                 </details>
+                <?php endif; ?>
 
                 <div class="text-center mt-4">
                     <a href="MANUAL_REGISTRO_OBSERVACIONES.html" target="_blank" class="text-secondary text-decoration-none small">
