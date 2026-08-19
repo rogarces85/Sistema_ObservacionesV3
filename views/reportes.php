@@ -299,7 +299,7 @@ if (typeof createStackedBarByCategory === 'undefined') {
 
 // colorToken apunta a tokens de tokens.css: nunca hex cableado aqui.
 const TAB_CONFIG = {
-    'tab-errores-est': { canvas: 'chartErroresEst', container: 'chart1Container', table: 'tableErroresEst', orientation: 'horizontal', colorToken: '--rem-status-error', label: 'Errores', key: 'errores_establecimiento' }
+    'tab-errores-est': { canvas: 'chartErroresEst', container: 'chart1Container', table: 'tableErroresEst', orientation: 'horizontal', colorToken: '--chart-series-1', label: 'Errores', key: 'errores_establecimiento' }
 };
 
 // Plazo y Validador exportan la MISMA matriz que se ve en pantalla; antes
@@ -438,7 +438,7 @@ function renderTabChart(tabId, data) {
     let resultData = (data[config.key] || []).slice()
         .sort((a, b) => (parseInt(b.total, 10) || 0) - (parseInt(a.total, 10) || 0));
 
-    let labels = resultData.map(r => r.nombre_corto || r.nombre || r.codigo_serie || r.codigo_hoja);
+    let labels = resultData.map(r => abreviarNombreEstablecimiento(r.nombre_corto || r.nombre) || r.codigo_serie || r.codigo_hoja);
     let values = resultData.map(r => parseInt(r.total, 10) || 0);
 
     // Aplicar Top N si está configurado

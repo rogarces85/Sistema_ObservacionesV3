@@ -172,6 +172,13 @@
   --chart-datalabel-on-dark: #ffffff;
   --chart-datalabel-on-light: #002347;
 
+  /* Rampa de 5 azules para dona de estados (pendiente, aprobado, rechazado, error, justificado) */
+  --chart-estado-1: #003366;
+  --chart-estado-2: #0B71B9;
+  --chart-estado-3: #095C96;
+  --chart-estado-4: #00AEEF;
+  --chart-estado-5: #76C7ED;
+
   /* Imagen PNG exportada del grafico */
   --chart-export-canvas-bg: #ffffff;
   --chart-export-title: #003366;
@@ -302,6 +309,13 @@
   --chart-series-6: #4ADE80;
   --chart-series-7: #A78BFA;
   --chart-series-8: #F87171;
+
+  /* Rampa de 5 azules para dona de estados (tema oscuro) */
+  --chart-estado-1: #0B71B9;
+  --chart-estado-2: #4FB3E8;
+  --chart-estado-3: #00AEEF;
+  --chart-estado-4: #7BC8ED;
+  --chart-estado-5: #A7DBF4;
 
   --chart-export-canvas-bg: #0F172A;
   --chart-export-title: #E2F4FD;

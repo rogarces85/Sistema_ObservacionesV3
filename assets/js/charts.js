@@ -258,24 +258,14 @@ function tooltipValor(unidad) {
 }
 
 /* === Datalabels ===
-   Antes se OCULTABA el valor cuando la barra era corta (<35px), justo donde
-   mas se necesita. Ahora, si no cabe dentro, se dibuja fuera de la barra. */
-function barCabeDentro(ctx) {
-    const meta = ctx.chart.getDatasetMeta(ctx.datasetIndex);
-    const bar = meta.data[ctx.dataIndex];
-    if (!bar) return false;
-    const horizontal = ctx.chart.options.indexAxis === 'y';
-    const px = horizontal ? Math.abs(bar.x - bar.base) : Math.abs(bar.y - bar.base);
-    return px > 38;
-}
-
+   Los números siempre se dibujan por fuera de la barra, con color de texto
+   fijo independiente del fondo. Esto evita que al hacer hover sobre la barra,
+   el aclarado automático de Chart.js haga el número invisible. */
 const datalabelsBar = {
     anchor: 'end',
-    align: ctx => (barCabeDentro(ctx) ? 'end' : 'right'),
-    offset: ctx => (barCabeDentro(ctx) ? -8 : 4),
-    color: ctx => (barCabeDentro(ctx)
-        ? readableTextOn(contextColor(ctx))
-        : chartTokenColor('--tblr-body-color', '#1e293b')),
+    align: 'right',
+    offset: 6,
+    color: () => chartTokenColor('--tblr-body-color', '#1e293b'),
     font: { weight: '700', size: 12 },
     formatter: v => NUM_CL.format(Number(v) || 0),
     display: ctx => Number(ctx.dataset.data[ctx.dataIndex]) > 0
@@ -283,11 +273,9 @@ const datalabelsBar = {
 
 const datalabelsBarVertical = {
     anchor: 'end',
-    align: ctx => (barCabeDentro(ctx) ? 'end' : 'top'),
-    offset: ctx => (barCabeDentro(ctx) ? -6 : 2),
-    color: ctx => (barCabeDentro(ctx)
-        ? readableTextOn(contextColor(ctx))
-        : chartTokenColor('--tblr-body-color', '#1e293b')),
+    align: 'top',
+    offset: 4,
+    color: () => chartTokenColor('--tblr-body-color', '#1e293b'),
     font: { weight: '700', size: 11 },
     formatter: v => NUM_CL.format(Number(v) || 0),
     display: ctx => Number(ctx.dataset.data[ctx.dataIndex]) > 0
@@ -422,6 +410,36 @@ function truncarEtiqueta(txt, max) {
     return s.length > max ? s.slice(0, max - 1) + '…' : s;
 }
 
+/** Abreviaturas estándar para tipos de establecimiento de salud. */
+const ABREVIATURAS_ESTABLECIMIENTO = [
+    { re: /^(PSR|Posta(?:\s+de)?\s+Salud\s+Rural)\b[\s_-]*/i, sigla: 'POSTA' },
+    { re: /^(CECOSF|Centro\s+Comunitario\s+de\s+Salud\s+Familiar)\b[\s_-]*/i, sigla: 'CECOSF' },
+    { re: /^(CESFAM|Centro\s+de\s+Salud\s+Familiar)\b[\s_-]*/i, sigla: 'CESFAM' }
+];
+
+/** Capitaliza cada palabra en una cadena. */
+function tituloCapitalizado(s) {
+    return s.replace(/\S+/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+}
+
+/**
+ * Normaliza nombres de establecimientos reemplazando guiones bajos y aplicando
+ * abreviaturas estándar (POSTA, CECOSF, CESFAM). El nombre original se mantiene
+ * en la base de datos; esto solo afecta la presentación en gráficos.
+ */
+function abreviarNombreEstablecimiento(nombre) {
+    if (!nombre) return nombre;
+    const s = String(nombre).replace(/_/g, ' ').trim();
+    for (const p of ABREVIATURAS_ESTABLECIMIENTO) {
+        const m = s.match(p.re);
+        if (m) {
+            const resto = s.slice(m[0].length).trim();
+            return resto ? `${p.sigla} ${tituloCapitalizado(resto)}` : p.sigla;
+        }
+    }
+    return s;
+}
+
 /**
  * Tamano de letra del eje de categorias segun el nombre mas largo del conjunto:
  * los nombres de establecimiento se muestran completos en una linea, asi que la
@@ -549,8 +567,8 @@ function createEstadoChart(canvasId, data) {
 
     const labels = ordenados.map(i => i.estado_actual.charAt(0).toUpperCase() + i.estado_actual.slice(1));
     const values = ordenados.map(i => parseInt(i.total, 10) || 0);
-    const tokens = ordenados.map(i => estadoToken(i.estado_actual));
-    const colors = ordenados.map(i => estadoColor(i.estado_actual));
+    const tokens = ordenados.map((i, idx) => '--chart-estado-' + (ESTADO_ORDEN.indexOf(i.estado_actual) + 1));
+    const colors = tokens.map(t => chartTokenColor(t, '#0B71B9'));
     if (sinDatos(values)) return null;
 
     const baseFont = chartBaseFont();
@@ -787,6 +805,7 @@ function createBarVertical(canvasId, labels, values, colorOrToken, opts) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            layout: { padding: { top: 14 } },
             animation: { ...ANIM_CONFIG },
             plugins: {
                 legend: { display: false },
@@ -1014,6 +1033,27 @@ function createStackedBarByCategory(canvasId, flatData, categorias, colorTokens,
         };
     });
 
+    // Agregar datalabel solo en el último dataset (cierre de pila) para mostrar el total
+    if (datasets.length) {
+        const ultimo = datasets[datasets.length - 1];
+        ultimo.datalabels = {
+            anchor: 'end',
+            align: 'right',
+            offset: 6,
+            color: () => chartTokenColor('--tblr-body-color', '#1e293b'),
+            font: { weight: '700', size: 12 },
+            formatter: (v, ctx) => {
+                const idx = ctx.dataIndex;
+                const total = datasets.reduce((s, ds) => s + (Number(ds.data[idx]) || 0), 0);
+                return NUM_CL.format(total);
+            },
+            display: ctx => {
+                const idx = ctx.dataIndex;
+                return datasets.reduce((s, ds) => s + (Number(ds.data[idx]) || 0), 0) > 0;
+            }
+        };
+    }
+
     const theme = getChartTheme();
     const baseFont = chartBaseFont();
 
@@ -1024,6 +1064,7 @@ function createStackedBarByCategory(canvasId, flatData, categorias, colorTokens,
             indexAxis: 'y',
             responsive: true,
             maintainAspectRatio: false,
+            layout: { padding: { right: 14 } },
             animation: { ...ANIM_CONFIG },
             plugins: {
                 legend: {
