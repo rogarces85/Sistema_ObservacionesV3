@@ -41,10 +41,6 @@ function estadoColor(estado) {
     return chartTokenColor('--rem-status-' + estado, chartTokenColor('--tblr-muted', '#64748b'));
 }
 
-function estadoToken(estado) {
-    return '--rem-status-' + estado;
-}
-
 /** Devuelve n colores de la rampa categorica, ciclando si hace falta. */
 function seriesPalette(n) {
     return seriesTokens(n).map(t => chartTokenColor(t, '#0B71B9'));

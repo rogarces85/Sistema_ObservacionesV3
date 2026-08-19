@@ -6,7 +6,6 @@
 // Configuración global
 const API_BASE = window.location.pathname.split('/').slice(0, -1).join('/') + '/api';
 let currentYear = new Date().getFullYear();
-let currentUser = null;
 
 // === CountUp helper for [data-countup] elements ===
 function initCountUp(el) {
@@ -167,40 +166,6 @@ function formatDateTime(dateString) {
     });
 }
 
-// === i18n Helpers (Spanish localization) ===
-
-// Formatear número con separadores en español (1.234.567 en lugar de 1,234,567)
-function formatNumber(number, decimals = 0) {
-    return new Intl.NumberFormat('es-CL', {
-        minimumFractionDigits: decimals,
-        maximumFractionDigits: decimals
-    }).format(number);
-}
-
-// Formatear moneda en CLP
-function formatCurrency(amount) {
-    return new Intl.NumberFormat('es-CL', {
-        style: 'currency',
-        currency: 'CLP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0
-    }).format(amount);
-}
-
-// Formatear porcentaje en español
-function formatPercent(value) {
-    return new Intl.NumberFormat('es-CL', {
-        style: 'percent',
-        minimumFractionDigits: 1,
-        maximumFractionDigits: 1
-    }).format(value / 100);
-}
-
-// Pluralizar correctamente en español
-function pluralize(count, singular, plural) {
-    return count === 1 ? singular : plural;
-}
-
 // Cambiar año
 async function changeYear(year) {
     try {
@@ -226,146 +191,12 @@ function getCurrentPage() {
     return params.get('page') || 'dashboard';
 }
 
-// === Edge case protection helpers ===
-
-// Prevención de double-submit
-const submittingForms = new Set();
-
-function preventDoubleSubmit(formId) {
-    return submittingForms.has(formId);
-}
-
-function markFormSubmitting(formId) {
-    submittingForms.add(formId);
-}
-
-function unmarkFormSubmitting(formId) {
-    submittingForms.delete(formId);
-}
-
-// Helper para deshabilitar botones durante el envío
-function disableSubmitButton(button) {
-    if (!button) return;
-    button.disabled = true;
-    button.setAttribute('aria-busy', 'true');
-    const originalText = button.textContent;
-    button.dataset.originalText = originalText;
-    button.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Enviando...';
-}
-
-function enableSubmitButton(button) {
-    if (!button) return;
-    button.disabled = false;
-    button.removeAttribute('aria-busy');
-    button.textContent = button.dataset.originalText || 'Guardar';
-}
-
-// Validar longitud de texto (para edge cases de textos muy largos)
-function validateTextLength(text, maxLength = 5000, fieldName = 'Campo') {
-    if (!text) return true;
-    if (text.length > maxLength) {
-        showError(`${fieldName} excede ${maxLength} caracteres (${text.length} encontrados)`);
-        return false;
-    }
-    return true;
-}
-
 // Sanitizar HTML (prevenir XSS)
 function escapeHtml(text) {
     if (!text) return '';
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
-}
-
-// Manejo robusto de errores de API con retry
-async function fetchAPIWithRetry(endpoint, options = {}, retries = 1) {
-    let lastError;
-    for (let attempt = 0; attempt <= retries; attempt++) {
-        try {
-            return await fetchAPI(endpoint, options);
-        } catch (error) {
-            lastError = error;
-            if (attempt < retries) {
-                await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
-            }
-        }
-    }
-    throw lastError;
-}
-
-// Validar que al menos un checkbox esté seleccionado
-function validateCheckboxSelection(checkboxSelector) {
-    const checked = document.querySelectorAll(checkboxSelector + ':checked');
-    if (checked.length === 0) {
-        showError('Debe seleccionar al menos una opción');
-        return false;
-    }
-    return true;
-}
-
-// Timeout para operaciones largas (evitar que se quede esperando infinitamente)
-function withTimeout(promise, timeoutMs = 30000) {
-    return Promise.race([
-        promise,
-        new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Operación expirada (timeout)')), timeoutMs)
-        )
-    ]);
-}
-
-// === Performance optimizations ===
-
-// Debounce - esperar a que el usuario deje de escribir antes de ejecutar
-function debounce(func, wait = 300) {
-    let timeout;
-    return function executedFunction(...args) {
-        const later = () => {
-            clearTimeout(timeout);
-            func(...args);
-        };
-        clearTimeout(timeout);
-        timeout = setTimeout(later, wait);
-    };
-}
-
-// Throttle - ejecutar máximo una vez cada X ms
-function throttle(func, limit = 300) {
-    let inThrottle;
-    return function executedFunction(...args) {
-        if (!inThrottle) {
-            func.apply(this, args);
-            inThrottle = true;
-            setTimeout(() => inThrottle = false, limit);
-        }
-    };
-}
-
-// Request animation frame polyfill para animaciones suaves
-function onAnimationFrame(callback) {
-    return requestAnimationFrame(callback);
-}
-
-// Intersection Observer para lazy loading optimizado
-function observeElements(selector, callback, options = {}) {
-    const defaultOptions = {
-        root: null,
-        rootMargin: '50px',
-        threshold: 0.1,
-        ...options
-    };
-
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                callback(entry.target);
-                observer.unobserve(entry.target);
-            }
-        });
-    }, defaultOptions);
-
-    document.querySelectorAll(selector).forEach(el => observer.observe(el));
-    return observer;
 }
 
 // Logout
@@ -381,30 +212,6 @@ async function logout(event) {
         }
     }
     return false;
-}
-
-// Validar formulario
-function validateForm(formId) {
-    const form = document.getElementById(formId);
-    if (!form) return false;
-
-    const inputs = form.querySelectorAll('[required]');
-    let isValid = true;
-
-    inputs.forEach(input => {
-        if (!input.value.trim()) {
-            isValid = false;
-            input.style.borderColor = 'var(--color-rose-500)';
-        } else {
-            input.style.borderColor = 'var(--color-slate-200)';
-        }
-    });
-
-    if (!isValid) {
-        showMessage('Por favor, complete todos los campos requeridos', 'error');
-    }
-
-    return isValid;
 }
 
 // Inicializar tooltips y otros componentes al cargar
