@@ -109,6 +109,28 @@ try {
                 }
             }
 
+            // Whitelist de campos permitidos (seguridad: evitar campos no esperados)
+            $allowedFields = [
+                'mes',
+                'establecimiento_id',
+                'codigo_serie',
+                'codigo_hoja',
+                'tipo_error',
+                'detalle_observacion',
+                'plazo_entrega',
+                'usa_validador',
+                'respuesta_establecimiento',
+                'clasificacion',
+                'detalle_error',
+                'usuario_registro_id'
+            ];
+
+            foreach (array_keys($input) as $key) {
+                if (!in_array($key, $allowedFields, true)) {
+                    jsonResponse(false, null, "Campo no permitido: {$key}", 400);
+                }
+            }
+
             // Convertir 'n/a' a 'no' para usa_validador
             if ($input['usa_validador'] === 'n/a') {
                 $input['usa_validador'] = 'no';

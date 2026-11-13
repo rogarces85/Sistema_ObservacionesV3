@@ -2,6 +2,16 @@
 # de deploy/apache-rem.conf. Si el servidor usa AllowOverride None, este
 # archivo se ignora sin provocar errores.
 
+# Headers de seguridad - Constitution v1.0.0 checkpoint #10
+# Protección contra MIME-sniffing, clickjacking y políticas de referrer
+Header always set X-Content-Type-Options "nosniff"
+Header always set X-Frame-Options "DENY"
+Header always set Referrer-Policy "strict-origin-when-cross-origin"
+
+# Proteccion basica del sitio. Complementa (no reemplaza) al VirtualHost
+# de deploy/apache-rem.conf. Si el servidor usa AllowOverride None, este
+# archivo se ignora sin provocar errores.
+
 # Sin listado de directorios
 Options -Indexes
 

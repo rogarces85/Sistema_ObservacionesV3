@@ -468,11 +468,27 @@ function renderSerieHojaChart(tabId, data) {
     if (!rawData.length) {
         const container = document.getElementById(containerId);
         renderEmptyChart(container, 'Sin datos para los filtros seleccionados');
-        document.getElementById(tableId).innerHTML = '<tr><td colspan="5" class="text-center text-secondary py-4">Sin datos para los filtros seleccionados</td></tr>';
+        document.getElementById(tableId).innerHTML = isHoja
+            ? '<tr><td colspan="2" class="text-center text-secondary py-4">Sin datos para los filtros seleccionados</td></tr>'
+            : '<tr><td colspan="5" class="text-center text-secondary py-4">Sin datos para los filtros seleccionados</td></tr>';
         return;
     }
 
-    // Pivotar: agrupar por codigo_serie/codigo_hoja, luego contar por tipo_error
+    if (isHoja) {
+        const gruposArray = rawData
+            .map(row => ({ nombre: row[groupField] || 'Sin clasificar', total: Number(row.total || 0) }))
+            .sort((a, b) => b.total - a.total);
+
+        const labels = gruposArray.map(g => g.nombre);
+        const values = gruposArray.map(g => g.total);
+
+        const container = document.getElementById(containerId);
+        setChartFrameSize(container, gruposArray.length, 'horizontal');
+
+        renderChart(canvasId, container, tableId, 'horizontal', labels, values, '--chart-series-1', 'Errores');
+        return;
+    }
+
     const grupos = {};
     const allTipos = new Set();
     rawData.forEach(row => {
@@ -484,7 +500,6 @@ function renderSerieHojaChart(tabId, data) {
         grupos[g].total += Number(row.total || 0);
     });
 
-    // Orden fijo de tipos con fallback para tipos no previstos
     const TIPOS_VISTOS = Array.from(allTipos).sort();
     const tiposOrdenados = [];
     ['ERROR', 'REVISAR', 'F/PLAZO', 'S/OBSERVACION'].forEach(t => {
@@ -494,12 +509,10 @@ function renderSerieHojaChart(tabId, data) {
         if (!tiposOrdenados.includes(t)) tiposOrdenados.push(t);
     });
 
-    // Convertir a array y ordenar por total descendente
     let gruposArray = Object.entries(grupos)
         .map(([nombre, conteos]) => ({ nombre, conteos, total: conteos.total }))
         .sort((a, b) => b.total - a.total);
 
-    // Aplicar Top 12 + Otros
     const topN = 12;
     if (gruposArray.length > topN) {
         const top = gruposArray.slice(0, topN);
@@ -511,10 +524,9 @@ function renderSerieHojaChart(tabId, data) {
                 otrosConteos[t] += g.conteos[t] || 0;
             });
         });
-        gruposArray = [...top, { nombre: `Otros (${resto.length})`, conteos: otrosConteos, total: resto.reduce((s, g) => s + g.total, 0) }];
+        gruposArray = [...top, { nombre: 'Otros (' + resto.length + ')', conteos: otrosConteos, total: resto.reduce((s, g) => s + g.total, 0) }];
     }
 
-    // Mapear tipos a colores categóricos fijos
     const colorTokensPorTipo = {
         'ERROR': '--chart-series-1',
         'REVISAR': '--chart-series-2',
@@ -523,14 +535,11 @@ function renderSerieHojaChart(tabId, data) {
     };
     const colorTokens = tiposOrdenados.map(t => colorTokensPorTipo[t] || '--chart-series-1');
 
-    // Crear datos planos para createStackedBarByCategory
     const flatData = [];
     gruposArray.forEach(g => {
         tiposOrdenados.forEach(t => {
             const v = g.conteos[t] || 0;
-            if (v > 0) {
-                flatData.push({ grupo: g.nombre, categoria: t, total: v });
-            }
+            if (v > 0) flatData.push({ grupo: g.nombre, categoria: t, total: v });
         });
     });
 
@@ -540,32 +549,23 @@ function renderSerieHojaChart(tabId, data) {
     const chart = createStackedBarByCategory(canvasId, flatData, tiposOrdenados, colorTokens, { topN: 0, unidad: 'observaciones' });
     if (chart) errorCharts[canvasId] = chart;
 
-    // Actualizar tabla con desglose por tipo
     const tableBody = document.getElementById(tableId);
-    let headerHtml = `<tr><th>${isHoja ? 'Hoja REM' : 'Serie REM'}</th>`;
-    tiposOrdenados.forEach(t => {
-        headerHtml += `<th class="text-end">${escapeHtml(t)}</th>`;
-    });
+    let headerHtml = '<tr><th>Serie REM</th>';
+    tiposOrdenados.forEach(t => { headerHtml += '<th class="text-end">' + escapeHtml(t) + '</th>'; });
     headerHtml += '<th class="text-end">Total</th></tr>';
 
     const thead = tableBody.parentElement.querySelector('thead');
-    if (thead) {
-        thead.innerHTML = headerHtml;
-    }
+    if (thead) thead.innerHTML = headerHtml;
 
     const rowsHtml = gruposArray.map(g => {
-        let row = `<tr><td>${escapeHtml(g.nombre)}</td>`;
-        tiposOrdenados.forEach(t => {
-            const v = g.conteos[t] || 0;
-            row += `<td class="text-end fw-medium">${v}</td>`;
-        });
-        row += `<td class="text-end fw-bold">${g.total}</td></tr>`;
+        let row = '<tr><td>' + escapeHtml(g.nombre) + '</td>';
+        tiposOrdenados.forEach(t => { row += '<td class="text-end fw-medium">' + (g.conteos[t] || 0) + '</td>'; });
+        row += '<td class="text-end fw-bold">' + g.total + '</td></tr>';
         return row;
     }).join('');
     tableBody.innerHTML = rowsHtml;
 }
 
-/** Contexto que se imprime en el PNG exportado (ano, periodo y filtros). */
 function buildExportContext(itemCount) {
     const partes = [];
     const year = document.getElementById('filterYear');

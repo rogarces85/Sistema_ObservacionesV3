@@ -138,7 +138,7 @@ try {
             break;
 
         case 'hoja_detalle':
-            jsonResponse(true, $obsModel->reportePorHojaDetalle($year, $userId, $userRole));
+            jsonResponse(true, $obsModel->reporteErroresPorHoja($year, $userId, $userRole));
             break;
 
         // Filtros para reportes
@@ -164,7 +164,7 @@ try {
                 'fuera_plazo_establecimiento' => safeReport('fuera_plazo_establecimiento', function () use ($obsModel, $year, $userId, $userRole, $meses, $comunaIds, $establecimientoId) { return $obsModel->reporteFueraPlazoPorEstablecimiento($year, $userId, $userRole, $meses, $comunaIds, $establecimientoId); }, $errors),
                 'no_validador_establecimiento' => safeReport('no_validador_establecimiento', function () use ($obsModel, $year, $userId, $userRole, $meses, $comunaIds, $establecimientoId) { return $obsModel->reporteNoValidadorPorEstablecimiento($year, $userId, $userRole, $meses, $comunaIds, $establecimientoId); }, $errors),
                 'errores_serie' => safeReport('errores_serie', function () use ($obsModel, $year, $userId, $userRole, $meses, $comunaIds, $establecimientoId) { return $obsModel->reportePorSerieDetalle($year, $userId, $userRole, $meses, $comunaIds, $establecimientoId); }, $errors),
-                'errores_hoja' => safeReport('errores_hoja', function () use ($obsModel, $year, $userId, $userRole, $meses, $comunaIds, $establecimientoId) { return $obsModel->reportePorHojaDetalle($year, $userId, $userRole, $meses, $comunaIds, $establecimientoId); }, $errors),
+                'errores_hoja' => safeReport('errores_hoja', function () use ($obsModel, $year, $userId, $userRole, $meses, $comunaIds, $establecimientoId) { return $obsModel->reporteErroresPorHoja($year, $userId, $userRole, $meses, $comunaIds, $establecimientoId); }, $errors),
                 'errors' => $errors
             ]);
             break;
@@ -188,7 +188,7 @@ try {
                 'validador_establecimiento' => $obsModel->reporteValidadorPorEstablecimiento($year, $userId, $userRole),
                 'validador_comuna' => $obsModel->reporteValidadorPorComuna($year, $userId, $userRole),
                 'serie_detalle' => $obsModel->reportePorSerieDetalle($year, $userId, $userRole),
-                'hoja_detalle' => $obsModel->reportePorHojaDetalle($year, $userId, $userRole)
+                'hoja_detalle' => $obsModel->reporteErroresPorHoja($year, $userId, $userRole)
             ]);
             break;
     }

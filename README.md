@@ -364,7 +364,7 @@ Pasos criticos:
 
 1. El dashboard consume estadisticas por año y respeta visibilidad por rol.
 2. Los reportes consultan `api/reports.php` para datos agregados.
-3. `views/reportes.php` tiene cinco pestanas: Total Errores (barras horizontales con el nombre completo del establecimiento y el valor en cada barra), Plazos Entrega y Uso Validador (matriz de doble entrada: una fila por establecimiento y una columna por mes, con resumen "cumple" por fila y totales por mes), Errores por Serie y Errores por Hoja. Los cinco filtros de la cabecera (año, trimestre, mes, comuna, establecimiento) aplican a todas las pestanas.
+3. `views/reportes.php` tiene cinco pestanas: Total Errores (barras horizontales con el nombre completo del establecimiento y el valor en cada barra), Plazos Entrega y Uso Validador (matriz de doble entrada: una fila por establecimiento y una columna por mes, con resumen "cumple" por fila y totales por mes), Errores por Serie (grafico apilado por tipo de error, Top 12 con agrupacion "Otros") y Errores por Hoja (grafico de barras simples con **todas** las hojas que tienen errores tipo ERROR, ordenadas de mayor a menor, sin agrupacion). Los cinco filtros de la cabecera (año, trimestre, mes, comuna, establecimiento) aplican a todas las pestanas.
 4. Las matrices muestran **solo los meses del filtro**; sin filtro, los meses que tengan datos en el año. Estan pensadas como informe: llevan encabezado institucional, boton Imprimir (`@media print` deja solo la tabla, en A4 horizontal) y exportacion a Excel y PDF con el mismo contenido que se ve en pantalla.
 5. `api/export.php` genera Excel/PDF de forma sincronica.
 6. `api/informe_errores.php` genera informe trimestral/anual solo para supervisores.
