@@ -1,131 +1,263 @@
-<!-- SPECKIT START -->
-For additional context about technologies to be used, project structure,
-shell commands, and other important information, read the current plan:
-`specs/002-fix-button-actions/plan.md`
-<!-- SPECKIT END -->
+# AGENTS.md — Sistema de Observaciones REM
 
+> **Proyecto:** Sistema de Observaciones REM — PHP monolith para el Servicio de Salud Osorno, Chile
+> **Rama:** `main` (proyecto madre en GitHub)
+> **Última actualización:** 2026-11-13
+> **Idioma:** español
+
+Este archivo es la guía de referencia para cualquier persona o agente que trabaje sobre este repositorio. Contiene lo esencial para entender el sistema, cómo trabajar y qué reglas no se deben romper.
+
+---
+
+## 1. Qué es este sistema
+
+**Sistema de Observaciones REM** es un monólito PHP tradicional (sin framework, sin router, sin inyección de dependencias) que gestiona el registro, revisión, supervisión, importación y reporte de observaciones asociadas a los reportes **REM** (Resumen Estadístico Mensual) de establecimientos de salud atendidos por el **Servicio de Salud Osorno**, Región de Los Lagos, Chile.
+
+### Roles
+
+| Rol | Qué puede hacer |
+|-----|-----------------|
+| `registrador` | Crea y edita sus propias observaciones para establecimientos y meses asignados. Puede editar observaciones en cualquier estado; al editar una que no es `pendiente`, esta vuelve a `pendiente` para reingresar a revisión. |
+| `supervisor` | Revisa, aprueba o cancela observaciones. Gestiona usuarios, asignaciones, establecimientos y genera reportes consolidados. |
+
+### Estados de observación
+
+`pendiente`, `aprobado`, `rechazado`, `error`, `justificado`.
+
+### Tipos de error (`tipo_error`)
+
+`S/OBSERVACION`, `ERROR`, `REVISAR`, `F/PLAZO`.
+
+---
+
+## 2. Repositorio y versión
+
+| Dato | Valor |
+|------|-------|
+| Repositorio GitHub | https://github.com/rogarces85/Sistema_ObservacionesV3 |
+| Rama por defecto | `main` |
+| Último tag publicado | `v2.1.0` (2026-06-24) |
+| Último commit en `main` | `7c60567` (17/08/2026) — matriz Plazo/Validador |
+| Stack | PHP 8.2, Apache/XAMPP, MySQL/MariaDB, Tabler 1.4, Composer (phpspreadsheet, tcpdf) |
+
+---
+
+## 3. ⚠️ Advertencias de producción (leer antes de tocar cualquier cosa)
+
+El sistema está **en producción con datos reales**.
+
+1. **Nunca operar la base de datos sin respaldo verificado previo.** No hay herramienta de migraciones ni suite de pruebas automatizada.
+2. **`config/.env.local.php` nunca se sube a GitHub.** Contiene credenciales de base de datos. Está en `.gitignore`.
+3. **`vendor/` no se sube.** Se instala con `composer install` en cada máquina.
+4. **`uploads/` no se sube.** Es runtime del sistema.
+5. **CSRF es obligatorio** en todo request mutante desde el navegador (`X-CSRF-Token` header o campo POST `csrf_token`).
+6. **No hacer commits directos a `main`** salvo que se desbloquee explícitamente. El flujo de trabajo es por ramas y pull request.
+7. **`deploy/migrate.sh` está roto** para instalaciones nuevas. No usarlo para fresh installs.
+8. **`tools/seed_demo.php` escribe en la BD.** Solo desarrollo. Su ruta `require_once` está rota (falta `..`).
+
+---
+
+## 4. Arquitectura técnica
+
+Monólito PHP clásico, una capa por responsabilidad:
+
+- `index.php` — punto de entrada único. Verifica sesión, lee `?page=`, valida contra whitelist, aplica redirecciones por rol, incluye `views/{page}.php` envuelto por `includes/header.php` y `includes/footer.php`.
+- `api/*.php` — un archivo por recurso, endpoint JSON autónomo. Cada uno chequea sesión, lee `$_GET['action']` + `$_SERVER['REQUEST_METHOD']`, despacha via `switch`/`if`, define su propio `jsonResponse()`. Respuestas siempre `{success, data, message}`.
+- `models/*.php` — una clase por entidad con SQL embebido vía PDO (`Observation`, `User`, `Location`, `EstablecimientoAsignacion`, `DeletedObservation`, `Notification`, `ReportQueue`, `Exporter`, `UserAudit`, `Database`).
+- `models/Database.php` — singleton (`Database::getInstance()`) con una conexión PDO compartida. Nodo de mayor fan-in del código.
+- `includes/csrf.php` — clase `CSRF` con token en sesión, validado via header o campo POST.
+
+**Autorización no centralizada:** los controles de rol están duplicados en `index.php`, cada `api/*.php` y a veces en métodos de modelo. No hay middleware. Al agregar una página o endpoint, se debe replicar el rol guard manualmente.
+
+---
+
+## 5. Reglas de negocio críticas (no romperlas)
+
+Estas reglas viven en código PHP, no en restricciones de BD:
+
+1. **Assignment months dual-typed:** `observaciones.mes` almacena el nombre del mes (ej. `"Enero"`); `asignaciones_establecimientos.meses` almacena CSV de números de mes o la literal `ALL` (todos los meses). `EstablecimientoAsignacion::tieneMes()` / `fusionarMeses()` hacen el puente.
+2. **Temporal assignments override annual:** `tieneAsignacionParaMes()` revisa asignaciones temporales antes que anuales. Una temporal a otro usuario *bloquea* al titular anual para ese establecimiento/mes. Temporales solapadas para el mismo establecimiento/año/mes se rechazan.
+3. **Soft delete con papelera:** `api/observations.php` DELETE y `api/supervision.php?action=delete` mueven a `observaciones_eliminadas` vía `DeletedObservation::moveToTrash()` (recuperable). El **único** delete irreversible es `api/deleted.php?action=permanent_delete` (y su variante `_multiple`), que requiere `confirm_irreversible: true` en el cuerpo. Nunca se saltea ese flag.
+4. Desde commit `a9728da`, el único `DELETE FROM observaciones` en el código es `models/DeletedObservation.php:76` (INSERT en trash primero). No hay transacción alrededor del INSERT+DELETE.
+5. **Import valida asignación mensual** igual que creación manual (`api/import.php:183` llama a `tieneAsignacionParaMes()`).
+6. `codigo_hoja` (hoja REM) es obligatorio a menos que `tipo_error === 'S/OBSERVACION'`.
+7. Un registrador solo puede editar sus **propias** observaciones, pero en **cualquier estado**; editar una que no es `pendiente` la resetea a `pendiente` (`api/observations.php:172-175`).
+8. **Aprobar requiere elegir un resultado:** `api/supervision.php?action=approve` exige `estado_resultante` (`sin_observacion` → `aprobado` + `S/OBSERVACION`; `error` → `error` + `ERROR`). No hay `reject` directo (devuelve 403 por diseño); `rechazado` se alcanza vía `?action=cancel`.
+
+---
+
+## 6. Cómo trabajar con este repositorio
+
+### Instalación local
+
+```powershell
+git clone https://github.com/rogarces85/Sistema_ObservacionesV3.git
+cd Sistema_ObservacionesV3
+composer install
+```
+
+Crear `config/.env.local.php` (gitignorado, nunca subir):
+
+```php
+<?php
+return [
+    'db_host' => 'localhost',
+    'db_name' => 'observaciones_rem',
+    'db_user' => 'tu_usuario',
+    'db_pass' => 'tu_contraseña',
+    'REM_ENVIRONMENT' => 'development',
+];
+```
+
+Aplicar esquema de BD ejecutando los archivos SQL en orden (ver `README.md` sección "Instalación Local Con XAMPP"). **No usar `deploy/migrate.sh` para fresh installs.**
+
+Verificar sintaxis PHP antes de commitear:
+
+```powershell
+Get-ChildItem -Recurse -Filter *.php | ForEach-Object { php -l $_.FullName }
+```
+
+### Flujo de trabajo (rsc-harness)
+
+El proyecto tiene instalado **rsc-harness** (v4.1.5, target `deepseek`, workflow `branches`).
+
+- La rama `main` está **cerrada** para cambios directos del agente.
+- Antes de cada cambio de código, preguntar: ¿esta rama, una nueva, o `rsc main unlock`? Nunca hacer branch solo.
+- Tres carriles (lanes):
+  1. **Answer** — solo explicar/investigar, no escribir nada.
+  2. **FTD** (Fast-Track Development) — cambio ordinario: un feature document en `02-DOCS/`, checklist, evidencia, next step.
+  3. **ASDD** — cambios grandes/complejos: cadena specify → clarify → plan → tasks → analyze → implement → review → ship.
+
+### Comandos útiles de rsc
+
+```powershell
+npx @ericrisco/rsc doctor          # salud del harness
+npx @ericrisco/rsc list            # skills instaladas
+npx @ericrisco/rsc add <id>        # instalar una skill adicional
+npx @ericrisco/rsc repair          # reparar harness
+npx @ericrisco/rsc reassess        # reevaluar componentes diferidos
+```
+
+---
+
+## 7. Documentación del proyecto
+
+| Ruta | Contenido |
+|------|-----------|
+| `README.md` | Documentación general del sistema (instalación, arquitectura, historia) |
+| `CLAUDE.md` | Instrucciones técnicas para desarrollo (en inglés) |
+| `CHANGELOG.md` | Historial de cambios por versión |
+| `SECURITY.md` | Modelo de amenazas y controles de seguridad |
+| `DEPLOY.md` | Guía de despliegue a producción |
+| `OPERATIONS.md` | Runbook de operaciones y monitoreo |
+| `DESIGN.md` | Especificación de diseño visual (paleta DEIS Osorno) |
+| `PRODUCT.md` | Especificación de producto (usuarios, alcance, restricciones) |
+| `docs/spec/BASELINE.md` | Línea base autoritativa: propósito, diccionario de datos, 17 reglas de oro |
+| `docs/spec/VERDAD-ACTUAL.md` | Modelo de datos exacto, 47 reglas de negocio, matriz de autorización |
+| `docs/spec/openapi.yaml` | Contrato formal de la API (OpenAPI 3.1.0, 15 endpoints) |
+| `docs/spec/AUDITORIA-CODIGO-MUERTO.md` | Inventario de código muerto con evidencia y riesgo |
+| `02-DOCS/wiki/index.md` | Tabla de contenidos de la wiki interna |
+| `02-DOCS/wiki/sistema/resumen.md` | Resumen completo del sistema |
+| `02-DOCS/wiki/sdd/constitution.md` | Constitución del proyecto (reglas no negociables) |
+| `02-DOCS/wiki/harness/` | Configuración de rsc-harness (perfil, plan, decisiones) |
+
+> Donde `README.md` o `CLAUDE.md` discrepen con `docs/spec/`, gana `docs/spec/`.
+
+---
+
+## 8. Estructura de directorios (raíz)
+
+```
+api/             # Endpoints JSON y descargas (15 archivos)
+assets/          # CSS, JS, imágenes, librerías frontend
+config/          # Configuración BD, constantes, migraciones SQL
+includes/        # Shell compartido (header, sidebar, footer, csrf, mailer)
+models/          # Modelos PHP con SQL embebido (Database singleton)
+specs/           # Especificaciones de features (001, 002)
+tools/           # Scripts manuales (seed_demo, verify_model, etc.)
+views/           # Vistas PHP renderizadas en servidor
+02-DOCS/         # Conocimiento interno del proyecto (rsc-harness)
+01-TOOLS/        # Conexiones a herramientas externas (rsc-harness)
+.rsc/            # Motor de rsc-harness (estado de máquina)
+.rsc.json        # Configuración de rsc-harness
+```
+
+---
+
+## 9. Archivos que NO deben estar en el repositorio
+
+Ya están en `.gitignore`:
+
+- `config/.env.local.php` — credenciales de BD
+- `vendor/` — dependencias Composer
+- `uploads/` — archivos de runtime
+- `*.bak` — respaldos locales
+- `logs/`, `*.log` — registros
+- `.rsc/` — estado interno de rsc-harness (opcional compartir)
+
+---
+
+## 10. Glosario rápido
+
+| Término | Significado |
+|---------|-------------|
+| REM | Resumen Estadístico Mensual (reporte de salud) |
+| Registrador | Usuario que crea/edita observaciones |
+| Supervisor | Usuario que aprueba/cancela y gestiona usuarios |
+| Papelera | `observaciones_eliminadas` (soft delete recuperable) |
+| Delete irreversible | `permanent_delete` con `confirm_irreversible: true` |
+| Asignación temporal | Reasignación que anula la anual para un mes |
+| Asignación anual | Asignación base por establecimiento y año |
+| `codigo_hoja` | Hoja del formulario REM, obligatoria salvo `S/OBSERVACION` |
+
+---
 
 <!-- rsc-suggest:start -->
 
-# rsc-suggest — the always-on layer
+# rsc-suggest — la capa siempre activa
 
-Your body is injected at the start of **every** session and again after every compaction, so you
-are the one piece guaranteed to be present before any other skill is matched. Two jobs, in order:
+Tu cuerpo es inyectado al inicio de **cada** sesión y nuevamente después de cada compactación, así que eres la pieza garantizada de estar presente antes que cualquier otra skill sea igualada. Dos trabajos, en orden:
 
-1. **Classify every turn into one of three lanes** before anything is written.
-2. **Keep the session equipped** — spot the skill the task needs but the user does not have.
+1. **Clasificar cada turno en uno de tres carriles** antes de que se escriba algo.
+2. **Mantener la sesión equipada** — detectar la skill que la tarea necesita pero el usuario no tiene.
 
----
+## 1. El decisor: clasificar el turno antes de actuar
 
-## 1. The decisor: classify the turn before acting
+Cada turno toma uno de tres carriles, y nombras el que tomaste en una línea, en el idioma de la persona (los nombres de carril son etiquetas para traducir).
 
-Every turn takes one of three lanes, and you name the one you took in a line, in the person's
-language (the lane names are labels to translate).
+**Answer** — la solicitud pide información: explicar, comparar, investigar, auditar, revisar, recomendar. Es de solo lectura: no escribir nada, no crear artefactos, no delegar escrituras. Pedirte que *pienses* en construir algo sigue siendo este carril; solo pedir construir autoriza el cambio. Cuando la intención de cambio es ambigua, haz una pregunta y quédate aquí — la ambigüedad ralentiza el carril, nunca lo eleva.
 
-**Answer** — the request asks for information: explain, compare, investigate, audit, review,
-recommend. Read-only: write nothing, create no artifact, delegate no writer. Asking you to *think
-about* building something is still this lane; only asking to build authorises it. When change
-intent is ambiguous, ask one question and stay here — ambiguity slows the lane, never raises it.
+**Tú eliges el carril; nunca entregues esa elección a la persona.** Simple → **FTD**: un documento de característica en `02-DOCS` (intención, alcance, checklist, evidencia, siguiente paso), tareas marcadas como completadas contra prueba observada. Grande, o decisiones que se afectan entre sí → **ASDD**: entrar en la cadena; la persona aprueba el especificado y clarify, luego elige manual o autopiloto. Di cuál y por qué en una línea; cambia si se pide. → `../ftd/SKILL.md` · `../asdd/SKILL.md`.
 
-**You choose the lane; never hand that choice to the person.** Simple → **FTD**: one feature document
-in `02-DOCS` (intent, scope, checklist, evidence, next step), tasks checked off against observed proof.
-Big, or decisions that affect each other → **ASDD**: enter the chain; the person approves the spec and
-clarify, then picks manual or autopilot. Say which and why in one line; switch if asked.
-→ `../ftd/SKILL.md` · `../asdd/SKILL.md`.
+**Dónde.** Rama principal abierta (elegido al instalar, o nada complejo) → trabajar en ella, sin pregunta de rama. Cerrada («ramas y PR», CI, equipo) → antes de cada cambio de código preguntar: esta rama, una nueva, o `rsc main unlock`? Nunca hacer branch solo. Otra sesión aquí → `.worktrees/<branch>`.
 
-**Where.** Default branch open (chosen at install, or nothing complex) → work on it, no branch
-question. Closed («ramas y PR», CI, team) → before each code change ask: this branch, a new one, or
-`rsc main unlock`? Never branch alone. Another session here → `.worktrees/<branch>`.
+Juzga el **significado**, no la redacción: el disparador es semántico en cualquier idioma. Una corrección de error que restaura el comportamiento previsto es `debug`. El consentimiento de autopiloto cubre toda una ejecución — avanzar sin volver a preguntar.
 
-Judge the **meaning**, not the wording: the trigger is semantic in any language. A bug fix restoring
-intended behaviour is `debug`. Autopilot consent covers a whole run — advance without re-asking.
+¿Falta la skill del carril? Ofrecerla (§2) primero. ASDD registrado como diferido en `.rsc.json`? Ejecutar `npx @ericrisco/rsc@latest reassess`; silencioso en `RSC_REASSESSMENT_NO_CHANGE`, y en nueva evidencia mostrar el comando del plan — ASDD necesita un nuevo ID de plan aceptado, nunca agregado silenciosamente.
 
-Lane's skill missing? Offer it (§2) first. ASDD recorded as deferred in `.rsc.json`? Run
-`npx @ericrisco/rsc@latest reassess`; silent on `RSC_REASSESSMENT_NO_CHANGE`, and on new evidence
-show the plan command — ASDD needs a newly accepted plan id, never added silently.
+## 2. Mantener la sesión equipada
 
----
+Cuando la tarea necesita una capacidad que el usuario **no tiene instalado** — construir, crear, automatizar, analizar, conectar, enviar, asegurar, enseñar, gobernar o documentar algo — nombrarla y ofrecerla. Esto ocurre a mitad de la conversación, no solo al inicio del proyecto.
 
-## 2. Keeping the session equipped
+1. `npx @ericrisco/rsc catalog --available` lista cada skill no instalada como `id  disponible  descripción corta`.
+2. Elegir la mejor opción única **por significado**, como lo harías al asociar una solicitud con la experiencia de un compañero de equipo, incluso cuando no haya superposición de palabras clave. Si nada encaja genuinamente, decirlo y seguir: una sugerencia tangencial es peor que ninguna.
+3. Preguntar una vez, claramente: "Para esto instalaría `<id>`, que aún no tienes. ¿La instalo? (sí/no)".
+4. Al sí, ejecutar `npx @ericrisco/rsc add <id>`, luego continuar con la tarea original.
 
-When the task needs a capability the user has **not installed** — building, creating, automating,
-analyzing, connecting, shipping, securing, selling, teaching, governing or documenting something —
-name it and offer it. This runs mid-conversation, not only at project start.
+Una sugerencia a la vez, y nunca para interrumpir un flujo con algo opcional. Nunca recomendar algo ya instalado (`npx @ericrisco/rsc list`).
 
-1. `npx @ericrisco/rsc catalog --available` lists every not-installed skill as
-   `id  available  short description`.
-2. Pick the single best fit **by meaning**, the way you would match a request to a teammate's
-   expertise, even when no keyword overlaps. If nothing genuinely fits, say so and move on: a
-   tangential suggestion is worse than none.
-3. Ask once, plainly: "Para esto instalaría `<id>`, que aún no tienes. ¿La instalo? (sí/no)".
-4. On yes, run `npx @ericrisco/rsc add <id>`, then continue the original task.
+`npx @ericrisco/rsc consult "<tarea>"` es una **pista léxica** solo: falla en la intención en lenguaje natural y no inglesa. Su silencio nunca significa "no existe una skill"; el catálogo más tu criterio deciden.
 
-One suggestion at a time,
-and never to interrupt a flow with a nice-to-have. Never recommend something already installed
-(`npx @ericrisco/rsc list`).
+### Brecha de automatización — después del trabajo
 
-`npx @ericrisco/rsc consult "<task>"` is a **lexical** hint only: it misses natural-language and
-non-English intent. Its silence never means "no skill exists"; the catalog plus your judgment decides.
-
-### Automation gap — after the work
-
-Delivered work a repeatable **procedure**? Before proposing to *build* anything, run
-`npx @ericrisco/rsc capabilities`: covered by a skill or agent → use it, say nothing.
-Not covered → one line, skill or agent. Rules: `skill-scout`.
+¿El trabajo entregado es un **procedimiento repetible**? Antes de proponer *construir* algo, ejecutar `npx @ericrisco/rsc capabilities`: ¿cubierto por una skill o agente → usarlo, no decir nada. ¿No cubierto → una línea, skill o agente. Reglas: `skill-scout`.
 
 ---
-
-## 3. A harness that is broken fixes itself
-
-Its owner rarely notices: the symptoms name nothing they know. When any of these
-is true, act on it **once** in the session:
-
-- `.rsc.json` exists and what it declares is not what is installed;
-- the same hook seems to run several times;
-- the harness is wired for an assistant that is not the one running.
-
-Run `npx @ericrisco/rsc doctor`, and say in one line what is wrong **as a symptom**, not as
-a cause. Then:
-
-- **Nothing built** — `.rsc.json` without `.rsc/`: a clone. Name
-  `npx @ericrisco/rsc@<catalogVersion in .rsc.json> sync`, that exact version, **never** `@latest`
-  — a release nobody here adopted is drift. Ask in one line, **keep working either way**; silence
-  is not a no, `.rsc/.no-harness` is.
-- Anything that only puts the harness back to what was already declared — dangling links, a
-  repeated hook, a layout no version uses — say you are fixing it and run
-  `npx @ericrisco/rsc repair`. Restoring is not deciding, and a recoverable copy is kept.
-- Anything that would change a decision — moving to another assistant, adopting a skill a
-  teammate added, disarming a gate — **ask first**. A `git pull` never rewrites someone's
-  machine.
-
-Offer once per session; say nothing when the harness is healthy.
-
-## 4. First contact
-
-Before handling the first request of a session, check the workspace:
-
-- No `02-DOCS/wiki/harness/user-profile.md` **and** no `.rsc/.no-harness` → invoke `init` first
-  (one question: technical terms or analogies) before the task.
-- A clone (`.rsc.json` committed) is not first contact: ask that once, in one line, then continue
-  with their task; with `.rsc/.profile-offered`, never again.
-- The user declines a harness here ("sin harness", "solo código") → create an empty
-  `.rsc/.no-harness`, confirm in one line, and never auto-start `init` in this repo again.
-- With a profile, this gate is inert. Never re-onboard.
-
-## 5. «Recuerda esto»
-
-A project or business fact goes to its topic page in `02-DOCS/wiki/` (link a new page from
-`wiki/index.md`); say the path. Your own memory sits outside the project, unseen by person and
-team: keep there only how this person likes you to work (or all, without `02-DOCS/`).
-
-## Explain without assuming
-
-Define a term at first use; never give a command, flag or path without saying what it does.
-
-## Orientación (siempre)
-
-Habla con la voz de `orient`: frases cortas, una idea por frase, al grano, y cada respuesta se entiende sola. Registro técnico o con analogías según `technical_level` en `02-DOCS/wiki/harness/user-profile.md`. Cierra cada turno con el **bloque-brújula** (📍 dónde estás · ➡️ siguiente, terminando en pregunta; ✅ y 🧭 cuando hay algo hecho o decidido). **Nunca termines en seco.** Protocolo completo: skill `orient` → `skills/orient/references/orientation-contract.md`. (Defiere a §2 el "¿instalo la skill que falta?".)
-
-**rsc updates.** Claude Code, Codex, Gemini CLI, Cursor and OpenCode check for a new rsc on their own. In any other assistant, run `node .rsc/auto-update.mjs` once on the first turn of a session and relay any notice it prints in one line; "up to date" needs no mention.
 
 <!-- rsc-suggest:end -->
+
+---
+
+**📍 Dónde estás:** AGENTS.md del Sistema de Observaciones REM — documentación completa y actualizada.
+
+**➡️ Siguiente:** revisar que los archivos borrados (`faltantes.md`, `SUBIR-A-GITHUB.md`, `SUBIR-A-GITHUB.ps1`) no se extrañen, y confirmar si quieres que actualice también `README.md` con el estado actual de rsc-harness y la eliminación del módulo Versionado.
