@@ -127,7 +127,7 @@ class Exporter
             $sheet->getStyle($col . $row)->getFont()->setBold(true);
             $sheet->getStyle($col . $row)->getFill()
                 ->setFillType(Fill::FILL_SOLID)
-                ->getStartColor()->setARGB('FF4B5563');
+                ->getStartColor()->setARGB(self::COLOR_NAVY_ARGB);
             $sheet->getStyle($col . $row)->getFont()->getColor()->setARGB('FFFFFFFF');
             $sheet->getStyle($col . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
             $col++;

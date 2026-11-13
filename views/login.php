@@ -15,7 +15,6 @@ $initialTheme = in_array($initialTheme, ['light', 'dark'], true) ? $initialTheme
 
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.21.0/dist/tabler-icons.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.4.0/dist/css/tabler.min.css">
-    <link rel="stylesheet" href="assets/css/styles.css">
     <link rel="stylesheet" href="assets/css/tokens.css">
     <link rel="stylesheet" href="assets/css/tabler-override.css">
 </head>
@@ -218,11 +217,6 @@ $initialTheme = in_array($initialTheme, ['light', 'dark'], true) ? $initialTheme
                 loginBtnIcon.className = 'ti ti-arrow-right';
             }
         }
-
-        // Tiny inline style for spinning icon (avoids depending on tabler.min.js)
-        const styleEl = document.createElement('style');
-        styleEl.textContent = '.spin { animation: rem-spin 0.8s linear infinite; }';
-        document.head.appendChild(styleEl);
-    </script>
+    }
 </body>
 </html>

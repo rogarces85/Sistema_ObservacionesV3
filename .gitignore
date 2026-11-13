@@ -47,6 +47,7 @@ desktop.ini
 
 # Scripts con credenciales (no commitear)
 run_migrations.php
+SUBIR-GITHUB.ps1
 
 # rsc local state (hooks, seals, logs) and managed skill links — machine-local
 .rsc/

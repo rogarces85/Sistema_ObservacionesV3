@@ -80,18 +80,18 @@ $comunas = $locationModel->getComunas();
                 <label class="form-label">Mes</label>
                 <select id="filterMes" class="form-select">
                     <option value="">Todos</option>
-                    <option value="Enero">Enero</option>
-                    <option value="Febrero">Febrero</option>
-                    <option value="Marzo">Marzo</option>
-                    <option value="Abril">Abril</option>
-                    <option value="Mayo">Mayo</option>
-                    <option value="Junio">Junio</option>
-                    <option value="Julio">Julio</option>
-                    <option value="Agosto">Agosto</option>
-                    <option value="Septiembre">Septiembre</option>
-                    <option value="Octubre">Octubre</option>
-                    <option value="Noviembre">Noviembre</option>
-                    <option value="Diciembre">Diciembre</option>
+                    <option value="Enero">Enero (1)</option>
+                    <option value="Febrero">Febrero (2)</option>
+                    <option value="Marzo">Marzo (3)</option>
+                    <option value="Abril">Abril (4)</option>
+                    <option value="Mayo">Mayo (5)</option>
+                    <option value="Junio">Junio (6)</option>
+                    <option value="Julio">Julio (7)</option>
+                    <option value="Agosto">Agosto (8)</option>
+                    <option value="Septiembre">Septiembre (9)</option>
+                    <option value="Octubre">Octubre (10)</option>
+                    <option value="Noviembre">Noviembre (11)</option>
+                    <option value="Diciembre">Diciembre (12)</option>
                 </select>
             </div>
 

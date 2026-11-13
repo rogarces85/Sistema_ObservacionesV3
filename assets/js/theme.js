@@ -80,61 +80,45 @@
     }
   }
 
-  /* === Sidebar mini-variant (desktop) === */
-  function applySidebar(state) {
-    const page = document.querySelector('.page');
-    if (!page) return;
-    if (state === 'mini') {
-      page.setAttribute('data-sidebar', 'mini');
-    } else {
-      page.setAttribute('data-sidebar', 'full');
-    }
-    try {
-      localStorage.setItem(SIDEBAR_KEY, state);
-    } catch (e) { /* ignore */ }
+  /* === Sidebar mini-variant (desktop) ===
+   100% CSS-driven via .page[data-sidebar="mini"] .navbar-vertical:hover
+   in assets/css/tabler-override.css. No hay JS inline que pise estilos.
+*/
+function applySidebar(state) {
+  const page = document.querySelector('.page');
+  if (!page) return;
+  if (state === 'mini') {
+    page.setAttribute('data-sidebar', 'mini');
+  } else {
+    page.setAttribute('data-sidebar', 'full');
+  }
+  try {
+    localStorage.setItem(SIDEBAR_KEY, state);
+  } catch (e) { /* ignore */ }
+}
+
+function initSidebar() {
+  let stored = null;
+  try {
+    stored = localStorage.getItem(SIDEBAR_KEY);
+  } catch (e) { /* ignore */ }
+  if (stored === 'mini' || stored === 'full') {
+    applySidebar(stored);
   }
 
-  function initSidebar() {
-    let stored = null;
-    try {
-      stored = localStorage.getItem(SIDEBAR_KEY);
-    } catch (e) { /* ignore */ }
-    if (stored === 'mini' || stored === 'full') {
-      applySidebar(stored);
-    }
-
-    // Mobile toggle
-    const mobileToggle = document.querySelector('.sidebar-toggle');
-    if (mobileToggle) {
-      mobileToggle.addEventListener('click', function () {
-        body.classList.toggle('sidebar-mobile-open');
-      });
-    }
-
-    // Hover to mini-variant on desktop
-    const sidebar = document.getElementById('sidebarMain');
-    if (sidebar && window.matchMedia('(min-width: 992px)').matches) {
-      let leaveTimer = null;
-      sidebar.addEventListener('mouseenter', function () {
-        if (leaveTimer) clearTimeout(leaveTimer);
-        const current = document.querySelector('.page')?.getAttribute('data-sidebar');
-        if (current === 'mini') {
-          sidebar.style.transition = 'width var(--rem-transition-base)';
-          sidebar.style.width = 'var(--tblr-sidebar-width)';
-        }
-      });
-      sidebar.addEventListener('mouseleave', function () {
-        leaveTimer = setTimeout(function () {
-          const current = document.querySelector('.page')?.getAttribute('data-sidebar');
-          if (current === 'mini' && sidebar) {
-            sidebar.style.width = '';
-          }
-        }, 200);
-      });
-    }
+  // Mobile toggle
+  const mobileToggle = document.querySelector('.sidebar-toggle');
+  if (mobileToggle) {
+    mobileToggle.addEventListener('click', function () {
+      body.classList.toggle('sidebar-mobile-open');
+    });
   }
 
-  /* === Global search filter === */
+  // NOTA: el hover-expand del mini-variant es 100% CSS
+  // (ver tabler-override.css `.page[data-sidebar="mini"] .navbar-vertical:hover`).
+}
+
+/* === Global search filter === */
   function initGlobalSearch() {
     const input = document.getElementById('globalSearchInput');
     const results = document.getElementById('globalSearchResults');

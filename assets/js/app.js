@@ -80,16 +80,12 @@ function getCsrfToken() {
 // Loading state
 function showLoading(containerId = 'loading-overlay') {
     const overlay = document.getElementById(containerId);
-    if (overlay) {
-        overlay.classList.remove('hidden');
-    }
+    if (overlay) overlay.classList.remove('loading-overlay--hidden');
 }
 
 function hideLoading(containerId = 'loading-overlay') {
     const overlay = document.getElementById(containerId);
-    if (overlay) {
-        overlay.classList.add('hidden');
-    }
+    if (overlay) overlay.classList.add('loading-overlay--hidden');
 }
 
 // Mostrar mensajes de éxito/error - usando toasts nativos de Bootstrap 5
@@ -107,10 +103,10 @@ function showMessage(message, type = 'success') {
 
 function _showToast(message, type) {
     const config = {
-        success: { bg: 'bg-success', icon: '✓' },
-        error: { bg: 'bg-danger', icon: '✕' },
-        warning: { bg: 'bg-warning', icon: '⚠' },
-        info: { bg: 'bg-info', icon: 'ℹ' }
+        success: { bg: 'bg-success', icon: '<i class="ti ti-circle-check"></i>' },
+        error: { bg: 'bg-danger', icon: '<i class="ti ti-circle-x"></i>' },
+        warning: { bg: 'bg-warning', icon: '<i class="ti ti-alert-triangle"></i>' },
+        info: { bg: 'bg-info', icon: '<i class="ti ti-info-circle"></i>' }
     };
     const c = config[type] || config.info;
     const autohide = type !== 'error';

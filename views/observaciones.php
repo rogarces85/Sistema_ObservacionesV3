@@ -102,9 +102,9 @@ global $TIPOS_ERROR, $MESES;
                     <label class="form-label" for="filterMes">Mes</label>
                     <select id="filterMes" class="form-select" onchange="filterTable()">
                         <option value="">Todos los meses</option>
-                        <?php foreach ($MESES as $mes): ?>
+                        <?php foreach ($MESES as $idx => $mes): ?>
                             <option value="<?php echo $mes; ?>">
-                                <?php echo $mes; ?>
+                                <?php echo $mes; ?> (<?php echo $idx + 1; ?>)
                             </option>
                         <?php endforeach; ?>
                     </select>
